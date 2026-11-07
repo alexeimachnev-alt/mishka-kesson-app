@@ -14,18 +14,15 @@ if not TELEGRAM_BOT_TOKEN:
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 app = Flask(__name__)
 
-# Эндпоинты для проверки здоровья и пингатора
 @app.route("/")
 @app.route("/health")
 def health_check():
     return "Mishka MiniApp Backend is alive and running!", 200
 
-# Отдача HTML-страницы Mini App
 @app.route("/app")
 def serve_webapp():
     return render_template("app.html")
 
-# Приём заказа из Mini App (Кессон или Септик)
 @app.route("/api/miniapp_order", methods=["POST"])
 def handle_miniapp_order():
     try:
@@ -39,23 +36,32 @@ def handle_miniapp_order():
             "worker_tag": f"@{data.get('username')}" if data.get('username') else "нет username",
             "worker_name": data.get("first_name", "Монтажник"),
             "chat_id": user_id,
-            # Параметры скважины
+            # Скважина
             "depth": data.get("depth", 40),
             "yield_flow": data.get("yield_flow", 2.5),
             "houses": data.get("houses", 1),
             "distances": data.get("distances", [15]),
             "chosen_kesson": data.get("chosen_kesson", "auto"),
-            # Параметры септика
+            # Септик
             "users": data.get("users", 5),
             "discharge": data.get("discharge", "gravity"),
             "distance": data.get("distance", 10),
-            "chosen_septic": data.get("chosen_septic", "auto")
+            "chosen_septic": data.get("chosen_septic", "auto"),
+            # Дренаж
+            "drain_type": data.get("drain_type", "softrock"),
+            "drain_length": data.get("drain_length", 50),
+            "drain_wells": data.get("drain_wells", 3),
+            # Ливнёвка
+            "storm_inlets": data.get("storm_inlets", 4),
+            "storm_length": data.get("storm_length", 30),
+            "storm_wells": data.get("storm_wells", 2),
+            "storm_discharge": data.get("storm_discharge", "ditch")
         }
 
-        # Генерация подробной сметы с ценами
+        # Генерация сметы
         checklist = build_warehouse_checklist(session_data)
 
-        # 1. Отправка администраторам (551209811 и 447208738)
+        # 1. Отправка обоим администраторам (551209811 и 447208738)
         send_to_all_admins(bot, checklist)
 
         # 2. Отправка сметы заказчику/монтажнику в чат Telegram
@@ -70,18 +76,21 @@ def handle_miniapp_order():
         print(f"[ERROR API] {e}")
         return jsonify({"error": str(e)}), 500
 
-# Команда /start с вызовом Mini App
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     render_url = os.getenv("RENDER_EXTERNAL_URL", "https://mishka-kesson-app.onrender.com").rstrip("/")
     kb = tele_types.InlineKeyboardMarkup()
     web_app_info = tele_types.WebAppInfo(url=f"{render_url}/app")
-    kb.add(tele_types.InlineKeyboardButton("📱 Открыть склад МИШКА (Кессоны и Септики)", web_app=web_app_info))
+    kb.add(tele_types.InlineKeyboardButton("📱 Открыть склад МИШКА (Все системы)", web_app=web_app_info))
 
     bot.reply_to(
         message,
         "👋 <b>Склад завода «МИШКА»</b>\n\n"
-        "Нажмите кнопку ниже, чтобы выбрать оборудование (кессоны для скважин или станции септиков) и сформировать смету комплекта к отгрузке:",
+        "Нажмите кнопку ниже, чтобы открыть калькулятор и собрать смету:\n"
+        "• Кессоны и обустройство скважины\n"
+        "• Септики и канализация\n"
+        "• Дренаж участка (Софтрок или классика)\n"
+        "• Подземная ливнёвка от дома",
         reply_markup=kb,
         parse_mode="HTML"
     )
@@ -110,8 +119,7 @@ def run_telebot():
             time.sleep(3)
 
 def keep_alive_ping():
-    """Фоновый пингатор: стучится на сервер каждые 9 минут, чтобы Render не засыпал."""
-    time.sleep(40)  # Даём сервису полностью стартовать
+    time.sleep(40)
     render_url = os.getenv("RENDER_EXTERNAL_URL", "https://mishka-kesson-app.onrender.com").rstrip("/")
     ping_url = f"{render_url}/health"
     print(f"[PINGATOR] Запущен автопинг для: {ping_url}")
@@ -122,15 +130,12 @@ def keep_alive_ping():
             print(f"[PINGATOR] Успешный пинг на {ping_url} (Статус: {res.status_code})")
         except Exception as err:
             print(f"[PINGATOR] Ошибка при автопинге: {err}")
-        # Пингуем каждые 540 секунд (9 минут), тайм-аут сна Render — 15 минут
         time.sleep(540)
 
 if __name__ == "__main__":
-    # Запуск бота в отдельном потоке
     t_bot = threading.Thread(target=run_telebot, daemon=True)
     t_bot.start()
 
-    # Запуск внутреннего пингатора в отдельном потоке
     t_ping = threading.Thread(target=keep_alive_ping, daemon=True)
     t_ping.start()
 
