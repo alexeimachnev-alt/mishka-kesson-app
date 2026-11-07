@@ -140,20 +140,35 @@ def get_items_for_order(data: dict):
         total_pipe_run = pump_depth + max_dist
         req_head = int(pump_depth + (total_pipe_run * 0.10) + 35)
 
-        if req_head <= 60: pump_name, pump_p = "Насос скважинный (до 65 м)", PRICES["pump_60"]
-        elif req_head <= 85: pump_name, pump_p = "Насос скважинный (до 90 м)", PRICES["pump_85"]
-        elif req_head <= 110: pump_name, pump_p = "Насос усиленный (до 115 м)", PRICES["pump_110"]
-        else: pump_name, pump_p = "Насос высоконапорный (120+ м)", PRICES["pump_120"]
-
-        if "Мишка 1" in selected_kesson: k_name, k_p = "Кессон «МИШКА-1» (Ø1050)", PRICES["kesson_m1"]
-        elif "Мишка 2" in selected_kesson: k_name, k_p = "Кессон «МИШКА-2» (Ø1300)", PRICES["kesson_m2"]
-        elif "Мишка 3" in selected_kesson: k_name, k_p = "Кессон «МИШКА-3» (Ø1600)", PRICES["kesson_m3"]
-        elif "Мишка 4" in selected_kesson: k_name, k_p = "Кессон «МИШКА-4» (Ø2100)", PRICES["kesson_m4"]
-        elif "LONG" in selected_kesson: k_name, k_p = "Кессон «МИШКА LONG» (H=2500)", PRICES["kesson_long"]
+        if req_head <= 60:
+            pump_name, pump_p = "Насос скважинный (до 65 м)", PRICES["pump_60"]
+        elif req_head <= 85:
+            pump_name, pump_p = "Насос скважинный (до 90 м)", PRICES["pump_85"]
+        elif req_head <= 110:
+            pump_name, pump_p = "Насос усиленный (до 115 м)", PRICES["pump_110"]
         else:
-            k_name, k_p = ("Кессон «МИШКА-2» (1000х2000)", PRICES["kesson_m2"]) if houses == 1 else (f"Кессон «МИШКА-3» ({houses} вывода)", PRICES["kesson_m3"])
+            pump_name, pump_p = "Насос высоконапорный (120+ м)", PRICES["pump_120"]
 
-        tank_name, tank_p = ("Гидроаккумулятор 80-100 л", PRICES["tank_80"]) if houses == 1 else ("Гидроаккумулятор 150-200 л", PRICES["tank_150"])
+        if "Мишка 1" in selected_kesson:
+            k_name, k_p = "Кессон «МИШКА-1» (Ø1050)", PRICES["kesson_m1"]
+        elif "Мишка 2" in selected_kesson:
+            k_name, k_p = "Кессон «МИШКА-2» (Ø1300)", PRICES["kesson_m2"]
+        elif "Мишка 3" in selected_kesson:
+            k_name, k_p = "Кессон «МИШКА-3» (Ø1600)", PRICES["kesson_m3"]
+        elif "Мишка 4" in selected_kesson:
+            k_name, k_p = "Кессон «МИШКА-4» (Ø2100)", PRICES["kesson_m4"]
+        elif "LONG" in selected_kesson:
+            k_name, k_p = "Кессон «МИШКА LONG» (H=2500)", PRICES["kesson_long"]
+        else:
+            if houses == 1:
+                k_name, k_p = "Кессон «МИШКА-2» (1000х2000)", PRICES["kesson_m2"]
+            else:
+                k_name, k_p = f"Кессон «МИШКА-3» ({houses} вывода)", PRICES["kesson_m3"]
+
+        if houses == 1:
+            tank_name, tank_p = "Гидроаккумулятор 80-100 л", PRICES["tank_80"]
+        else:
+            tank_name, tank_p = "Гидроаккумулятор 150-200 л", PRICES["tank_150"]
 
         pnd_m = int((pump_depth * 1.05) + (total_dist * 1.05) + (houses * 4))
         cable_m = int((pump_depth + 5) * 1.1)
@@ -183,9 +198,12 @@ def get_items_for_order(data: dict):
         discharge = data.get("discharge", "gravity")
         chosen = data.get("chosen_septic", "auto")
 
-        if "Био 3" in chosen: s_n, s_p = "Станция «МИШКА-Био 3»", PRICES["septic_bio3"]
-        elif "Био 8" in chosen: s_n, s_p = "Станция «МИШКА-Био 8»", PRICES["septic_bio8"]
-        else: s_n, s_p = "Станция «МИШКА-Био 5»", PRICES["septic_bio5"]
+        if "Био 3" in chosen:
+            s_n, s_p = "Станция «МИШКА-Био 3»", PRICES["septic_bio3"]
+        elif "Био 8" in chosen:
+            s_n, s_p = "Станция «МИШКА-Био 8»", PRICES["septic_bio8"]
+        else:
+            s_n, s_p = "Станция «МИШКА-Био 5»", PRICES["septic_bio5"]
 
         pipe_m = int(dist * 1.05)
         items = [
@@ -214,3 +232,112 @@ def get_items_for_order(data: dict):
                 {"name": "Соединительные муфты Софтрок", "qty": int(length // 3) + 1, "unit": "шт.", "price": PRICES["softrock_coupling"]}
             ]
         else:
+            items = [
+                {"name": "Труба дренажная 110 с фильтром", "qty": length, "unit": "м", "price": PRICES["drain_pipe_classic"]},
+                {"name": "Геотекстиль Дорнит (рулон 2х50м)", "qty": max(1, int(length // 45) + 1), "unit": "рул.", "price": PRICES["geotextile_roll"]}
+            ]
+        items.extend([
+            {"name": "Колодец смотровой d315 + люк + дно", "qty": wells, "unit": "шт.", "price": PRICES["well_drain_315"]},
+            {"name": "Муфты врезки 110 в колодец 315", "qty": wells * 2, "unit": "шт.", "price": PRICES["well_drain_coupling"]}
+        ])
+
+    elif mode == "storm":
+        inlets = data.get("storm_inlets", 4)
+        length = data.get("storm_length", 30)
+        wells = data.get("storm_wells", 2)
+        discharge = data.get("storm_discharge", "ditch")
+
+        items = [
+            {"name": "Дождеприёмник 300х300 с корзиной и решёткой", "qty": inlets, "unit": "шт.", "price": PRICES["storm_inlet_box"]},
+            {"name": "Труба ПВХ рыжая 110х3.2 наружная", "qty": int(length * 1.05), "unit": "м", "price": PRICES["storm_pipe110"]},
+            {"name": "Отводы 110х45° рыжие", "qty": inlets * 2 + wells * 2, "unit": "шт.", "price": PRICES["elbow110_45"]},
+            {"name": "Тройники 110х110х87° рыжие", "qty": max(1, inlets - 1), "unit": "шт.", "price": PRICES["tee110"]},
+            {"name": "Колодец поворотный d315 с люком", "qty": wells, "unit": "шт.", "price": PRICES["storm_well_315"]}
+        ]
+        if discharge == "ditch":
+            items.append({"name": "Клапан обратный 110 против подпора", "qty": 1, "unit": "шт.", "price": PRICES["storm_back_valve"]})
+
+    for k, q in extras.items():
+        if k in EXTRA_ITEMS and q > 0:
+            e = EXTRA_ITEMS[k]
+            items.append({"name": f"[Доп] {e['name']}", "qty": q, "unit": e["unit"], "price": e["price"]})
+
+    return items
+
+def build_order_payload(data: dict):
+    order_id = str(uuid.uuid4())[:8]
+    items = get_items_for_order(data)
+    
+    total_sum = 0
+    lines = []
+    for it in items:
+        subtotal = int(it["qty"] * it["price"])
+        total_sum += subtotal
+        qty_str = f"{it['qty']:g}" if isinstance(it["qty"], float) else str(it["qty"])
+        lines.append(f"• <b>{it['name']}</b>\n   └ {qty_str} {it['unit']} × {it['price']:,} ₽ = <b>{subtotal:,} ₽</b>".replace(",", " "))
+
+    ACTIVE_ORDERS[order_id] = {
+        "client_id": data.get("chat_id"),
+        "client_name": data.get("worker_name", "Заказчик"),
+        "phone": data.get("phone", "Не указан"),
+        "delivery_type": data.get("delivery_type", "Самовывоз"),
+        "delivery_info": data.get("delivery_info", "-"),
+        "raw_data": data,
+        "items": items,
+        "collected": [False] * len(items),
+        "total_sum": total_sum,
+        "status": "active"
+    }
+
+    sync_to_google_sheet(order_id, data, total_sum)
+
+    phone = data.get("phone", "Не указан")
+    items_block = "\n".join(lines)
+    header = (
+        f"🧾 <b>НОВЫЙ ЗАКАЗ #{order_id} «МИШКА»</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👷 <b>Заказчик:</b> {data.get('worker_name')} ({data.get('worker_tag')})\n"
+        f"📞 <b>Телефон:</b> <a href='tel:{phone}'>{phone}</a>\n"
+        f"🚚 <b>Получение:</b> {data.get('delivery_type')} ({data.get('delivery_info')})\n"
+        f"🆔 ID клиента: <code>{data.get('chat_id')}</code>\n\n"
+        f"📦 <b>СПЕЦИФИКАЦИЯ:</b>\n\n"
+        f"{items_block}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 <b>ИТОГО К ОПЛАТЕ: {total_sum:,} ₽</b>"
+    ).replace(",", " ")
+
+    return order_id, header, total_sum
+
+def make_warehouse_keyboard(order_id: str):
+    order = ACTIVE_ORDERS.get(order_id)
+    if not order:
+        return None
+
+    kb = types.InlineKeyboardMarkup(row_width=1)
+    
+    if order.get("status") == "cancelled":
+        kb.add(types.InlineKeyboardButton("❌ ЗАКАЗ ОТМЕНЁН", callback_data="none"))
+        return kb
+
+    if order.get("status") == "completed":
+        kb.add(types.InlineKeyboardButton("🎉 ЗАКАЗ СОБРАН И ВЫДАН", callback_data="none"))
+        return kb
+
+    for idx, (item, is_done) in enumerate(zip(order["items"], order["collected"])):
+        mark = "🟢" if is_done else "⬜"
+        qty_str = f"{item['qty']:g}" if isinstance(item['qty'], float) else str(item['qty'])
+        short_name = (item['name'][:22] + "..") if len(item['name']) > 22 else item['name']
+        btn_text = f"{mark} {idx+1}. {short_name} ({qty_str} {item['unit']})"
+        kb.add(types.InlineKeyboardButton(btn_text, callback_data=f"chk_{order_id}_{idx}"))
+
+    all_done = all(order["collected"])
+    finish_icon = "🚀" if all_done else "📦"
+    kb.add(types.InlineKeyboardButton(f"{finish_icon} ЗАКАЗ ПОЛНОСТЬЮ СОБРАН", callback_data=f"fin_{order_id}"))
+
+    row_ctrl = [
+        types.InlineKeyboardButton("❌ Отменить", callback_data=f"cancel_{order_id}"),
+        types.InlineKeyboardButton("✏️ Корректировка", callback_data=f"edit_{order_id}")
+    ]
+    kb.row(*row_ctrl)
+
+    return kb
