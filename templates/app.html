@@ -70,7 +70,7 @@
       background: var(--btn); color: var(--btn-text); font-size: 1.05rem;
       font-weight: 700; margin: 12px 0 24px; cursor: pointer;
     }
-    .phone-card {
+    .highlight-card {
       border: 1.5px solid var(--btn) !important;
     }
   </style>
@@ -79,7 +79,7 @@
 
   <h2 id="uiTitle">📦 Склад оборудования «МИШКА»</h2>
 
-  <!-- Вкладки 4-х систем -->
+  <!-- 4 вкладки -->
   <div class="tab-grid">
     <div class="tab-btn active" id="btnTabWell" onclick="selectTab('well')">💧 Скважина / Кессон</div>
     <div class="tab-btn" id="btnTabSeptic" onclick="selectTab('septic')">☣️ Септик / Слив</div>
@@ -249,9 +249,30 @@
     </div>
   </div>
 
+  <!-- ЛОГИСТИКА: САМОВЫВОЗ ИЛИ ДОСТАВКА -->
+  <div class="card highlight-card">
+    <label id="lblLogistics">🚚 Способ получения заказа</label>
+    <select id="logisticsType" onchange="toggleLogisticsFields()">
+      <option value="pickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
+      <option value="delivery">🚛 Доставка на объект заказчика</option>
+    </select>
+
+    <div id="pickupBox" style="margin-top: 8px;">
+      <label id="lblPickupTime">Дата и время приезда на склад</label>
+      <input type="text" id="pickupDateTime" placeholder="Сегодня к 15:30 или завтра утром">
+    </div>
+
+    <div id="deliveryBox" style="display: none; margin-top: 8px;">
+      <label id="lblDeliveryAddress">Точный адрес доставки или координаты</label>
+      <input type="text" id="deliveryAddress" placeholder="МО, Дмитровский р-н, д. Подосинки...">
+      <label id="lblDeliveryTime" style="margin-top: 6px;">Желаемое время доставки</label>
+      <input type="text" id="deliveryTime" placeholder="Завтра с 10:00 до 14:00">
+    </div>
+  </div>
+
   <!-- ТЕЛЕФОН -->
-  <div class="card phone-card">
-    <label id="lblPhone">📞 Номер телефона для связи и бронирования</label>
+  <div class="card highlight-card">
+    <label id="lblPhone">📞 Номер телефона для связи</label>
     <input type="tel" id="contactPhone" placeholder="+7 (900) 000-00-00">
   </div>
 
@@ -294,8 +315,13 @@
         lblStormWells: "Колодцев (шт.)",
         lblStormDischarge: "Сброс воды",
         lblExtrasStorm: "Расходники для ливнёвки",
-        lblPhone: "📞 Номер телефона для связи и бронирования",
+        lblLogistics: "🚚 Способ получения заказа",
+        lblPickupTime: "Дата и время приезда на склад",
+        lblDeliveryAddress: "Точный адрес доставки",
+        lblDeliveryTime: "Желаемое время доставки",
+        lblPhone: "📞 Номер телефона для связи",
         errPhone: "⚠️ Пожалуйста, укажите ваш номер телефона для связи!",
+        errDelivery: "⚠️ Укажите адрес доставки оборудования!",
         btnSubmit: "🚀 Отправить заказ на склад",
         unitM: "м",
         unitPcs: "шт.",
@@ -352,8 +378,13 @@
         lblStormWells: "Чоҳҳо (дона)",
         lblStormDischarge: "Ҷои партови об",
         lblExtrasStorm: "Мавод барои оброҳа",
+        lblLogistics: "🚚 Тарзи гирифтани мол",
+        lblPickupTime: "Вақти омадан ба анбор",
+        lblDeliveryAddress: "Суроғаи бурдан",
+        lblDeliveryTime: "Вақти расонидан",
         lblPhone: "📞 Рақами телефон барои тамос",
         errPhone: "⚠️ Лутфан рақами телефони худро нависед!",
+        errDelivery: "⚠️ Суроғаи расониданро нависед!",
         btnSubmit: "🚀 Фармоишро ба анбор фиристед",
         unitM: "м",
         unitPcs: "дона",
@@ -410,8 +441,13 @@
         lblStormWells: "Quduqlar (dona)",
         lblStormDischarge: "Suv tashlash joyi",
         lblExtrasStorm: "Yomg'ir tizimi materiallari",
+        lblLogistics: "🚚 Buyurtmani olish usuli",
+        lblPickupTime: "Omborga kelish vaqti",
+        lblDeliveryAddress: "Yetkazib berish manzili",
+        lblDeliveryTime: "Yetkazish vaqti",
         lblPhone: "📞 Bog'lanish uchun telefon raqami",
         errPhone: "⚠️ Iltimos telefon raqamingizni kiriting!",
+        errDelivery: "⚠️ Yetkazib berish manzilini kiriting!",
         btnSubmit: "🚀 Buyurtmani omborga yuborish",
         unitM: "m",
         unitPcs: "dona",
@@ -468,8 +504,13 @@
         lblStormWells: "Հորեր (հատ)",
         lblStormDischarge: "Արտահոսքի կետ",
         lblExtrasStorm: "Անձրևաջրերի նյութեր",
+        lblLogistics: "🚚 Ստանալու եղանակը",
+        lblPickupTime: "Պահեստ գալու ժամը",
+        lblDeliveryAddress: "Առաքման հասցե",
+        lblDeliveryTime: "Առաքման ժամ",
         lblPhone: "📞 Հեռախոսահամար կապի համար",
         errPhone: "⚠️ Խնդրում ենք նշել Ձեր հեռախոսահամարը:",
+        errDelivery: "⚠️ Նշեք առաքման հասցեն:",
         btnSubmit: "🚀 Ուղարկել պատվերը պահեստ",
         unitM: "մ",
         unitPcs: "հատ",
@@ -526,8 +567,13 @@
         lblStormWells: "Кудуктар (даана)",
         lblStormDischarge: "Суу чыгаруу жери",
         lblExtrasStorm: "Ливнёвка материалдары",
+        lblLogistics: "🚚 Алуу ыкмасы",
+        lblPickupTime: "Кампага келүү убактысы",
+        lblDeliveryAddress: "Жеткирүү дареги",
+        lblDeliveryTime: "Жеткирүү убактысы",
         lblPhone: "📞 Байланыш үчүн телефон номери",
         errPhone: "⚠️ Байланыш үчүн телефон номериңизди жазыңыз!",
+        errDelivery: "⚠️ Жеткирүү дарегин жазыңыз!",
         btnSubmit: "🚀 Заказды кампага жөнөтүү",
         unitM: "м",
         unitPcs: "даана",
@@ -591,7 +637,6 @@
 
     function selectTab(mode) {
       activeTab = mode;
-      
       const tabMap = {
         well: { btn: 'btnTabWell', sec: 'secWell' },
         septic: { btn: 'btnTabSeptic', sec: 'secSeptic' },
@@ -605,6 +650,12 @@
         if (b) b.classList.toggle('active', k === mode);
         if (s) s.style.display = (k === mode) ? 'block' : 'none';
       }
+    }
+
+    function toggleLogisticsFields() {
+      const isDelivery = document.getElementById('logisticsType').value === 'delivery';
+      document.getElementById('pickupBox').style.display = isDelivery ? 'none' : 'block';
+      document.getElementById('deliveryBox').style.display = isDelivery ? 'block' : 'none';
     }
 
     function onLanguageChanged() {
@@ -652,7 +703,11 @@
       safeSetText('lblStormDischarge', t.lblStormDischarge);
       safeSetText('lblExtrasStorm', t.lblExtrasStorm);
 
-      // Телефон и кнопка
+      // Логистика и контакты
+      safeSetText('lblLogistics', t.lblLogistics);
+      safeSetText('lblPickupTime', t.lblPickupTime);
+      safeSetText('lblDeliveryAddress', t.lblDeliveryAddress);
+      safeSetText('lblDeliveryTime', t.lblDeliveryTime);
       safeSetText('lblPhone', t.lblPhone);
       safeSetText('btnSubmit', t.btnSubmit);
 
@@ -744,6 +799,22 @@
         return;
       }
 
+      const logisticsType = document.getElementById('logisticsType').value;
+      let deliveryDetails = "";
+
+      if (logisticsType === 'pickup') {
+        deliveryDetails = document.getElementById('pickupDateTime').value.trim() || "Самовывоз (время уточняется)";
+      } else {
+        const addr = document.getElementById('deliveryAddress').value.trim();
+        if (!addr) {
+          if (tg) { tg.showAlert(t.errDelivery); } else { alert(t.errDelivery); }
+          document.getElementById('deliveryAddress').focus();
+          return;
+        }
+        const dTime = document.getElementById('deliveryTime').value.trim() || "В течение дня";
+        deliveryDetails = `Адрес: ${addr} | Время: ${dTime}`;
+      }
+
       const activeExtras = {};
       for (let k in userQuantities) {
         if (userQuantities[k] > 0) activeExtras[k] = userQuantities[k];
@@ -753,6 +824,8 @@
         mode: activeTab,
         lang: lang,
         phone: phone,
+        delivery_type: logisticsType === 'delivery' ? 'Доставка на объект' : 'Самовывоз со склада',
+        delivery_info: deliveryDetails,
         extras: activeExtras,
         user_id: tg?.initDataUnsafe?.user?.id || 0,
         username: tg?.initDataUnsafe?.user?.username || "",
@@ -815,7 +888,6 @@
       }
     }
 
-    // Инициализация при старте
     onLanguageChanged();
   </script>
 </body>
