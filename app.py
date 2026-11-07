@@ -65,18 +65,15 @@ def handle_miniapp_order():
             "storm_discharge": data.get("storm_discharge", "ditch")
         }
 
-        # Смета и регистрация заказа
         order_id, estimate_text, total_sum = build_order_payload(session_data)
         kb_admin = make_warehouse_keyboard(order_id)
 
-        # 1. Отправка администраторам склада
         for a_id in ADMIN_CHAT_IDS:
             try:
                 bot.send_message(a_id, estimate_text, parse_mode="HTML", reply_markup=kb_admin)
             except Exception as e:
                 print(f"[ERR ADMIN SEND] {a_id}: {e}")
 
-        # 2. Отправка подтверждения клиенту с маршрутом и кнопкой повтора
         if user_id:
             try:
                 kb_client = tele_types.InlineKeyboardMarkup(row_width=1)
@@ -100,12 +97,10 @@ def handle_miniapp_order():
         print(f"[ERROR API] {e}")
         return jsonify({"error": str(e)}), 500
 
-# Обработчик кнопок комплектации, отмены, корректировки и повтора заказа
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callbacks(call):
     data = call.data
 
-    # 1. Отметка позиции в чек-листе
     if data.startswith("chk_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -126,7 +121,6 @@ def handle_callbacks(call):
         st = "взят со склада ✅" if order["collected"][item_idx] else "снят с отметки ❌"
         bot.answer_callback_query(call.id, f"{order['items'][item_idx]['name']}: {st}")
 
-    # 2. Финализация сборки
     elif data.startswith("fin_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -160,7 +154,6 @@ def handle_callbacks(call):
             except Exception as e:
                 print(f"[ERR NOTIFY CLIENT] {client_id}: {e}")
 
-    # 3. Отмена заказа продавцом
     elif data.startswith("cancel_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -184,7 +177,6 @@ def handle_callbacks(call):
             except Exception:
                 pass
 
-    # 4. Запрос на корректировку
     elif data.startswith("edit_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -200,10 +192,9 @@ def handle_callbacks(call):
             except Exception:
                 pass
 
-    # 5. Повтор заказа клиентом
     elif data.startswith("repeat_"):
-        order_id = data.split("_")[1]
-        old_order = ACTIVE_ORDERS.get(order_id)
+        old_order_id = data.split("_")[1]
+        old_order = ACTIVE_ORDERS.get(old_order_id)
         if not old_order:
             bot.answer_callback_query(call.id, "Предыдущий заказ не найден в базе, соберите новый через приложение")
             return
