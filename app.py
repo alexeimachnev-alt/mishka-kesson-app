@@ -18,47 +18,65 @@ app = Flask(__name__)
 def health_check():
     return "Mishka MiniApp Backend is alive!", 200
 
-# Отдача HTML-страницы приложения
 @app.route("/app")
 def serve_webapp():
     return render_template("app.html")
 
-# Приём заказа из Mini App
 @app.route("/api/miniapp_order", methods=["POST"])
 def handle_miniapp_order():
     try:
         data = request.json or {}
+        user_id = data.get("user_id", 0)
+        
         session_data = {
+            "mode": data.get("mode", "well"),
+            "lang": data.get("lang", "ru"),
+            "extras": data.get("extras", {}),
+            "worker_tag": f"@{data.get('username')}" if data.get('username') else "нет username",
+            "worker_name": data.get("first_name", "Монтажник"),
+            "chat_id": user_id,
+            # Параметры скважины
             "depth": data.get("depth", 40),
             "yield_flow": data.get("yield_flow", 2.5),
             "houses": data.get("houses", 1),
             "distances": data.get("distances", [15]),
-            "extras": data.get("extras", {}),
             "chosen_kesson": data.get("chosen_kesson", "auto"),
-            "lang": data.get("lang", "ru"),
-            "worker_tag": f"@{data.get('username')}" if data.get('username') else "нет username",
-            "worker_name": data.get("first_name", "Монтажник"),
-            "chat_id": data.get("user_id", 0)
+            # Параметры септика
+            "users": data.get("users", 5),
+            "discharge": data.get("discharge", "gravity"),
+            "distance": data.get("distance", 10),
+            "chosen_septic": data.get("chosen_septic", "auto")
         }
+        
+        # Генерация сметы
         checklist = build_warehouse_checklist(session_data)
+        
+        # 1. Отправка администраторам (551209811 и 447208738)
         send_to_all_admins(bot, checklist)
+        
+        # 2. Отправка сметы заказчику в личные сообщения
+        if user_id:
+            try:
+                bot.send_message(user_id, f"✅ <b>Заказ принят складом!</b>\n\n{checklist}", parse_mode="HTML")
+            except Exception as client_err:
+                print(f"[WARN] Ошибка отправки заказчику: {client_err}")
+                
         return jsonify({"status": "ok"}), 200
     except Exception as e:
         print(f"[ERROR API] {e}")
         return jsonify({"error": str(e)}), 500
 
-# Команда /start с кнопкой открытия Mini App
 @bot.message_handler(commands=['start'])
 def handle_start(message):
-    render_url = os.getenv("RENDER_EXTERNAL_URL", "https://ВАШ_СЕРВИС.onrender.com").rstrip("/")
+    render_url = os.getenv("RENDER_EXTERNAL_URL", "https://mishka-kesson-app.onrender.com").rstrip("/")
     kb = tele_types.InlineKeyboardMarkup()
     web_app_info = tele_types.WebAppInfo(url=f"{render_url}/app")
-    kb.add(tele_types.InlineKeyboardButton("📱 Открыть приложение склада МИШКА", web_app=web_app_info))
+    kb.add(tele_types.InlineKeyboardButton("📱 Открыть склад МИШКА (Кессоны и Септики)", web_app=web_app_info))
 
     bot.reply_to(
         message,
-        "👋 <b>Склад кессонов и скважинного оборудования «МИШКА»</b>\n\n"
-        "Нажмите кнопку ниже, чтобы открыть калькулятор и собрать заказ к вашему приезду:",
+        "👋 <b>Склад завода «МИШКА»</b>\n\n"
+        "Нажмите кнопку ниже, чтобы выбрать оборудование (кессоны для скважин или станции септиков) и получить готовую смету:",
         reply_markup=kb,
         parse_mode="HTML"
     )
@@ -66,7 +84,7 @@ def handle_start(message):
 def setup_menu():
     try:
         bot.set_my_commands([
-            tele_types.BotCommand("start", "Открыть приложение склада")
+            tele_types.BotCommand("start", "Открыть склад и калькулятор")
         ])
     except Exception:
         pass
