@@ -144,17 +144,17 @@
         <div>
           <label id="lblUsers">Число проживающих</label>
           <select id="septicUsers">
-            <option value="3">До 3 чел. (0.6 м³/сут)</option>
-            <option value="5" selected>До 5 чел. (1.0 м³/сут)</option>
-            <option value="8">До 8 чел. (1.6 м³/сут)</option>
-            <option value="10">До 10 чел. (2.0 м³/сут)</option>
+            <option value="3" id="optUsers3">До 3 чел. (0.6 м³/сут)</option>
+            <option value="5" id="optUsers5" selected>До 5 чел. (1.0 м³/сут)</option>
+            <option value="8" id="optUsers8">До 8 чел. (1.6 м³/сут)</option>
+            <option value="10" id="optUsers10">До 10 чел. (2.0 м³/сут)</option>
           </select>
         </div>
         <div>
           <label id="lblDischarge">Сброс очищенной воды</label>
           <select id="septicDischarge">
-            <option value="gravity">Самотечный (дренаж)</option>
-            <option value="forced">Принудительный (насос)</option>
+            <option value="gravity" id="optDisGrav">Самотечный (дренаж)</option>
+            <option value="forced" id="optDisForce">Принудительный (насос)</option>
           </select>
         </div>
       </div>
@@ -188,8 +188,8 @@
     <div class="card">
       <label id="lblDrainType">Тип дренажной системы</label>
       <select id="drainTypeSelect">
-        <option value="softrock" selected>📦 «Софтрок» / Лайтдрок (без щебня)</option>
-        <option value="classic">🧱 Классический (труба в щебне + геотекстиль)</option>
+        <option value="softrock" id="optDrainSoft" selected>📦 «Софтрок» / Лайтдрок (без щебня)</option>
+        <option value="classic" id="optDrainClass">🧱 Классический (труба в щебне + геотекстиль)</option>
       </select>
     </div>
 
@@ -236,8 +236,8 @@
         <div>
           <label id="lblStormDischarge">Сброс воды</label>
           <select id="stormDischarge">
-            <option value="ditch">Канава / овраг</option>
-            <option value="well">Поглотительный колодец</option>
+            <option value="ditch" id="optStormDitch">Канава / овраг</option>
+            <option value="well" id="optStormWell">Поглотительный колодец</option>
           </select>
         </div>
       </div>
@@ -253,8 +253,8 @@
   <div class="card highlight-card">
     <label id="lblLogistics">🚚 Способ получения заказа</label>
     <select id="logisticsType" onchange="toggleLogisticsFields()">
-      <option value="pickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
-      <option value="delivery">🚛 Доставка на объект заказчика</option>
+      <option value="pickup" id="optLogPickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
+      <option value="delivery" id="optLogDelivery">🚛 Доставка на объект заказчика</option>
     </select>
 
     <div id="pickupBox" style="margin-top: 8px;">
@@ -302,11 +302,15 @@
         lblExtrasWell: "Расходники к скважине",
         lblUsers: "Число проживающих",
         lblDischarge: "Сброс очищенной воды",
+        optDisGrav: "Самотечный (дренаж)",
+        optDisForce: "Принудительный (насос)",
         lblPipe110: "Длина трассы канализации (м)",
         lblSepticModel: "Модель септика",
         septicAuto: "🤝 На выбор продавца (автоподбор)",
         lblExtrasSeptic: "Расходники для канализации",
         lblDrainType: "Тип дренажной системы",
+        optDrainSoft: "📦 «Софтрок» / Лайтдрок (без щебня)",
+        optDrainClass: "🧱 Классический (труба в щебне + геотекстиль)",
         lblDrainLen: "Длина трассы (м)",
         lblDrainWells: "Колодцев (шт.)",
         lblExtrasDrain: "Расходники для дренажа",
@@ -314,11 +318,18 @@
         lblStormLen: "Длина трубы 110 (м)",
         lblStormWells: "Колодцев (шт.)",
         lblStormDischarge: "Сброс воды",
+        optStormDitch: "Канава / овраг",
+        optStormWell: "Поглотительный колодец",
         lblExtrasStorm: "Расходники для ливнёвки",
         lblLogistics: "🚚 Способ получения заказа",
+        optLogPickup: "📦 Самовывоз со склада (п. Некрасовский)",
+        optLogDelivery: "🚛 Доставка на объект заказчика",
         lblPickupTime: "Дата и время приезда на склад",
+        phPickupTime: "Сегодня к 15:30 или завтра утром",
         lblDeliveryAddress: "Точный адрес доставки",
+        phDeliveryAddress: "МО, Дмитровский р-н, д. Подосинки...",
         lblDeliveryTime: "Желаемое время доставки",
+        phDeliveryTime: "Завтра с 10:00 до 14:00",
         lblPhone: "📞 Номер телефона для связи",
         errPhone: "⚠️ Пожалуйста, укажите ваш номер телефона для связи!",
         errDelivery: "⚠️ Укажите адрес доставки оборудования!",
@@ -365,11 +376,15 @@
         lblExtrasWell: "Маводи иловагӣ барои чоҳ",
         lblUsers: "Шумораи одамон",
         lblDischarge: "Партови оби тоза",
+        optDisGrav: "Худҷорӣ (дренаж)",
+        optDisForce: "Маҷбурӣ (бо насос)",
         lblPipe110: "Дарозии қубури канализатсия (м)",
         lblSepticModel: "Намуди септик",
         septicAuto: "🤝 Ба интихоби фурӯшанда (автоматӣ)",
         lblExtrasSeptic: "Мавод барои канализатсия",
         lblDrainType: "Намуди системаи дренаж",
+        optDrainSoft: "📦 «Софтрок» (бе сангреза)",
+        optDrainClass: "🧱 Классикӣ (қубур дар шағал)",
         lblDrainLen: "Дарозии хат (м)",
         lblDrainWells: "Чоҳҳои назоратӣ (дона)",
         lblExtrasDrain: "Мавод барои дренаж",
@@ -377,11 +392,18 @@
         lblStormLen: "Дарозии қубур 110 (м)",
         lblStormWells: "Чоҳҳо (дона)",
         lblStormDischarge: "Ҷои партови об",
+        optStormDitch: "Ҷӯйбор / ҷарӣ",
+        optStormWell: "Чоҳи ҷаббанда",
         lblExtrasStorm: "Мавод барои оброҳа",
         lblLogistics: "🚚 Тарзи гирифтани мол",
-        lblPickupTime: "Вақти омадан ба анбор",
+        optLogPickup: "📦 Худам аз анбор мегирам (Некрасовский)",
+        optLogDelivery: "🚛 Бурдан ба суроғаи манзил",
+        lblPickupTime: "Сана ва вақти омадан ба анбор",
+        phPickupTime: "Имрӯз соати 15:30 ё пагоҳ пагоҳирӯзӣ",
         lblDeliveryAddress: "Суроғаи бурдан",
+        phDeliveryAddress: "ноҳия, кӯча, рақами хона...",
         lblDeliveryTime: "Вақти расонидан",
+        phDeliveryTime: "Пагоҳ аз соати 10:00 то 14:00",
         lblPhone: "📞 Рақами телефон барои тамос",
         errPhone: "⚠️ Лутфан рақами телефони худро нависед!",
         errDelivery: "⚠️ Суроғаи расониданро нависед!",
@@ -428,11 +450,15 @@
         lblExtrasWell: "Quduq uchun qo'shimchalar",
         lblUsers: "Odamlar soni",
         lblDischarge: "Suv chiqishi",
+        optDisGrav: "O'zi oqar (drenaj)",
+        optDisForce: "Majburiy (nasos bilan)",
         lblPipe110: "Kanalizatsiya quvuri (m)",
         lblSepticModel: "Septik modeli",
         septicAuto: "🤝 Sotuvchi tanloviga (avtomatik)",
         lblExtrasSeptic: "Kanalizatsiya materiallari",
         lblDrainType: "Drenaj turi",
+        optDrainSoft: "📦 «Softrok» (shag'alsiz)",
+        optDrainClass: "🧱 Klassik (shag'al va geotekstil)",
         lblDrainLen: "Trassa uzunligi (m)",
         lblDrainWells: "Quduqlar (dona)",
         lblExtrasDrain: "Drenaj materiallari",
@@ -440,11 +466,18 @@
         lblStormLen: "Quvur uzunligi 110 (m)",
         lblStormWells: "Quduqlar (dona)",
         lblStormDischarge: "Suv tashlash joyi",
+        optStormDitch: "Ariq / jar",
+        optStormWell: "Shimdiruvchi quduq",
         lblExtrasStorm: "Yomg'ir tizimi materiallari",
         lblLogistics: "🚚 Buyurtmani olish usuli",
+        optLogPickup: "📦 Ombordan olib ketish (Nekrasovskiy)",
+        optLogDelivery: "🚛 Obyektga yetkazib berish",
         lblPickupTime: "Omborga kelish vaqti",
+        phPickupTime: "Bugun 15:30 ga yoki ertaga ertalab",
         lblDeliveryAddress: "Yetkazib berish manzili",
+        phDeliveryAddress: "Tuman, ko'cha, uy raqami...",
         lblDeliveryTime: "Yetkazish vaqti",
+        phDeliveryTime: "Ertaga soat 10:00 dan 14:00 gacha",
         lblPhone: "📞 Bog'lanish uchun telefon raqami",
         errPhone: "⚠️ Iltimos telefon raqamingizni kiriting!",
         errDelivery: "⚠️ Yetkazib berish manzilini kiriting!",
@@ -491,11 +524,15 @@
         lblExtrasWell: "Հորատանցքի նյութեր",
         lblUsers: "Բնակիչների թիվը",
         lblDischarge: "Մաքրված ջրի արտահոսք",
+        optDisGrav: "Ինքնահոս (դրենաժ)",
+        optDisForce: "Պոմպով (ստիպողական)",
         lblPipe110: "Կոյուղագծի երկարություն (մ)",
         lblSepticModel: "Սեպտիկի մոդել",
         septicAuto: "🤝 Վաճառողի ընտրությամբ (ավտոմատ)",
         lblExtrasSeptic: "Կոյուղու նյութեր",
         lblDrainType: "Դրենաժի տեսակ",
+        optDrainSoft: "📦 «Սոֆթռոք» (առանց խճի)",
+        optDrainClass: "🧱 Դասական (խճով և գեոտեքստիլով)",
         lblDrainLen: "Երկարությունը (մ)",
         lblDrainWells: "Հորեր (հատ)",
         lblExtrasDrain: "Դրենաժի նյութեր",
@@ -503,11 +540,18 @@
         lblStormLen: "Խողովակ 110 (մ)",
         lblStormWells: "Հորեր (հատ)",
         lblStormDischarge: "Արտահոսքի կետ",
+        optStormDitch: "Առու / ձորակ",
+        optStormWell: "Ներծծող հոր",
         lblExtrasStorm: "Անձրևաջրերի նյութեր",
         lblLogistics: "🚚 Ստանալու եղանակը",
-        lblPickupTime: "Պահեստ գալու ժամը",
+        optLogPickup: "📦 Ինքնուրույն պահեստից (Նեկրասովսկի)",
+        optLogDelivery: "🚛 Առաքում դեպի օբյեկտ",
+        lblPickupTime: "Պահեստ գալու ամսաթիվ և ժամ",
+        phPickupTime: "Այսօր մինչև 15:30 կամ վաղը առավոտյան",
         lblDeliveryAddress: "Առաքման հասցե",
+        phDeliveryAddress: "Մարզ, փողոց, տան համար...",
         lblDeliveryTime: "Առաքման ժամ",
+        phDeliveryTime: "Վաղը 10:00-ից 14:00-ն",
         lblPhone: "📞 Հեռախոսահամար կապի համար",
         errPhone: "⚠️ Խնդրում ենք նշել Ձեր հեռախոսահամարը:",
         errDelivery: "⚠️ Նշեք առաքման հասցեն:",
@@ -554,11 +598,15 @@
         lblExtrasWell: "Скважина материалдары",
         lblUsers: "Жашагандардын саны",
         lblDischarge: "Тазаланган сууну агызуу",
+        optDisGrav: "Өзү агуучу (дренаж)",
+        optDisForce: "Насос менен мажбурлап",
         lblPipe110: "Канализация түтүгү (м)",
         lblSepticModel: "Септик модели",
         septicAuto: "🤝 Сатуучунун тандоосуна (автоматтык)",
         lblExtrasSeptic: "Канализация материалдары",
         lblDrainType: "Дренаж түрү",
+        optDrainSoft: "📦 «Софтрок» (шагылсыз)",
+        optDrainClass: "🧱 Классикалык (шагыл жана геотекстиль)",
         lblDrainLen: "Жалпы узундугу (м)",
         lblDrainWells: "Көзөмөл кудуктары (даана)",
         lblExtrasDrain: "Дренаж материалдары",
@@ -566,11 +614,18 @@
         lblStormLen: "Түтүк узундугу 110 (м)",
         lblStormWells: "Кудуктар (даана)",
         lblStormDischarge: "Суу чыгаруу жери",
+        optStormDitch: "Арык / кокту",
+        optStormWell: "Сиңирүүчү кудук",
         lblExtrasStorm: "Ливнёвка материалдары",
         lblLogistics: "🚚 Алуу ыкмасы",
-        lblPickupTime: "Кампага келүү убактысы",
+        optLogPickup: "📦 Кампадан өзүм алам (Некрасовский)",
+        optLogDelivery: "🚛 Объектке жеткирүү",
+        lblPickupTime: "Кампага келүү күнү жана убактысы",
+        phPickupTime: "Бүгүн 15:30га чейин же эртең менен",
         lblDeliveryAddress: "Жеткирүү дареги",
+        phDeliveryAddress: "Район, көчө, үй номери...",
         lblDeliveryTime: "Жеткирүү убактысы",
+        phDeliveryTime: "Эртең саат 10:00дөн 14:00гө чейин",
         lblPhone: "📞 Байланыш үчүн телефон номери",
         errPhone: "⚠️ Байланыш үчүн телефон номериңизди жазыңыз!",
         errDelivery: "⚠️ Жеткирүү дарегин жазыңыз!",
@@ -685,6 +740,8 @@
       // Септик
       safeSetText('lblUsers', t.lblUsers);
       safeSetText('lblDischarge', t.lblDischarge);
+      safeSetText('optDisGrav', t.optDisGrav);
+      safeSetText('optDisForce', t.optDisForce);
       safeSetText('lblPipe110', t.lblPipe110);
       safeSetText('lblSepticModel', t.lblSepticModel);
       safeSetText('optSepticAuto', t.septicAuto);
@@ -692,6 +749,8 @@
 
       // Дренаж
       safeSetText('lblDrainType', t.lblDrainType);
+      safeSetText('optDrainSoft', t.optDrainSoft);
+      safeSetText('optDrainClass', t.optDrainClass);
       safeSetText('lblDrainLen', t.lblDrainLen);
       safeSetText('lblDrainWells', t.lblDrainWells);
       safeSetText('lblExtrasDrain', t.lblExtrasDrain);
@@ -701,13 +760,25 @@
       safeSetText('lblStormLen', t.lblStormLen);
       safeSetText('lblStormWells', t.lblStormWells);
       safeSetText('lblStormDischarge', t.lblStormDischarge);
+      safeSetText('optStormDitch', t.optStormDitch);
+      safeSetText('optStormWell', t.optStormWell);
       safeSetText('lblExtrasStorm', t.lblExtrasStorm);
 
-      // Логистика и контакты
+      // Логистика и подсказки
       safeSetText('lblLogistics', t.lblLogistics);
+      safeSetText('optLogPickup', t.optLogPickup);
+      safeSetText('optLogDelivery', t.optLogDelivery);
       safeSetText('lblPickupTime', t.lblPickupTime);
       safeSetText('lblDeliveryAddress', t.lblDeliveryAddress);
       safeSetText('lblDeliveryTime', t.lblDeliveryTime);
+      
+      const pTimeInp = document.getElementById('pickupDateTime');
+      if (pTimeInp) pTimeInp.placeholder = t.phPickupTime;
+      const dAddrInp = document.getElementById('deliveryAddress');
+      if (dAddrInp) dAddrInp.placeholder = t.phDeliveryAddress;
+      const dTimeInp = document.getElementById('deliveryTime');
+      if (dTimeInp) dTimeInp.placeholder = t.phDeliveryTime;
+
       safeSetText('lblPhone', t.lblPhone);
       safeSetText('btnSubmit', t.btnSubmit);
 
@@ -741,7 +812,7 @@
       }
     }
 
-    function renderBox(boxId, list) {
+    function renderBox(prefix, boxId, list) {
       const box = document.getElementById(boxId);
       if (!box) return;
       const lang = document.getElementById('langSelect').value || 'ru';
@@ -752,15 +823,16 @@
         const val = userQuantities[item.id] || 0;
         const name = (t.items && t.items[item.id]) ? t.items[item.id] : item.id;
         const unit = (item.type === 'meters') ? t.unitM : t.unitPcs;
+        const inputDomId = `inp_${prefix}_${item.id}`;
 
         const row = document.createElement('div');
         row.className = 'extra-item';
         row.innerHTML = `
           <span style="font-size:0.86rem; flex:1; padding-right:8px;">${name}</span>
           <div class="qty-ctrl">
-            <button class="qty-btn" type="button" onclick="modifyQty('${item.id}', -1)">−</button>
-            <input class="qty-input" type="number" min="0" id="inp_${item.id}" value="${val}" oninput="setQtyManual('${item.id}', this.value)">
-            <button class="qty-btn" type="button" onclick="modifyQty('${item.id}', 1)">+</button>
+            <button class="qty-btn" type="button" onclick="modifyQty('${item.id}', -1, '${prefix}')">−</button>
+            <input class="qty-input" type="number" min="0" id="${inputDomId}" value="${val}" oninput="setQtyManual('${item.id}', this.value)">
+            <button class="qty-btn" type="button" onclick="modifyQty('${item.id}', 1, '${prefix}')">+</button>
             <span class="unit-tag">${unit}</span>
           </div>
         `;
@@ -769,23 +841,32 @@
     }
 
     function renderAllItems() {
-      renderBox('boxExtrasWell', CATALOG.well);
-      renderBox('boxExtrasSeptic', CATALOG.septic);
-      renderBox('boxExtrasDrain', CATALOG.drainage);
-      renderBox('boxExtrasStorm', CATALOG.storm);
+      renderBox('well', 'boxExtrasWell', CATALOG.well);
+      renderBox('septic', 'boxExtrasSeptic', CATALOG.septic);
+      renderBox('drain', 'boxExtrasDrain', CATALOG.drainage);
+      renderBox('storm', 'boxExtrasStorm', CATALOG.storm);
     }
 
-    function modifyQty(id, delta) {
+    function modifyQty(id, delta, prefix) {
       const cur = parseFloat(userQuantities[id] || 0);
       const next = Math.max(0, cur + delta);
       userQuantities[id] = next;
-      const el = document.getElementById('inp_' + id);
-      if (el) el.value = next;
+      
+      // Обновляем все поля ввода с этим id (и в септике, и в ливневке)
+      ['well', 'septic', 'drain', 'storm'].forEach(p => {
+        const el = document.getElementById(`inp_${p}_${id}`);
+        if (el) el.value = next;
+      });
     }
 
     function setQtyManual(id, raw) {
       const v = parseFloat(raw);
-      userQuantities[id] = (!isNaN(v) && v >= 0) ? v : 0;
+      const next = (!isNaN(v) && v >= 0) ? v : 0;
+      userQuantities[id] = next;
+      ['well', 'septic', 'drain', 'storm'].forEach(p => {
+        const el = document.getElementById(`inp_${p}_${id}`);
+        if (el) el.value = next;
+      });
     }
 
     async function sendOrder() {
@@ -803,7 +884,7 @@
       let deliveryDetails = "";
 
       if (logisticsType === 'pickup') {
-        deliveryDetails = document.getElementById('pickupDateTime').value.trim() || "Самовывоз (время уточняется)";
+        deliveryDetails = document.getElementById('pickupDateTime').value.trim() || "Самовывоз со склада";
       } else {
         const addr = document.getElementById('deliveryAddress').value.trim();
         if (!addr) {
