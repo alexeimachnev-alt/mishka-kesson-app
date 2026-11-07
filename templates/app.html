@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Склад МИШКА</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: var(--tg-theme-bg-color, #f2f3f7);
+      --card: var(--tg-theme-secondary-bg-color, #ffffff);
+      --text: var(--tg-theme-text-color, #1a1a1a);
+      --hint: var(--tg-theme-hint-color, #8e8e93);
+      --btn: var(--tg-theme-button-color, #2481cc);
+      --btn-text: var(--tg-theme-button-text-color, #ffffff);
+    }
+    body {
+      margin: 0; padding: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    h2 { font-size: 1.2rem; text-align: center; margin: 4px 0 14px; }
+    .card {
+      background: var(--card); border-radius: 12px; padding: 12px 14px;
+      margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    label { display: block; font-weight: 600; font-size: 0.82rem; margin-bottom: 5px; color: var(--text); }
+    input, select {
+      width: 100%; box-sizing: border-box; padding: 9px 11px;
+      border: 1px solid #dcdce0; border-radius: 9px; font-size: 0.95rem;
+      background: var(--bg); color: var(--text);
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .extra-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 0; border-bottom: 1px solid #ececee;
+    }
+    .extra-item:last-child { border-bottom: none; }
+    .qty-ctrl { display: flex; align-items: center; gap: 7px; }
+    .qty-btn {
+      width: 30px; height: 30px; border-radius: 7px; border: none;
+      background: var(--btn); color: var(--btn-text); font-size: 1.1rem; cursor: pointer;
+    }
+    .qty-val { min-width: 32px; text-align: center; font-weight: 700; font-size: 0.88rem; }
+    .btn-submit {
+      width: 100%; padding: 13px; border: none; border-radius: 11px;
+      background: var(--btn); color: var(--btn-text); font-size: 1rem;
+      font-weight: 700; margin-top: 10px; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📦 Сборка скважины «МИШКА»</h2>
+
+  <div class="card">
+    <label>🌐 Язык / Забон / Til / Լեզու / Тил</label>
+    <select id="langSelect">
+      <option value="ru">🇷🇺 Русский</option>
+      <option value="tj">🇹🇯 Тоҷикӣ</option>
+      <option value="uz">🇺🇿 Oʻzbekcha</option>
+      <option value="hy">🇦🇲 Հայերեն</option>
+      <option value="ky">🇰🇬 Кыргызча</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="grid-2">
+      <div>
+        <label>Глубина скважины (м)</label>
+        <input type="number" id="depth" value="40" required>
+      </div>
+      <div>
+        <label>Дебит (м³/ч)</label>
+        <input type="number" step="0.1" id="yield" value="2.5" required>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Количество домов</label>
+    <input type="number" id="houses" min="1" max="10" value="1" onchange="renderDistanceFields()" required>
+    <div id="distanceContainer" style="margin-top: 8px;"></div>
+  </div>
+
+  <div class="card">
+    <label>Выбор кессона</label>
+    <select id="kessonSelect">
+      <option value="auto">🤝 На выбор продавца (автоподбор)</option>
+      <option value="Мишка 1 (Ø1050)">Мишка 1 (Ø1050 мм)</option>
+      <option value="Мишка 2 (Ø1300)">Мишка 2 (Ø1300 мм)</option>
+      <option value="Мишка 3 (Ø1600)">Мишка 3 (Ø1600 мм)</option>
+      <option value="Мишка 4 (Ø2100)">Мишка 4 (Ø2100 мм)</option>
+      <option value="Мишка LONG (H=2500)">Мишка LONG (H=2500 мм)</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <label>Дополнительные расходники</label>
+    <div id="extrasList"></div>
+  </div>
+
+  <button class="btn-submit" id="btnSubmit" onclick="sendOrder()">🚀 Отправить заказ на склад</button>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.expand(); tg.ready(); }
+
+    const extrasData = [
+      { id: "pnd32", name: "Труба ПНД 32 SDR11", unit: "м", step: 10 },
+      { id: "pnd25", name: "Труба ПНД 25 (полив)", unit: "м", step: 10 },
+      { id: "insul", name: "Утеплитель Энергофлекс 32", unit: "м", step: 10 },
+      { id: "heat_cable", name: "Кабель греющий саморег.", unit: "м", step: 2 },
+      { id: "ball_valve", name: "Кран 1\" с американкой", unit: "шт.", step: 1 },
+      { id: "fitting_32_1", name: "Муфта ПНД 32х1\" НР", unit: "шт.", step: 1 },
+      { id: "elbow_32", name: "Уголок ПНД 32х32 (90°)", unit: "шт.", step: 1 },
+      { id: "unipak", name: "Лён + паста Unipak", unit: "шт.", step: 1 }
+    ];
+
+    let extrasState = {};
+
+    function renderDistanceFields() {
+      const count = parseInt(document.getElementById('houses').value) || 1;
+      const cont = document.getElementById('distanceContainer');
+      cont.innerHTML = '';
+      if (count === 1) {
+        cont.innerHTML = '<label>Расстояние до дома (м)</label><input type="number" id="dist_1" value="15" required>';
+      } else {
+        for (let i = 1; i <= count; i++) {
+          cont.innerHTML += `<div style="margin-bottom:6px;"><label>Дом №${i}: расстояние (м)</label><input type="number" id="dist_${i}" value="${15 + (i-1)*5}" required></div>`;
+        }
+      }
+    }
+
+    function renderExtras() {
+      const list = document.getElementById('extrasList');
+      list.innerHTML = '';
+      extrasData.forEach(item => {
+        const qty = extrasState[item.id] || 0;
+        list.innerHTML += `
+          <div class="extra-item">
+            <span style="font-size:0.85rem;">${item.name}</span>
+            <div class="qty-ctrl">
+              <button class="qty-btn" onclick="updateExtra('${item.id}', -${item.step})">-</button>
+              <span class="qty-val" id="val_${item.id}">${qty} ${item.unit}</span>
+              <button class="qty-btn" onclick="updateExtra('${item.id}', ${item.step})">+</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function updateExtra(id, delta) {
+      extrasState[id] = Math.max(0, (extrasState[id] || 0) + delta);
+      const item = extrasData.find(x => x.id === id);
+      document.getElementById(`val_${id}`).innerText = `${extrasState[id]} ${item.unit}`;
+    }
+
+    async function sendOrder() {
+      const hCount = parseInt(document.getElementById('houses').value) || 1;
+      const distances = [];
+      for (let i = 1; i <= hCount; i++) {
+        distances.push(parseFloat(document.getElementById(`dist_${i}`)?.value || 15));
+      }
+
+      const selectedExtras = {};
+      for (let key in extrasState) {
+        if (extrasState[key] > 0) selectedExtras[key] = extrasState[key];
+      }
+
+      const payload = {
+        lang: document.getElementById('langSelect').value,
+        depth: parseFloat(document.getElementById('depth').value) || 40,
+        yield_flow: parseFloat(document.getElementById('yield').value) || 2.5,
+        houses: hCount,
+        distances: distances,
+        chosen_kesson: document.getElementById('kessonSelect').value,
+        extras: selectedExtras,
+        user_id: tg?.initDataUnsafe?.user?.id || 0,
+        username: tg?.initDataUnsafe?.user?.username || "",
+        first_name: tg?.initDataUnsafe?.user?.first_name || "Монтажник"
+      };
+
+      document.getElementById('btnSubmit').innerText = "⏳ Отправка...";
+      document.getElementById('btnSubmit').disabled = true;
+
+      try {
+        const res = await fetch('/api/miniapp_order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          if (tg) {
+            tg.showAlert("✅ Заказ принят! Комплектуем на складе.");
+            tg.close();
+          } else {
+            alert("Заказ принят!");
+          }
+        } else {
+          alert("Ошибка отправки. Попробуйте еще раз.");
+          document.getElementById('btnSubmit').disabled = false;
+        }
+      } catch (e) {
+        alert("Сбой соединения: " + e);
+        document.getElementById('btnSubmit').disabled = false;
+      }
+    }
+
+    renderDistanceFields();
+    renderExtras();
+  </script>
+</body>
+</html>
