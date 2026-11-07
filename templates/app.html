@@ -20,7 +20,20 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--text);
     }
-    h2 { font-size: 1.15rem; text-align: center; margin: 4px 0 12px; }
+    h2 { font-size: 1.15rem; text-align: center; margin: 4px 0 10px; }
+    
+    .tab-switch {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+    }
+    .tab-btn {
+      padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-weight: 700; font-size: 0.92rem;
+      cursor: pointer; text-align: center;
+    }
+    .tab-btn.active {
+      background: var(--btn); color: var(--btn-text); border-color: var(--btn);
+    }
+
     .card {
       background: var(--card); border-radius: 12px; padding: 12px 14px;
       margin-bottom: 10px; border: 1px solid var(--border);
@@ -57,10 +70,16 @@
 </head>
 <body>
 
-  <h2 id="uiTitle">📦 Сборка скважины «МИШКА»</h2>
+  <h2 id="uiTitle">📦 Склад оборудования «МИШКА»</h2>
+
+  <!-- Переключатель категорий -->
+  <div class="tab-switch">
+    <div class="tab-btn active" id="tabWell" onclick="switchMode('well')">💧 Кессон / Скважина</div>
+    <div class="tab-btn" id="tabSeptic" onclick="switchMode('septic')">☣️ Септик / Слив</div>
+  </div>
 
   <div class="card">
-    <label id="lblLang">🌐 Язык / Забон / Til / Լեզու / Тил</label>
+    <label id="lblLang">🌐 Язык интерфейса</label>
     <select id="langSelect" onchange="applyLanguage()">
       <option value="ru" selected>🇷🇺 Русский</option>
       <option value="tj">🇹🇯 Тоҷикӣ</option>
@@ -70,40 +89,89 @@
     </select>
   </div>
 
-  <div class="card">
-    <div class="grid-2">
-      <div>
-        <label id="lblDepth">Глубина скважины (м)</label>
-        <input type="number" id="depth" value="40" required>
+  <!-- РАЗДЕЛ: СКВАЖИНА И КЕССОН -->
+  <div id="sectionWell">
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblDepth">Глубина скважины (м)</label>
+          <input type="number" id="depth" value="40" required>
+        </div>
+        <div>
+          <label id="lblYield">Дебит (м³/ч)</label>
+          <input type="number" step="0.1" id="yield" value="2.5" required>
+        </div>
       </div>
-      <div>
-        <label id="lblYield">Дебит (м³/ч)</label>
-        <input type="number" step="0.1" id="yield" value="2.5" required>
-      </div>
+    </div>
+
+    <div class="card">
+      <label id="lblHouses">Количество домов</label>
+      <input type="number" id="houses" min="1" max="10" value="1" onchange="renderDistanceFields()" required>
+      <div id="distanceContainer" style="margin-top: 8px;"></div>
+    </div>
+
+    <div class="card">
+      <label id="lblKesson">Выбор кессона</label>
+      <select id="kessonSelect">
+        <option value="auto" id="optKessonAuto">🤝 На выбор продавца (автоподбор)</option>
+        <option value="Мишка 1 (Ø1050)">Мишка 1 (Ø1050 мм)</option>
+        <option value="Мишка 2 (Ø1300)">Мишка 2 (Ø1300 мм)</option>
+        <option value="Мишка 3 (Ø1600)">Мишка 3 (Ø1600 мм)</option>
+        <option value="Мишка 4 (Ø2100)">Мишка 4 (Ø2100 мм)</option>
+        <option value="Мишка LONG (H=2500)">Мишка LONG (H=2500 мм)</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <label id="lblExtras">Дополнительные расходники к скважине</label>
+      <div id="extrasListWell"></div>
     </div>
   </div>
 
-  <div class="card">
-    <label id="lblHouses">Количество домов</label>
-    <input type="number" id="houses" min="1" max="10" value="1" onchange="renderDistanceFields()" required>
-    <div id="distanceContainer" style="margin-top: 8px;"></div>
-  </div>
+  <!-- РАЗДЕЛ: СЕПТИК И КАНАЛИЗАЦИЯ -->
+  <div id="sectionSeptic" style="display: none;">
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblUsers">Число проживающих</label>
+          <select id="septicUsers">
+            <option value="3">До 3 чел. (0.6 м³/сут)</option>
+            <option value="5" selected>До 5 чел. (1.0 м³/сут)</option>
+            <option value="8">До 8 чел. (1.6 м³/сут)</option>
+            <option value="10">До 10 чел. (2.0 м³/сут)</option>
+          </select>
+        </div>
+        <div>
+          <label id="lblDischarge">Сброс очищенной воды</label>
+          <select id="septicDischarge">
+            <option value="gravity">Самотечный (дренаж)</option>
+            <option value="forced">Принудительный (насос)</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
-  <div class="card">
-    <label id="lblKesson">Выбор кессона</label>
-    <select id="kessonSelect">
-      <option value="auto" id="optKessonAuto">🤝 На выбор продавца (автоподбор)</option>
-      <option value="Мишка 1 (Ø1050)">Мишка 1 (Ø1050 мм)</option>
-      <option value="Мишка 2 (Ø1300)">Мишка 2 (Ø1300 мм)</option>
-      <option value="Мишка 3 (Ø1600)">Мишка 3 (Ø1600 мм)</option>
-      <option value="Мишка 4 (Ø2100)">Мишка 4 (Ø2100 мм)</option>
-      <option value="Мишка LONG (H=2500)">Мишка LONG (H=2500 мм)</option>
-    </select>
-  </div>
+    <div class="card">
+      <label id="lblPipe110">Длина трассы канализации от дома (м)</label>
+      <input type="number" id="septicDistance" value="10" required>
+    </div>
 
-  <div class="card">
-    <label id="lblExtras">Дополнительные расходники</label>
-    <div id="extrasList"></div>
+    <div class="card">
+      <label id="lblSepticModel">Модель септика</label>
+      <select id="septicModelSelect">
+        <option value="auto" id="optSepticAuto">🤝 На выбор продавца (автоподбор)</option>
+        <option value="Септик МИШКА-Био 3">МИШКА-Био 3 (до 3 чел.)</option>
+        <option value="Септик МИШКА-Био 5">МИШКА-Био 5 (до 5 чел.)</option>
+        <option value="Септик МИШКА-Био 8">МИШКА-Био 8 (до 8 чел.)</option>
+        <option value="Накопитель МИШКА 2.0 м³">Накопитель МИШКА 2.0 м³</option>
+        <option value="Накопитель МИШКА 3.0 м³">Накопитель МИШКА 3.0 м³</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <label id="lblExtrasSeptic">Расходные материалы для канализации</label>
+      <div id="extrasListSeptic"></div>
+    </div>
   </div>
 
   <button class="btn-submit" id="btnSubmit" onclick="sendOrder()">🚀 Отправить заказ на склад</button>
@@ -112,9 +180,13 @@
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.expand(); tg.ready(); }
 
+    let currentMode = 'well';
+
     const I18N = {
       ru: {
-        title: "📦 Сборка скважины «МИШКА»",
+        title: "📦 Склад оборудования «МИШКА»",
+        tabWell: "💧 Кессон / Скважина",
+        tabSeptic: "☣️ Септик / Слив",
         lblLang: "🌐 Язык интерфейса",
         lblDepth: "Глубина скважины (м)",
         lblYield: "Дебит (м³/ч)",
@@ -123,7 +195,13 @@
         distMulti: "Дом №{i}: расстояние (м)",
         lblKesson: "Выбор кессона",
         kessonAuto: "🤝 На выбор продавца (автоподбор)",
-        lblExtras: "Дополнительные расходники (любое кол-во)",
+        lblExtras: "Дополнительные расходники к скважине",
+        lblUsers: "Число проживающих",
+        lblDischarge: "Сброс очищенной воды",
+        lblPipe110: "Длина трассы канализации от дома (м)",
+        lblSepticModel: "Модель септика",
+        septicAuto: "🤝 На выбор продавца (автоподбор)",
+        lblExtrasSeptic: "Расходные материалы для канализации",
         btnSubmit: "🚀 Отправить заказ на склад",
         unitM: "м",
         unitPcs: "шт.",
@@ -137,11 +215,19 @@
           ball_valve: "Кран 1\" с американкой",
           fitting_32_1: "Муфта ПНД 32х1\" НР",
           elbow_32: "Уголок ПНД 32х32 (90°)",
-          unipak: "Лён + паста Unipak"
+          unipak: "Лён + паста Unipak",
+          pipe110: "Труба рыжая 110х3.2 наружная",
+          insul110: "Утеплитель для трубы 110",
+          elbow110_45: "Отвод 110х45° рыжий",
+          tee110: "Тройник 110х110х87° рыжий",
+          bacteria: "Бактерии для септика (старт)",
+          drain_pipe: "Труба дренажная 110 с перфорацией"
         }
       },
       tj: {
-        title: "📦 Комплекткунии чоҳ «МИШКА»",
+        title: "📦 Анбори таҷҳизоти «МИШКА»",
+        tabWell: "💧 Чоҳ / Кессон",
+        tabSeptic: "☣️ Септик / Канализатсия",
         lblLang: "🌐 Забони барнома",
         lblDepth: "Чуқурии чоҳ (бо метр)",
         lblYield: "Дебит (м³/соат)",
@@ -150,7 +236,13 @@
         distMulti: "Хонаи №{i}: масофа (бо метр)",
         lblKesson: "Интихоби кессон",
         kessonAuto: "🤝 Ба ихтиёри фурӯшанда (автоматӣ)",
-        lblExtras: "Маводи иловагӣ (миқдори дилхоҳ)",
+        lblExtras: "Маводи иловагӣ барои чоҳ",
+        lblUsers: "Шумораи одамон",
+        lblDischarge: "Партови оби тоза",
+        lblPipe110: "Дарозии қубури канализатсия (метр)",
+        lblSepticModel: "Намуди септик",
+        septicAuto: "🤝 Ба интихоби фурӯшанда (автоматӣ)",
+        lblExtrasSeptic: "Мавод барои канализатсия",
         btnSubmit: "🚀 Фармоишро ба анбор фиристед",
         unitM: "м",
         unitPcs: "дона",
@@ -164,11 +256,19 @@
           ball_valve: "Крани 1\" бо американка",
           fitting_32_1: "Муфтаи ПНД 32х1\" БО",
           elbow_32: "Кунҷак ПНД 32х32 (90°)",
-          unipak: "Зиғирпоя (лён) + хамираи Unipak"
+          unipak: "Зиғирпоя (лён) + хамираи Unipak",
+          pipe110: "Қубури норинҷӣ 110 беруна",
+          insul110: "Гармидиҳанда барои қубури 110",
+          elbow110_45: "Кунҷак 110х45° норинҷӣ",
+          tee110: "Тройник 110х110х87°",
+          bacteria: "Бактерия барои септик",
+          drain_pipe: "Қубури дренажӣ 110"
         }
       },
       uz: {
-        title: "📦 «MISHKA» quduq jamlanmasi",
+        title: "📦 «MISHKA» uskunalar ombori",
+        tabWell: "💧 Quduq / Kesson",
+        tabSeptic: "☣️ Septik / Kanalizatsiya",
         lblLang: "🌐 Dastur tili",
         lblDepth: "Quduq chuqurligi (m)",
         lblYield: "Debit (m³/soat)",
@@ -177,7 +277,13 @@
         distMulti: "{i}-uy: masofa (metrda)",
         lblKesson: "Kesson tanlash",
         kessonAuto: "🤝 Sotuvchi tanloviga (avtomatik)",
-        lblExtras: "Qo'shimcha materiallar (ixtiyoriy miqdor)",
+        lblExtras: "Quduq uchun qo'shimcha materiallar",
+        lblUsers: "Odamlar soni",
+        lblDischarge: "Toza suv chiqishi",
+        lblPipe110: "Kanalizatsiya quvuri uzunligi (m)",
+        lblSepticModel: "Septik modeli",
+        septicAuto: "🤝 Sotuvchi tanloviga (avtomatik)",
+        lblExtrasSeptic: "Kanalizatsiya materiallari",
         btnSubmit: "🚀 Buyurtmani omborga yuborish",
         unitM: "m",
         unitPcs: "dona",
@@ -191,11 +297,19 @@
           ball_valve: "Kran 1\" amerikanka bilan",
           fitting_32_1: "Mufta PND 32x1\" TQ",
           elbow_32: "Tirsak PND 32x32 (90°)",
-          unipak: "Zig'ir tolasi + Unipak pasta"
+          unipak: "Zig'ir tolasi + Unipak pasta",
+          pipe110: "Zarg'aldoq quvur 110 tashqi",
+          insul110: "110 quvur uchun izolyatsiya",
+          elbow110_45: "Tirsak 110x45° zarg'aldoq",
+          tee110: "Troynik 110x110x87°",
+          bacteria: "Septik uchun bakteriyalar",
+          drain_pipe: "Drenaj quvuri 110"
         }
       },
       hy: {
-        title: "📦 Հորատանցքի հավաքածու «ՄԻՇԿԱ»",
+        title: "📦 Սարքավորումների պահեստ «ՄԻՇԿԱ»",
+        tabWell: "💧 Հորատանցք / Կեսոն",
+        tabSeptic: "☣️ Սեպտիկ / Կոյուղի",
         lblLang: "🌐 Լեզու",
         lblDepth: "Հորատանցքի խորություն (մ)",
         lblYield: "Արտադրողականություն (մ³/ժ)",
@@ -204,7 +318,13 @@
         distMulti: "Տուն №{i}: հեռավորություն (մ)",
         lblKesson: "Կեսոնի ընտրություն",
         kessonAuto: "🤝 Վաճառողի ընտրությամբ (ավտոմատ)",
-        lblExtras: "Լրացուցիչ նյութեր (ցանկացած քանակ)",
+        lblExtras: "Հորատանցքի լրացուցիչ նյութեր",
+        lblUsers: "Բնակիչների թիվը",
+        lblDischarge: "Մաքրված ջրի արտահոսք",
+        lblPipe110: "Կոյուղագծի երկարություն (մ)",
+        lblSepticModel: "Սեպտիկի մոդել",
+        septicAuto: "🤝 Վաճառողի ընտրությամբ (ավտոմատ)",
+        lblExtrasSeptic: "Կոյուղու նյութեր",
         btnSubmit: "🚀 Ուղարկել պատվերը պահեստ",
         unitM: "մ",
         unitPcs: "հատ",
@@ -218,11 +338,19 @@
           ball_valve: "Ծորակ 1\" ամերիկանկայով",
           fitting_32_1: "Կցորդիչ ՊՆԴ 32х1\" ԱՊ",
           elbow_32: "Անկյունակ ՊՆԴ 32х32 (90°)",
-          unipak: "Վուշաթել + մածուկ Unipak"
+          unipak: "Վուշաթել + մածուկ Unipak",
+          pipe110: "Նարնջագույն խողովակ 110",
+          insul110: "Ջերմամեկուսիչ 110 խողովակի համար",
+          elbow110_45: "Անկյունակ 110х45°",
+          tee110: "Եռաբաշխիչ 110х110х87°",
+          bacteria: "Բակտերիաներ սեպտիկի համար",
+          drain_pipe: "Դրենաժային խողովակ 110"
         }
       },
       ky: {
-        title: "📦 «МИШКА» скважина комплекти",
+        title: "📦 «МИШКА» кампасы",
+        tabWell: "💧 Скважина / Кессон",
+        tabSeptic: "☣️ Септик / Канализация",
         lblLang: "🌐 Тилди тандоо",
         lblDepth: "Скважина тереңдиги (м)",
         lblYield: "Кубаттуулугу (м³/саат)",
@@ -231,7 +359,13 @@
         distMulti: "№{i}-үй: аралык (метр)",
         lblKesson: "Кессон тандоо",
         kessonAuto: "🤝 Сатуучунун тандоосуна (автоматтык)",
-        lblExtras: "Кошумча материалдар (каалаган санда)",
+        lblExtras: "Скважинага кошумча материалдар",
+        lblUsers: "Жашагандардын саны",
+        lblDischarge: "Тазаланган сууну агызуу",
+        lblPipe110: "Канализация түтүгүнүн узундугу (м)",
+        lblSepticModel: "Септик модели",
+        septicAuto: "🤝 Сатуучунун тандоосуна (автоматтык)",
+        lblExtrasSeptic: "Канализация материалдары",
         btnSubmit: "🚀 Заказды кампага жөнөтүү",
         unitM: "м",
         unitPcs: "даана",
@@ -245,12 +379,18 @@
           ball_valve: "Кран 1\" американка менен",
           fitting_32_1: "Муфта ПНД 32х1\" СТ",
           elbow_32: "Бурчтук ПНД 32х32 (90°)",
-          unipak: "Зыгыр буласы + Unipak пастасы"
+          unipak: "Зыгыр буласы + Unipak пастасы",
+          pipe110: "Кызгылт түтүк 110 тышкы",
+          insul110: "110 түтүк үчүн жылуулагыч",
+          elbow110_45: "Бурчтук 110х45°",
+          tee110: "Тройник 110х110х87°",
+          bacteria: "Септик үчүн бактериялар",
+          drain_pipe: "Дренаж түтүгү 110"
         }
       }
     };
 
-    const extrasSchema = [
+    const extrasWell = [
       { id: "pnd32", type: "meters" },
       { id: "pnd25", type: "meters" },
       { id: "insul", type: "meters" },
@@ -261,20 +401,50 @@
       { id: "unipak", type: "pieces" }
     ];
 
+    const extrasSeptic = [
+      { id: "pipe110", type: "meters" },
+      { id: "insul110", type: "meters" },
+      { id: "elbow110_45", type: "pieces" },
+      { id: "tee110", type: "pieces" },
+      { id: "bacteria", type: "pieces" },
+      { id: "drain_pipe", type: "meters" }
+    ];
+
     let extrasState = {};
+
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('tabWell').classList.toggle('active', mode === 'well');
+      document.getElementById('tabSeptic').classList.toggle('active', mode === 'septic');
+      document.getElementById('sectionWell').style.display = mode === 'well' ? 'block' : 'none';
+      document.getElementById('sectionSeptic').style.display = mode === 'septic' ? 'block' : 'none';
+    }
 
     function applyLanguage() {
       const lang = document.getElementById('langSelect').value || 'ru';
       const t = I18N[lang] || I18N.ru;
 
       document.getElementById('uiTitle').innerText = t.title;
+      document.getElementById('tabWell').innerText = t.tabWell;
+      document.getElementById('tabSeptic').innerText = t.tabSeptic;
       document.getElementById('lblLang').innerText = t.lblLang;
+
+      // Скважина
       document.getElementById('lblDepth').innerText = t.lblDepth;
       document.getElementById('lblYield').innerText = t.lblYield;
       document.getElementById('lblHouses').innerText = t.lblHouses;
       document.getElementById('lblKesson').innerText = t.lblKesson;
       document.getElementById('optKessonAuto').innerText = t.kessonAuto;
       document.getElementById('lblExtras').innerText = t.lblExtras;
+
+      // Септик
+      document.getElementById('lblUsers').innerText = t.lblUsers;
+      document.getElementById('lblDischarge').innerText = t.lblDischarge;
+      document.getElementById('lblPipe110').innerText = t.lblPipe110;
+      document.getElementById('lblSepticModel').innerText = t.lblSepticModel;
+      document.getElementById('optSepticAuto').innerText = t.septicAuto;
+      document.getElementById('lblExtrasSeptic').innerText = t.lblExtrasSeptic;
+
       document.getElementById('btnSubmit').innerText = t.btnSubmit;
 
       renderDistanceFields();
@@ -309,15 +479,37 @@
     function renderExtras() {
       const lang = document.getElementById('langSelect').value || 'ru';
       const t = I18N[lang] || I18N.ru;
-      const list = document.getElementById('extrasList');
-      list.innerHTML = '';
 
-      extrasSchema.forEach(item => {
+      // Отрисовка расходников для скважины
+      const listWell = document.getElementById('extrasListWell');
+      listWell.innerHTML = '';
+      extrasWell.forEach(item => {
         const val = extrasState[item.id] || 0;
         const name = t.items[item.id] || item.id;
         const unit = item.type === 'meters' ? t.unitM : t.unitPcs;
 
-        list.innerHTML += `
+        listWell.innerHTML += `
+          <div class="extra-item">
+            <span style="font-size:0.86rem; flex:1; padding-right:8px;">${name}</span>
+            <div class="qty-ctrl">
+              <button class="qty-btn" type="button" onclick="stepDelta('${item.id}', -1)">−</button>
+              <input class="qty-input" type="number" min="0" id="inp_${item.id}" value="${val}" oninput="manualSet('${item.id}', this.value)">
+              <button class="qty-btn" type="button" onclick="stepDelta('${item.id}', 1)">+</button>
+              <span class="unit-tag">${unit}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      // Отрисовка расходников для септика
+      const listSeptic = document.getElementById('extrasListSeptic');
+      listSeptic.innerHTML = '';
+      extrasSeptic.forEach(item => {
+        const val = extrasState[item.id] || 0;
+        const name = t.items[item.id] || item.id;
+        const unit = item.type === 'meters' ? t.unitM : t.unitPcs;
+
+        listSeptic.innerHTML += `
           <div class="extra-item">
             <span style="font-size:0.86rem; flex:1; padding-right:8px;">${name}</span>
             <div class="qty-ctrl">
@@ -347,30 +539,38 @@
     async function sendOrder() {
       const lang = document.getElementById('langSelect').value || 'ru';
       const t = I18N[lang] || I18N.ru;
-      const hCount = parseInt(document.getElementById('houses').value) || 1;
-
-      const distances = [];
-      for (let i = 1; i <= hCount; i++) {
-        distances.push(parseFloat(document.getElementById(`dist_${i}`)?.value || 15));
-      }
 
       const selectedExtras = {};
       for (let key in extrasState) {
         if (extrasState[key] > 0) selectedExtras[key] = extrasState[key];
       }
 
-      const payload = {
+      let payload = {
+        mode: currentMode,
         lang: lang,
-        depth: parseFloat(document.getElementById('depth').value) || 40,
-        yield_flow: parseFloat(document.getElementById('yield').value) || 2.5,
-        houses: hCount,
-        distances: distances,
-        chosen_kesson: document.getElementById('kessonSelect').value,
         extras: selectedExtras,
         user_id: tg?.initDataUnsafe?.user?.id || 0,
         username: tg?.initDataUnsafe?.user?.username || "",
         first_name: tg?.initDataUnsafe?.user?.first_name || "Монтажник"
       };
+
+      if (currentMode === 'well') {
+        const hCount = parseInt(document.getElementById('houses').value) || 1;
+        const distances = [];
+        for (let i = 1; i <= hCount; i++) {
+          distances.push(parseFloat(document.getElementById(`dist_${i}`)?.value || 15));
+        }
+        payload.depth = parseFloat(document.getElementById('depth').value) || 40;
+        payload.yield_flow = parseFloat(document.getElementById('yield').value) || 2.5;
+        payload.houses = hCount;
+        payload.distances = distances;
+        payload.chosen_kesson = document.getElementById('kessonSelect').value;
+      } else {
+        payload.users = parseInt(document.getElementById('septicUsers').value) || 5;
+        payload.discharge = document.getElementById('septicDischarge').value;
+        payload.distance = parseFloat(document.getElementById('septicDistance').value) || 10;
+        payload.chosen_septic = document.getElementById('septicModelSelect').value;
+      }
 
       const btn = document.getElementById('btnSubmit');
       btn.innerText = t.sending;
