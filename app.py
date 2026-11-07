@@ -14,6 +14,9 @@ if not TELEGRAM_BOT_TOKEN:
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 app = Flask(__name__)
 
+# Ссылка на наглядный баннер-инструкцию со стрелкой вниз
+WELCOME_BANNER_URL = "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1000&q=80"
+
 @app.route("/")
 @app.route("/health")
 def health_check():
@@ -32,6 +35,7 @@ def handle_miniapp_order():
         session_data = {
             "mode": data.get("mode", "well"),
             "lang": data.get("lang", "ru"),
+            "phone": data.get("phone", "Не указан"),
             "extras": data.get("extras", {}),
             "worker_tag": f"@{data.get('username')}" if data.get('username') else "нет username",
             "worker_name": data.get("first_name", "Монтажник"),
@@ -79,21 +83,45 @@ def handle_miniapp_order():
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     render_url = os.getenv("RENDER_EXTERNAL_URL", "https://mishka-kesson-app.onrender.com").rstrip("/")
-    kb = tele_types.InlineKeyboardMarkup()
-    web_app_info = tele_types.WebAppInfo(url=f"{render_url}/app")
-    kb.add(tele_types.InlineKeyboardButton("📱 Открыть склад МИШКА (Все системы)", web_app=web_app_info))
+    web_app_url = f"{render_url}/app"
 
-    bot.reply_to(
-        message,
-        "👋 <b>Склад завода «МИШКА»</b>\n\n"
-        "Нажмите кнопку ниже, чтобы открыть калькулятор и собрать смету:\n"
-        "• Кессоны и обустройство скважины\n"
-        "• Септики и канализация\n"
-        "• Дренаж участка (Софтрок или классика)\n"
-        "• Подземная ливнёвка от дома",
-        reply_markup=kb,
-        parse_mode="HTML"
+    # 1. Большая заметная кнопка прямо под сообщением со стрелками
+    inline_kb = tele_types.InlineKeyboardMarkup()
+    inline_kb.add(
+        tele_types.InlineKeyboardButton(
+            "🚀 НАЖМИТЕ СЮДА — ОТКРЫТЬ СКЛАД 📦",
+            web_app=tele_types.WebAppInfo(url=web_app_url)
+        )
     )
+
+    caption_text = (
+        "👋 <b>Добро пожаловать на склад завода «МИШКА»!</b>\n\n"
+        "Здесь вы можете за 1 минуту собрать полную смету с ценами и заказать комплект к приезду:\n"
+        "• <b>Кессоны</b> и обустройство скважин под ключ\n"
+        "• <b>Септики</b> и автономная канализация\n"
+        "• <b>Дренаж</b> (готовый «Софтрок» без щебня или классика)\n"
+        "• <b>Подземная ливнёвка</b> от водостоков дома\n\n"
+        "👇 <b>НАЖМИТЕ СИНЮЮ КНОПКУ НИЖЕ ДЛЯ ВХОДА:</b>\n"
+        "⬇️ ⬇️ ⬇️ ⬇️ ⬇️ ⬇️ ⬇️"
+    )
+
+    try:
+        # Отправляем фото-баннер с кнопкой прямо под ним
+        bot.send_photo(
+            message.chat.id,
+            photo=WELCOME_BANNER_URL,
+            caption=caption_text,
+            reply_markup=inline_kb,
+            parse_mode="HTML"
+        )
+    except Exception:
+        # Резервный вариант текстового сообщения, если фото не прогрузилось
+        bot.send_message(
+            message.chat.id,
+            caption_text,
+            reply_markup=inline_kb,
+            parse_mode="HTML"
+        )
 
 def setup_menu():
     try:
