@@ -22,13 +22,13 @@
     }
     h2 { font-size: 1.15rem; text-align: center; margin: 4px 0 10px; }
     
-    .tab-switch {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+    .tab-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;
     }
     .tab-btn {
-      padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-      background: var(--card); color: var(--text); font-weight: 700; font-size: 0.92rem;
-      cursor: pointer; text-align: center;
+      padding: 10px 6px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-weight: 700; font-size: 0.82rem;
+      cursor: pointer; text-align: center; transition: 0.2s;
     }
     .tab-btn.active {
       background: var(--btn); color: var(--btn-text); border-color: var(--btn);
@@ -72,10 +72,12 @@
 
   <h2 id="uiTitle">📦 Склад оборудования «МИШКА»</h2>
 
-  <!-- Переключатель категорий -->
-  <div class="tab-switch">
-    <div class="tab-btn active" id="tabWell" onclick="switchMode('well')">💧 Кессон / Скважина</div>
+  <!-- Сетка переключения 4-х разделов -->
+  <div class="tab-grid">
+    <div class="tab-btn active" id="tabWell" onclick="switchMode('well')">💧 Скважина / Кессон</div>
     <div class="tab-btn" id="tabSeptic" onclick="switchMode('septic')">☣️ Септик / Слив</div>
+    <div class="tab-btn" id="tabDrainage" onclick="switchMode('drainage')">🌾 Дренаж участка</div>
+    <div class="tab-btn" id="tabStorm" onclick="switchMode('storm')">🌧 Ливнёвка в земле</div>
   </div>
 
   <div class="card">
@@ -89,7 +91,7 @@
     </select>
   </div>
 
-  <!-- РАЗДЕЛ: СКВАЖИНА И КЕССОН -->
+  <!-- РАЗДЕЛ 1: СКВАЖИНА И КЕССОН -->
   <div id="sectionWell">
     <div class="card">
       <div class="grid-2">
@@ -123,12 +125,12 @@
     </div>
 
     <div class="card">
-      <label id="lblExtras">Дополнительные расходники к скважине</label>
+      <label id="lblExtras">Расходники к скважине</label>
       <div id="extrasListWell"></div>
     </div>
   </div>
 
-  <!-- РАЗДЕЛ: СЕПТИК И КАНАЛИЗАЦИЯ -->
+  <!-- РАЗДЕЛ 2: СЕПТИК И КАНАЛИЗАЦИЯ -->
   <div id="sectionSeptic" style="display: none;">
     <div class="card">
       <div class="grid-2">
@@ -174,6 +176,72 @@
     </div>
   </div>
 
+  <!-- РАЗДЕЛ 3: ДРЕНАЖ УЧАСТКА -->
+  <div id="sectionDrainage" style="display: none;">
+    <div class="card">
+      <label id="lblDrainType">Тип дренажной системы</label>
+      <select id="drainTypeSelect">
+        <option value="softrock" selected>📦 «Софтрок» / Лайтдрок (без щебня, в наполнителе)</option>
+        <option value="classic">🧱 Классический дренаж (труба в щебне + геотекстиль)</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblDrainLen">Общая длина трассы (м)</label>
+          <input type="number" id="drainLength" value="50" required>
+        </div>
+        <div>
+          <label id="lblDrainWells">Смотровых колодцев (шт.)</label>
+          <input type="number" id="drainWells" value="3" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label id="lblExtrasDrain">Расходники для дренажа</label>
+      <div id="extrasListDrain"></div>
+    </div>
+  </div>
+
+  <!-- РАЗДЕЛ 4: ПОДЗЕМНАЯ ЛИВНЁВКА -->
+  <div id="sectionStorm" style="display: none;">
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblInlets">Дождеприёмников (шт.)</label>
+          <input type="number" id="stormInlets" value="4" required>
+        </div>
+        <div>
+          <label id="lblStormLen">Длина подземной трубы 110 (м)</label>
+          <input type="number" id="stormLength" value="30" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblStormWells">Поворотных колодцев (шт.)</label>
+          <input type="number" id="stormWells" value="2" required>
+        </div>
+        <div>
+          <label id="lblStormDischarge">Точка сброса ливнёвки</label>
+          <select id="stormDischarge">
+            <option value="ditch">Канава / овраг</option>
+            <option value="well">Поглотительный колодец</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label id="lblExtrasStorm">Расходники для ливнёвки</label>
+      <div id="extrasListStorm"></div>
+    </div>
+  </div>
+
   <button class="btn-submit" id="btnSubmit" onclick="sendOrder()">🚀 Отправить заказ на склад</button>
 
   <script>
@@ -185,8 +253,10 @@
     const I18N = {
       ru: {
         title: "📦 Склад оборудования «МИШКА»",
-        tabWell: "💧 Кессон / Скважина",
+        tabWell: "💧 Скважина / Кессон",
         tabSeptic: "☣️ Септик / Слив",
+        tabDrainage: "🌾 Дренаж участка",
+        tabStorm: "🌧 Ливнёвка в земле",
         lblLang: "🌐 Язык интерфейса",
         lblDepth: "Глубина скважины (м)",
         lblYield: "Дебит (м³/ч)",
@@ -195,13 +265,22 @@
         distMulti: "Дом №{i}: расстояние (м)",
         lblKesson: "Выбор кессона",
         kessonAuto: "🤝 На выбор продавца (автоподбор)",
-        lblExtras: "Дополнительные расходники к скважине",
+        lblExtras: "Расходники к скважине",
         lblUsers: "Число проживающих",
         lblDischarge: "Сброс очищенной воды",
         lblPipe110: "Длина трассы канализации от дома (м)",
         lblSepticModel: "Модель септика",
         septicAuto: "🤝 На выбор продавца (автоподбор)",
         lblExtrasSeptic: "Расходные материалы для канализации",
+        lblDrainType: "Тип дренажной системы",
+        lblDrainLen: "Общая длина трассы (м)",
+        lblDrainWells: "Смотровых колодцев (шт.)",
+        lblExtrasDrain: "Расходники для дренажа",
+        lblInlets: "Дождеприёмников (шт.)",
+        lblStormLen: "Длина подземной трубы 110 (м)",
+        lblStormWells: "Поворотных колодцев (шт.)",
+        lblStormDischarge: "Точка сброса ливнёвки",
+        lblExtrasStorm: "Расходники для ливнёвки",
         btnSubmit: "🚀 Отправить заказ на склад",
         unitM: "м",
         unitPcs: "шт.",
@@ -221,13 +300,19 @@
           elbow110_45: "Отвод 110х45° рыжий",
           tee110: "Тройник 110х110х87° рыжий",
           bacteria: "Бактерии для септика (старт)",
-          drain_pipe: "Труба дренажная 110 с перфорацией"
+          drain_pipe: "Труба дренажная 110 с перфорацией",
+          geotextile: "Геотекстиль иглопробивной (рулон)",
+          well_cone: "Конус-переходник для колодца 315",
+          sand_trap: "Пескоуловитель пластиковый 110",
+          leaf_grate: "Листвоуловитель для дождеприёмника"
         }
       },
       tj: {
         title: "📦 Анбори таҷҳизоти «МИШКА»",
         tabWell: "💧 Чоҳ / Кессон",
-        tabSeptic: "☣️ Септик / Канализатсия",
+        tabSeptic: "☣️ Септик / Слив",
+        tabDrainage: "🌾 Дренажи замин",
+        tabStorm: "🌧 Оброҳаи зеризаминӣ",
         lblLang: "🌐 Забони барнома",
         lblDepth: "Чуқурии чоҳ (бо метр)",
         lblYield: "Дебит (м³/соат)",
@@ -243,6 +328,15 @@
         lblSepticModel: "Намуди септик",
         septicAuto: "🤝 Ба интихоби фурӯшанда (автоматӣ)",
         lblExtrasSeptic: "Мавод барои канализатсия",
+        lblDrainType: "Намуди системаи дренаж",
+        lblDrainLen: "Дарозии умумии хат (метр)",
+        lblDrainWells: "Чоҳҳои назоратӣ (дона)",
+        lblExtrasDrain: "Мавод барои дренаж",
+        lblInlets: "Қабулкунакҳои бороноб (дона)",
+        lblStormLen: "Дарозии қубури зеризаминӣ 110 (м)",
+        lblStormWells: "Чоҳҳои гардишӣ (дона)",
+        lblStormDischarge: "Ҷои партови бороноб",
+        lblExtrasStorm: "Мавод барои оброҳа",
         btnSubmit: "🚀 Фармоишро ба анбор фиристед",
         unitM: "м",
         unitPcs: "дона",
@@ -262,13 +356,19 @@
           elbow110_45: "Кунҷак 110х45° норинҷӣ",
           tee110: "Тройник 110х110х87°",
           bacteria: "Бактерия барои септик",
-          drain_pipe: "Қубури дренажӣ 110"
+          drain_pipe: "Қубури дренажӣ 110",
+          geotextile: "Геотекстил (рулон)",
+          well_cone: "Гузаришгоҳ барои чоҳи 315",
+          sand_trap: "Қумгирак 110",
+          leaf_grate: "Барггирак барои бороноб"
         }
       },
       uz: {
         title: "📦 «MISHKA» uskunalar ombori",
         tabWell: "💧 Quduq / Kesson",
         tabSeptic: "☣️ Septik / Kanalizatsiya",
+        tabDrainage: "🌾 Maydon drenaji",
+        tabStorm: "🌧 Yomg'ir oqova tizimi",
         lblLang: "🌐 Dastur tili",
         lblDepth: "Quduq chuqurligi (m)",
         lblYield: "Debit (m³/soat)",
@@ -277,13 +377,22 @@
         distMulti: "{i}-uy: masofa (metrda)",
         lblKesson: "Kesson tanlash",
         kessonAuto: "🤝 Sotuvchi tanloviga (avtomatik)",
-        lblExtras: "Quduq uchun qo'shimcha materiallar",
+        lblExtras: "Quduq uchun sarflar",
         lblUsers: "Odamlar soni",
-        lblDischarge: "Toza suv chiqishi",
-        lblPipe110: "Kanalizatsiya quvuri uzunligi (m)",
+        lblDischarge: "Suv chiqishi",
+        lblPipe110: "Kanalizatsiya quvuri (m)",
         lblSepticModel: "Septik modeli",
         septicAuto: "🤝 Sotuvchi tanloviga (avtomatik)",
         lblExtrasSeptic: "Kanalizatsiya materiallari",
+        lblDrainType: "Drenaj turi",
+        lblDrainLen: "Umumiy trassa uzunligi (m)",
+        lblDrainWells: "Ko'rish quduqlari (dona)",
+        lblExtrasDrain: "Drenaj materiallari",
+        lblInlets: "Yomg'ir qabul qilgichlar (dona)",
+        lblStormLen: "Yerosti quvuri 110 (m)",
+        lblStormWells: "Burilish quduqlari (dona)",
+        lblStormDischarge: "Suv oqizish joyi",
+        lblExtrasStorm: "Yomg'ir tizimi materiallari",
         btnSubmit: "🚀 Buyurtmani omborga yuborish",
         unitM: "m",
         unitPcs: "dona",
@@ -303,13 +412,19 @@
           elbow110_45: "Tirsak 110x45° zarg'aldoq",
           tee110: "Troynik 110x110x87°",
           bacteria: "Septik uchun bakteriyalar",
-          drain_pipe: "Drenaj quvuri 110"
+          drain_pipe: "Drenaj quvuri 110",
+          geotextile: "Geotekstil (rulon)",
+          well_cone: "315 quduq adapteri",
+          sand_trap: "Qum tutgich 110",
+          leaf_grate: "Barg tutqich panjara"
         }
       },
       hy: {
         title: "📦 Սարքավորումների պահեստ «ՄԻՇԿԱ»",
         tabWell: "💧 Հորատանցք / Կեսոն",
         tabSeptic: "☣️ Սեպտիկ / Կոյուղի",
+        tabDrainage: "🌾 Դրենաժային համակարգ",
+        tabStorm: "🌧 Անձրևաջրերի ստորգետնյա համակարգ",
         lblLang: "🌐 Լեզու",
         lblDepth: "Հորատանցքի խորություն (մ)",
         lblYield: "Արտադրողականություն (մ³/ժ)",
@@ -318,13 +433,22 @@
         distMulti: "Տուն №{i}: հեռավորություն (մ)",
         lblKesson: "Կեսոնի ընտրություն",
         kessonAuto: "🤝 Վաճառողի ընտրությամբ (ավտոմատ)",
-        lblExtras: "Հորատանցքի լրացուցիչ նյութեր",
+        lblExtras: "Հորատանցքի նյութեր",
         lblUsers: "Բնակիչների թիվը",
         lblDischarge: "Մաքրված ջրի արտահոսք",
         lblPipe110: "Կոյուղագծի երկարություն (մ)",
         lblSepticModel: "Սեպտիկի մոդել",
         septicAuto: "🤝 Վաճառողի ընտրությամբ (ավտոմատ)",
         lblExtrasSeptic: "Կոյուղու նյութեր",
+        lblDrainType: "Դրենաժի տեսակ",
+        lblDrainLen: "Գծի երկարությունը (մ)",
+        lblDrainWells: "Դիտահորեր (հատ)",
+        lblExtrasDrain: "Դրենաժի նյութեր",
+        lblInlets: "Անձրևընդունիչներ (հատ)",
+        lblStormLen: "Ստորգետնյա խողովակ 110 (մ)",
+        lblStormWells: "Պտտման հորեր (հատ)",
+        lblStormDischarge: "Արտահոսքի կետ",
+        lblExtrasStorm: "Անձրևաջրերի նյութեր",
         btnSubmit: "🚀 Ուղարկել պատվերը պահեստ",
         unitM: "մ",
         unitPcs: "հատ",
@@ -340,17 +464,23 @@
           elbow_32: "Անկյունակ ՊՆԴ 32х32 (90°)",
           unipak: "Վուշաթել + մածուկ Unipak",
           pipe110: "Նարնջագույն խողովակ 110",
-          insul110: "Ջերմամեկուսիչ 110 խողովակի համար",
+          insul110: "Ջերմամեկուսիչ 110",
           elbow110_45: "Անկյունակ 110х45°",
           tee110: "Եռաբաշխիչ 110х110х87°",
           bacteria: "Բակտերիաներ սեպտիկի համար",
-          drain_pipe: "Դրենաժային խողովակ 110"
+          drain_pipe: "Դրենաժային խողովակ 110",
+          geotextile: "Գեոտեքստիլ (ռուլոն)",
+          well_cone: "315 հորի կոն",
+          sand_trap: "Ավազորսիչ 110",
+          leaf_grate: "Տերևորսիչ ցանց"
         }
       },
       ky: {
         title: "📦 «МИШКА» кампасы",
         tabWell: "💧 Скважина / Кессон",
         tabSeptic: "☣️ Септик / Канализация",
+        tabDrainage: "🌾 Жер дренажы",
+        tabStorm: "🌧 Жер астындагы жаан суу түтүгү",
         lblLang: "🌐 Тилди тандоо",
         lblDepth: "Скважина тереңдиги (м)",
         lblYield: "Кубаттуулугу (м³/саат)",
@@ -359,13 +489,22 @@
         distMulti: "№{i}-үй: аралык (метр)",
         lblKesson: "Кессон тандоо",
         kessonAuto: "🤝 Сатуучунун тандоосуна (автоматтык)",
-        lblExtras: "Скважинага кошумча материалдар",
+        lblExtras: "Скважина материалдары",
         lblUsers: "Жашагандардын саны",
         lblDischarge: "Тазаланган сууну агызуу",
-        lblPipe110: "Канализация түтүгүнүн узундугу (м)",
+        lblPipe110: "Канализация түтүгү (м)",
         lblSepticModel: "Септик модели",
         septicAuto: "🤝 Сатуучунун тандоосуна (автоматтык)",
         lblExtrasSeptic: "Канализация материалдары",
+        lblDrainType: "Дренаж түрү",
+        lblDrainLen: "Жалпы узундугу (м)",
+        lblDrainWells: "Көзөмөл кудуктары (даана)",
+        lblExtrasDrain: "Дренаж материалдары",
+        lblInlets: "Жаан суу кабыл алгычтар (даана)",
+        lblStormLen: "Жер астындагы түтүк 110 (м)",
+        lblStormWells: "Бурулуш кудуктары (даана)",
+        lblStormDischarge: "Суу чыгаруу жери",
+        lblExtrasStorm: "Жаан суу системасы",
         btnSubmit: "🚀 Заказды кампага жөнөтүү",
         unitM: "м",
         unitPcs: "даана",
@@ -381,11 +520,15 @@
           elbow_32: "Бурчтук ПНД 32х32 (90°)",
           unipak: "Зыгыр буласы + Unipak пастасы",
           pipe110: "Кызгылт түтүк 110 тышкы",
-          insul110: "110 түтүк үчүн жылуулагыч",
+          insul110: "110 түтүк жылуулагычы",
           elbow110_45: "Бурчтук 110х45°",
           tee110: "Тройник 110х110х87°",
-          bacteria: "Септик үчүн бактериялар",
-          drain_pipe: "Дренаж түтүгү 110"
+          bacteria: "Септик бактериялары",
+          drain_pipe: "Дренаж түтүгү 110",
+          geotextile: "Геотекстиль (рулон)",
+          well_cone: "315 кудук конусу",
+          sand_trap: "Кум туткуч 110",
+          leaf_grate: "Жалбырак тоскуч"
         }
       }
     };
@@ -410,14 +553,29 @@
       { id: "drain_pipe", type: "meters" }
     ];
 
+    const extrasDrain = [
+      { id: "geotextile", type: "pieces" },
+      { id: "well_cone", type: "pieces" }
+    ];
+
+    const extrasStorm = [
+      { id: "sand_trap", type: "pieces" },
+      { id: "leaf_grate", type: "pieces" },
+      { id: "elbow110_45", type: "pieces" },
+      { id: "tee110", type: "pieces" }
+    ];
+
     let extrasState = {};
 
     function switchMode(mode) {
       currentMode = mode;
-      document.getElementById('tabWell').classList.toggle('active', mode === 'well');
-      document.getElementById('tabSeptic').classList.toggle('active', mode === 'septic');
-      document.getElementById('sectionWell').style.display = mode === 'well' ? 'block' : 'none';
-      document.getElementById('sectionSeptic').style.display = mode === 'septic' ? 'block' : 'none';
+      ['Well', 'Septic', 'Drainage', 'Storm'].forEach(m => {
+        const isCurrent = (m.toLowerCase() === mode.toLowerCase());
+        const tabEl = document.getElementById('tab' + m);
+        const secEl = document.getElementById('section' + m);
+        if (tabEl) tabEl.classList.toggle('active', isCurrent);
+        if (secEl) secEl.style.display = isCurrent ? 'block' : 'none';
+      });
     }
 
     function applyLanguage() {
@@ -427,6 +585,8 @@
       document.getElementById('uiTitle').innerText = t.title;
       document.getElementById('tabWell').innerText = t.tabWell;
       document.getElementById('tabSeptic').innerText = t.tabSeptic;
+      document.getElementById('tabDrainage').innerText = t.tabDrainage;
+      document.getElementById('tabStorm').innerText = t.tabStorm;
       document.getElementById('lblLang').innerText = t.lblLang;
 
       // Скважина
@@ -445,10 +605,23 @@
       document.getElementById('optSepticAuto').innerText = t.septicAuto;
       document.getElementById('lblExtrasSeptic').innerText = t.lblExtrasSeptic;
 
+      // Дренаж
+      document.getElementById('lblDrainType').innerText = t.lblDrainType;
+      document.getElementById('lblDrainLen').innerText = t.lblDrainLen;
+      document.getElementById('lblDrainWells').innerText = t.lblDrainWells;
+      document.getElementById('lblExtrasDrain').innerText = t.lblExtrasDrain;
+
+      // Ливнёвка
+      document.getElementById('lblInlets').innerText = t.lblInlets;
+      document.getElementById('lblStormLen').innerText = t.lblStormLen;
+      document.getElementById('lblStormWells').innerText = t.lblStormWells;
+      document.getElementById('lblStormDischarge').innerText = t.lblStormDischarge;
+      document.getElementById('lblExtrasStorm').innerText = t.lblExtrasStorm;
+
       document.getElementById('btnSubmit').innerText = t.btnSubmit;
 
       renderDistanceFields();
-      renderExtras();
+      renderAllExtras();
     }
 
     function renderDistanceFields() {
@@ -476,19 +649,19 @@
       }
     }
 
-    function renderExtras() {
+    function renderExtrasGroup(containerId, schema) {
       const lang = document.getElementById('langSelect').value || 'ru';
       const t = I18N[lang] || I18N.ru;
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
 
-      // Отрисовка расходников для скважины
-      const listWell = document.getElementById('extrasListWell');
-      listWell.innerHTML = '';
-      extrasWell.forEach(item => {
+      schema.forEach(item => {
         const val = extrasState[item.id] || 0;
         const name = t.items[item.id] || item.id;
         const unit = item.type === 'meters' ? t.unitM : t.unitPcs;
 
-        listWell.innerHTML += `
+        container.innerHTML += `
           <div class="extra-item">
             <span style="font-size:0.86rem; flex:1; padding-right:8px;">${name}</span>
             <div class="qty-ctrl">
@@ -500,27 +673,13 @@
           </div>
         `;
       });
+    }
 
-      // Отрисовка расходников для септика
-      const listSeptic = document.getElementById('extrasListSeptic');
-      listSeptic.innerHTML = '';
-      extrasSeptic.forEach(item => {
-        const val = extrasState[item.id] || 0;
-        const name = t.items[item.id] || item.id;
-        const unit = item.type === 'meters' ? t.unitM : t.unitPcs;
-
-        listSeptic.innerHTML += `
-          <div class="extra-item">
-            <span style="font-size:0.86rem; flex:1; padding-right:8px;">${name}</span>
-            <div class="qty-ctrl">
-              <button class="qty-btn" type="button" onclick="stepDelta('${item.id}', -1)">−</button>
-              <input class="qty-input" type="number" min="0" id="inp_${item.id}" value="${val}" oninput="manualSet('${item.id}', this.value)">
-              <button class="qty-btn" type="button" onclick="stepDelta('${item.id}', 1)">+</button>
-              <span class="unit-tag">${unit}</span>
-            </div>
-          </div>
-        `;
-      });
+    function renderAllExtras() {
+      renderExtrasGroup('extrasListWell', extrasWell);
+      renderExtrasGroup('extrasListSeptic', extrasSeptic);
+      renderExtrasGroup('extrasListDrain', extrasDrain);
+      renderExtrasGroup('extrasListStorm', extrasStorm);
     }
 
     function stepDelta(id, delta) {
@@ -565,11 +724,20 @@
         payload.houses = hCount;
         payload.distances = distances;
         payload.chosen_kesson = document.getElementById('kessonSelect').value;
-      } else {
+      } else if (currentMode === 'septic') {
         payload.users = parseInt(document.getElementById('septicUsers').value) || 5;
         payload.discharge = document.getElementById('septicDischarge').value;
         payload.distance = parseFloat(document.getElementById('septicDistance').value) || 10;
         payload.chosen_septic = document.getElementById('septicModelSelect').value;
+      } else if (currentMode === 'drainage') {
+        payload.drain_type = document.getElementById('drainTypeSelect').value;
+        payload.drain_length = parseFloat(document.getElementById('drainLength').value) || 50;
+        payload.drain_wells = parseInt(document.getElementById('drainWells').value) || 3;
+      } else if (currentMode === 'storm') {
+        payload.storm_inlets = parseInt(document.getElementById('stormInlets').value) || 4;
+        payload.storm_length = parseFloat(document.getElementById('stormLength').value) || 30;
+        payload.storm_wells = parseInt(document.getElementById('stormWells').value) || 2;
+        payload.storm_discharge = document.getElementById('stormDischarge').value;
       }
 
       const btn = document.getElementById('btnSubmit');
