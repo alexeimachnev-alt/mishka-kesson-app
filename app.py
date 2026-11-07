@@ -8,6 +8,7 @@ from telebot import types as tele_types
 from calc_module import (
     build_order_payload, 
     make_warehouse_keyboard, 
+    update_sheet_status,
     ACTIVE_ORDERS, 
     ADMIN_CHAT_IDS
 )
@@ -68,12 +69,14 @@ def handle_miniapp_order():
         order_id, estimate_text, total_sum = build_order_payload(session_data)
         kb_admin = make_warehouse_keyboard(order_id)
 
+        # 1. Отправка администраторам склада
         for a_id in ADMIN_CHAT_IDS:
             try:
                 bot.send_message(a_id, estimate_text, parse_mode="HTML", reply_markup=kb_admin)
             except Exception as e:
                 print(f"[ERR ADMIN SEND] {a_id}: {e}")
 
+        # 2. Отправка подтверждения заказчику
         if user_id:
             try:
                 kb_client = tele_types.InlineKeyboardMarkup(row_width=1)
@@ -97,10 +100,12 @@ def handle_miniapp_order():
         print(f"[ERROR API] {e}")
         return jsonify({"error": str(e)}), 500
 
+# Обработка нажатий кнопок
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callbacks(call):
     data = call.data
 
+    # Отметка позиций
     if data.startswith("chk_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -121,6 +126,7 @@ def handle_callbacks(call):
         st = "взят со склада ✅" if order["collected"][item_idx] else "снят с отметки ❌"
         bot.answer_callback_query(call.id, f"{order['items'][item_idx]['name']}: {st}")
 
+    # Заказ полностью собран
     elif data.startswith("fin_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -135,6 +141,7 @@ def handle_callbacks(call):
         except Exception:
             pass
 
+        update_sheet_status(order_id, "Собран на складе")
         bot.answer_callback_query(call.id, f"Заказ #{order_id} собран! Клиент уведомлен.")
 
         client_id = order.get("client_id")
@@ -154,6 +161,7 @@ def handle_callbacks(call):
             except Exception as e:
                 print(f"[ERR NOTIFY CLIENT] {client_id}: {e}")
 
+    # Запрос на отмену (спрашиваем причину у менеджера)
     elif data.startswith("cancel_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -161,22 +169,16 @@ def handle_callbacks(call):
             bot.answer_callback_query(call.id, "Заказ не найден")
             return
 
-        order["status"] = "cancelled"
-        new_kb = make_warehouse_keyboard(order_id)
-        try:
-            bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=new_kb)
-        except Exception:
-            pass
+        bot.answer_callback_query(call.id, "Укажите причину отмены")
+        msg = bot.send_message(
+            call.message.chat.id,
+            f"✍️ <b>Напишите причину отмены заказа #{order_id}</b>\n"
+            f"<i>(Причина пойдет в Google Таблицу и админам, клиент её НЕ увидит):</i>",
+            parse_mode="HTML"
+        )
+        bot.register_next_step_handler(msg, process_cancel_reason, order_id, call.message.message_id)
 
-        bot.answer_callback_query(call.id, f"Заказ #{order_id} отменён.")
-
-        client_id = order.get("client_id")
-        if client_id:
-            try:
-                bot.send_message(client_id, f"❌ <b>Заказ #{order_id} отменён складом.</b>\nЕсли возникли вопросы, свяжитесь с менеджером.", parse_mode="HTML")
-            except Exception:
-                pass
-
+    # Запрос на корректировку
     elif data.startswith("edit_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -192,6 +194,7 @@ def handle_callbacks(call):
             except Exception:
                 pass
 
+    # Повтор заказа
     elif data.startswith("repeat_"):
         old_order_id = data.split("_")[1]
         old_order = ACTIVE_ORDERS.get(old_order_id)
@@ -212,6 +215,43 @@ def handle_callbacks(call):
 
         try:
             bot.send_message(call.message.chat.id, f"✅ <b>Заказ успешно повторен! Новый номер: #{new_order_id}</b>\n\nСклад уже приступил к сборке.", parse_mode="HTML")
+        except Exception:
+            pass
+
+def process_cancel_reason(message, order_id, original_msg_id):
+    """Принимает причину отмены от менеджера, обновляет статус и выгружает в таблицу."""
+    reason = message.text.strip()
+    order = ACTIVE_ORDERS.get(order_id)
+    if not order:
+        bot.reply_to(message, "Заказ не найден в текущей сессии.")
+        return
+
+    order["status"] = "cancelled"
+    order["cancel_reason"] = reason
+
+    # Обновляем клавиатуру заказа у администратора
+    new_kb = make_warehouse_keyboard(order_id)
+    try:
+        bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=original_msg_id, reply_markup=new_kb)
+    except Exception:
+        pass
+
+    # Отправляем обновленный статус и причину в Google Таблицу
+    update_sheet_status(order_id, "Отменён", reason)
+
+    # Подтверждение менеджеру
+    bot.reply_to(message, f"✅ Заказ #{order_id} отменён.\nПричина <i>«{reason}»</i> записана в Google Таблицу.", parse_mode="HTML")
+
+    # Уведомляем клиента (без показа внутренней причины)
+    client_id = order.get("client_id")
+    if client_id:
+        try:
+            bot.send_message(
+                client_id,
+                f"❌ <b>Ваш заказ #{order_id} отменён складом.</b>\n"
+                f"Если у вас возникли вопросы или нужно изменить состав заказа, свяжитесь с отделом продаж завода «МИШКА».",
+                parse_mode="HTML"
+            )
         except Exception:
             pass
 
