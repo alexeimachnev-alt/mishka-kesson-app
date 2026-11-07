@@ -1,5 +1,6 @@
 import os
 import uuid
+import urllib.parse
 import requests
 from telebot import types
 
@@ -12,8 +13,9 @@ GOOGLE_SHEET_WEBHOOK = os.getenv("GOOGLE_SHEET_WEBHOOK", "").strip()
 # Хранилище заказов: order_id -> dict
 ACTIVE_ORDERS = {}
 
-# Цены (руб.)
+# Прайс-лист оборудования завода МИШКА (руб.)
 PRICES = {
+    # 1. Скважина и кессон
     "pnd32": 130,
     "pnd25": 95,
     "cable": 220,
@@ -39,6 +41,7 @@ PRICES = {
     "filter_bb": 4500,
     "garden_tap": 1100,
 
+    # Кессоны МИШКА
     "kesson_m1": 39650,
     "kesson_m2": 50700,
     "kesson_m3": 76500,
@@ -52,6 +55,7 @@ PRICES = {
     "tank_150": 17500,
     "tank_200": 24000,
 
+    # 2. Септики и канализация
     "septic_bio3": 85000,
     "septic_bio5": 105000,
     "septic_bio8": 138000,
@@ -67,6 +71,7 @@ PRICES = {
     "bacteria": 1200,
     "cable_heat_septic": 380,
 
+    # 3. Дренаж участка
     "drain_pipe_classic": 280,
     "drain_softrock": 750,
     "geotextile_roll": 4500,
@@ -75,6 +80,7 @@ PRICES = {
     "well_cone": 1800,
     "softrock_coupling": 420,
 
+    # 4. Подземная ливнёвка
     "storm_inlet_box": 1950,
     "storm_pipe110": 480,
     "storm_well_315": 3800,
@@ -105,7 +111,7 @@ EXTRA_ITEMS = {
 }
 
 def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
-    """Выгружает новую строчку в Google Таблицу по вебхуку."""
+    """Выгружает новый заказ в Google Таблицу."""
     if not GOOGLE_SHEET_WEBHOOK:
         return
     payload = {
@@ -115,13 +121,29 @@ def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
         "delivery_type": data.get("delivery_type", "Самовывоз"),
         "delivery_info": data.get("delivery_info", "-"),
         "mode": data.get("mode", "well"),
-        "total_sum": total_sum
+        "total_sum": total_sum,
+        "status": "Принят на складе"
     }
     try:
-        requests.post(GOOGLE_SHEET_WEBHOOK, json=payload, timeout=5)
-        print(f"[SHEET SYNC] Заказ #{order_id} отправлен в Google Таблицу")
+        requests.post(GOOGLE_SHEET_WEBHOOK, json=payload, timeout=10, allow_redirects=True)
     except Exception as e:
         print(f"[SHEET SYNC ERR] {e}")
+
+def update_sheet_status(order_id: str, status: str, cancel_reason: str = ""):
+    """Обновляет статус заказа и причину отмены в Google Таблице."""
+    if not GOOGLE_SHEET_WEBHOOK:
+        return
+    payload = {
+        "action": "update_status",
+        "order_id": order_id,
+        "status": status,
+        "cancel_reason": cancel_reason
+    }
+    try:
+        requests.post(GOOGLE_SHEET_WEBHOOK, json=payload, timeout=10, allow_redirects=True)
+        print(f"[SHEET UPDATE] Статус заказа #{order_id} обновлен на: {status}")
+    except Exception as e:
+        print(f"[SHEET UPDATE ERR] {e}")
 
 def get_items_for_order(data: dict):
     mode = data.get("mode", "well")
@@ -140,35 +162,20 @@ def get_items_for_order(data: dict):
         total_pipe_run = pump_depth + max_dist
         req_head = int(pump_depth + (total_pipe_run * 0.10) + 35)
 
-        if req_head <= 60:
-            pump_name, pump_p = "Насос скважинный (до 65 м)", PRICES["pump_60"]
-        elif req_head <= 85:
-            pump_name, pump_p = "Насос скважинный (до 90 м)", PRICES["pump_85"]
-        elif req_head <= 110:
-            pump_name, pump_p = "Насос усиленный (до 115 м)", PRICES["pump_110"]
-        else:
-            pump_name, pump_p = "Насос высоконапорный (120+ м)", PRICES["pump_120"]
+        if req_head <= 60: pump_name, pump_p = "Насос скважинный (до 65 м)", PRICES["pump_60"]
+        elif req_head <= 85: pump_name, pump_p = "Насос скважинный (до 90 м)", PRICES["pump_85"]
+        elif req_head <= 110: pump_name, pump_p = "Насос усиленный (до 115 м)", PRICES["pump_110"]
+        else: pump_name, pump_p = "Насос высоконапорный (120+ м)", PRICES["pump_120"]
 
-        if "Мишка 1" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-1» (Ø1050)", PRICES["kesson_m1"]
-        elif "Мишка 2" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-2» (Ø1300)", PRICES["kesson_m2"]
-        elif "Мишка 3" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-3» (Ø1600)", PRICES["kesson_m3"]
-        elif "Мишка 4" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-4» (Ø2100)", PRICES["kesson_m4"]
-        elif "LONG" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА LONG» (H=2500)", PRICES["kesson_long"]
+        if "Мишка 1" in selected_kesson: k_name, k_p = "Кессон «МИШКА-1» (Ø1050)", PRICES["kesson_m1"]
+        elif "Мишка 2" in selected_kesson: k_name, k_p = "Кессон «МИШКА-2» (Ø1300)", PRICES["kesson_m2"]
+        elif "Мишка 3" in selected_kesson: k_name, k_p = "Кессон «МИШКА-3» (Ø1600)", PRICES["kesson_m3"]
+        elif "Мишка 4" in selected_kesson: k_name, k_p = "Кессон «МИШКА-4» (Ø2100)", PRICES["kesson_m4"]
+        elif "LONG" in selected_kesson: k_name, k_p = "Кессон «МИШКА LONG» (H=2500)", PRICES["kesson_long"]
         else:
-            if houses == 1:
-                k_name, k_p = "Кессон «МИШКА-2» (1000х2000)", PRICES["kesson_m2"]
-            else:
-                k_name, k_p = f"Кессон «МИШКА-3» ({houses} вывода)", PRICES["kesson_m3"]
+            k_name, k_p = ("Кессон «МИШКА-2» (1000х2000)", PRICES["kesson_m2"]) if houses == 1 else (f"Кессон «МИШКА-3» ({houses} вывода)", PRICES["kesson_m3"])
 
-        if houses == 1:
-            tank_name, tank_p = "Гидроаккумулятор 80-100 л", PRICES["tank_80"]
-        else:
-            tank_name, tank_p = "Гидроаккумулятор 150-200 л", PRICES["tank_150"]
+        tank_name, tank_p = ("Гидроаккумулятор 80-100 л", PRICES["tank_80"]) if houses == 1 else ("Гидроаккумулятор 150-200 л", PRICES["tank_150"])
 
         pnd_m = int((pump_depth * 1.05) + (total_dist * 1.05) + (houses * 4))
         cable_m = int((pump_depth + 5) * 1.1)
@@ -198,12 +205,9 @@ def get_items_for_order(data: dict):
         discharge = data.get("discharge", "gravity")
         chosen = data.get("chosen_septic", "auto")
 
-        if "Био 3" in chosen:
-            s_n, s_p = "Станция «МИШКА-Био 3»", PRICES["septic_bio3"]
-        elif "Био 8" in chosen:
-            s_n, s_p = "Станция «МИШКА-Био 8»", PRICES["septic_bio8"]
-        else:
-            s_n, s_p = "Станция «МИШКА-Био 5»", PRICES["septic_bio5"]
+        if "Био 3" in chosen: s_n, s_p = "Станция «МИШКА-Био 3»", PRICES["septic_bio3"]
+        elif "Био 8" in chosen: s_n, s_p = "Станция «МИШКА-Био 8»", PRICES["septic_bio8"]
+        else: s_n, s_p = "Станция «МИШКА-Био 5»", PRICES["septic_bio5"]
 
         pipe_m = int(dist * 1.05)
         items = [
@@ -267,7 +271,7 @@ def get_items_for_order(data: dict):
 def build_order_payload(data: dict):
     order_id = str(uuid.uuid4())[:8]
     items = get_items_for_order(data)
-    
+
     total_sum = 0
     lines = []
     for it in items:
@@ -289,6 +293,7 @@ def build_order_payload(data: dict):
         "status": "active"
     }
 
+    # Выгрузка нового заказа в Google Таблицу
     sync_to_google_sheet(order_id, data, total_sum)
 
     phone = data.get("phone", "Не указан")
@@ -298,7 +303,8 @@ def build_order_payload(data: dict):
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"👷 <b>Заказчик:</b> {data.get('worker_name')} ({data.get('worker_tag')})\n"
         f"📞 <b>Телефон:</b> <a href='tel:{phone}'>{phone}</a>\n"
-        f"🚚 <b>Получение:</b> {data.get('delivery_type')} ({data.get('delivery_info')})\n"
+        f"🚚 <b>Получение:</b> {data.get('delivery_type')}\n"
+        f"📍 <b>Детали/Адрес:</b> <code>{data.get('delivery_info')}</code>\n"
         f"🆔 ID клиента: <code>{data.get('chat_id')}</code>\n\n"
         f"📦 <b>СПЕЦИФИКАЦИЯ:</b>\n\n"
         f"{items_block}\n\n"
@@ -309,20 +315,32 @@ def build_order_payload(data: dict):
     return order_id, header, total_sum
 
 def make_warehouse_keyboard(order_id: str):
+    """Клавиатура склада с отметками, маршрутом к клиенту и кнопками отмены."""
     order = ACTIVE_ORDERS.get(order_id)
     if not order:
         return None
 
     kb = types.InlineKeyboardMarkup(row_width=1)
-    
+
     if order.get("status") == "cancelled":
-        kb.add(types.InlineKeyboardButton("❌ ЗАКАЗ ОТМЕНЁН", callback_data="none"))
+        reason = order.get("cancel_reason", "")
+        reason_txt = f": {reason}" if reason else ""
+        kb.add(types.InlineKeyboardButton(f"❌ ЗАКАЗ ОТМЕНЁН{reason_txt}", callback_data="none"))
         return kb
 
     if order.get("status") == "completed":
         kb.add(types.InlineKeyboardButton("🎉 ЗАКАЗ СОБРАН И ВЫДАН", callback_data="none"))
         return kb
 
+    # Если выбрана доставка и клиент указал адрес, добавляем кнопку маршрута для водителя/склада
+    delivery_info = order.get("delivery_info", "")
+    if "Доставка" in order.get("delivery_type", "") and delivery_info:
+        clean_addr = delivery_info.split("|")[0].replace("Адрес:", "").strip()
+        if clean_addr:
+            nav_url = f"https://yandex.ru/navi?text={urllib.parse.quote(clean_addr)}"
+            kb.add(types.InlineKeyboardButton("🚗 Маршрут к клиенту (Яндекс Навигатор)", url=nav_url))
+
+    # Кнопки сбора позиций
     for idx, (item, is_done) in enumerate(zip(order["items"], order["collected"])):
         mark = "🟢" if is_done else "⬜"
         qty_str = f"{item['qty']:g}" if isinstance(item['qty'], float) else str(item['qty'])
@@ -330,10 +348,12 @@ def make_warehouse_keyboard(order_id: str):
         btn_text = f"{mark} {idx+1}. {short_name} ({qty_str} {item['unit']})"
         kb.add(types.InlineKeyboardButton(btn_text, callback_data=f"chk_{order_id}_{idx}"))
 
+    # Завершить заказ
     all_done = all(order["collected"])
     finish_icon = "🚀" if all_done else "📦"
     kb.add(types.InlineKeyboardButton(f"{finish_icon} ЗАКАЗ ПОЛНОСТЬЮ СОБРАН", callback_data=f"fin_{order_id}"))
 
+    # Отмена и корректировка
     row_ctrl = [
         types.InlineKeyboardButton("❌ Отменить", callback_data=f"cancel_{order_id}"),
         types.InlineKeyboardButton("✏️ Корректировка", callback_data=f"edit_{order_id}")
