@@ -8,33 +8,33 @@ ADMIN_CHAT_IDS = [PRIMARY_ADMIN_ID, SECOND_ADMIN_ID]
 
 # Базовый прайс на комплектующие (руб.)
 PRICES = {
-    # Скважина: трубы, кабель, изоляция
-    "pnd32": 130,          # за м
-    "pnd25": 95,           # за м
-    "cable": 220,          # за м (КВВ-П 3х2.5)
-    "rope": 90,            # за м (нерж. трос 4 мм)
-    "insul": 60,           # за м (энергофлекс 32)
-    "heat_cable": 350,     # за м (саморегулирующийся)
-    "ball_valve": 1250,    # шт.
-    "fitting_32_1": 420,   # шт.
-    "elbow_32": 480,       # шт.
-    "unipak": 650,         # компл.
-    "check_valve": 1450,   # шт.
-    "nipple": 380,         # шт.
-    "rope_clips": 120,     # шт.
-    "rope_thimble": 90,    # шт.
-    "carabiner": 250,      # шт.
-    "cable_sleeve": 950,   # компл.
-    "cable_ties": 5,       # шт.
-    "well_head": 4200,     # шт.
-    "wall_seal": 850,      # шт.
+    # 1. Скважина и кессон
+    "pnd32": 130,
+    "pnd25": 95,
+    "cable": 220,
+    "rope": 90,
+    "insul": 60,
+    "heat_cable": 350,
+    "ball_valve": 1250,
+    "fitting_32_1": 420,
+    "elbow_32": 480,
+    "unipak": 650,
+    "check_valve": 1450,
+    "nipple": 380,
+    "rope_clips": 120,
+    "rope_thimble": 90,
+    "carabiner": 250,
+    "cable_sleeve": 950,
+    "cable_ties": 5,
+    "well_head": 4200,
+    "wall_seal": 850,
     "pressure_switch": 2800,
     "manometer": 650,
     "five_way": 1650,
     "filter_bb": 4500,
     "garden_tap": 1100,
 
-    # Кессоны МИШКА (по прайсу 06.2026-2)
+    # Кессоны МИШКА (ОПТ по прайсу 06.2026-2)
     "kesson_m1": 39650,
     "kesson_m2": 50700,
     "kesson_m3": 76500,
@@ -48,22 +48,38 @@ PRICES = {
     "tank_150": 17500,
     "tank_200": 24000,
 
-    # Септики и канализация
-    "septic_bio3": 85000,   # Станция биоочистки МИШКА-Био 3
-    "septic_bio5": 105000,  # Станция биоочистки МИШКА-Био 5
-    "septic_bio8": 138000,  # Станция биоочистки МИШКА-Био 8
-    "septic_bio10": 165000, # Станция биоочистки МИШКА-Био 10
-    "septic_tank2": 62000,  # Накопитель МИШКА 2.0 м³
-    "septic_tank3": 82000,  # Накопитель МИШКА 3.0 м³
-    "drain_pump": 8500,     # Дренажный насос для принудительного сброса
-    "drain_hose": 250,      # Шланг напорный армированный за м
-    "pipe110": 480,         # Труба рыжая ПВХ 110х3.2 наружная за м
-    "insul110": 140,        # Утеплитель для 110 трубы за м
-    "elbow110_45": 280,     # Отвод 110х45° рыжий шт.
-    "tee110": 490,          # Тройник 110х110х87° рыжий шт.
-    "bacteria": 1200,       # Стартовые биобактерии компл.
-    "drain_pipe": 320,      # Труба дренажная 110 перфорированная с фильтром за м
-    "cable_heat_septic": 380 # Кабель саморег. для слива за м
+    # 2. Септики и канализация
+    "septic_bio3": 85000,
+    "septic_bio5": 105000,
+    "septic_bio8": 138000,
+    "septic_bio10": 165000,
+    "septic_tank2": 62000,
+    "septic_tank3": 82000,
+    "drain_pump": 8500,
+    "drain_hose": 250,
+    "pipe110": 480,
+    "insul110": 140,
+    "elbow110_45": 280,
+    "tee110": 490,
+    "bacteria": 1200,
+    "cable_heat_septic": 380,
+
+    # 3. Дренаж (Классика и Софтрок)
+    "drain_pipe_classic": 280,   # Труба перфорированная 110 с геотекстилем (за метр)
+    "drain_softrock": 750,       # Блок Софтрок/Лайтдрок 110 с наполнителем (за метр)
+    "geotextile_roll": 4500,     # Рулон дорнита 2х50 м для траншеи
+    "well_drain_315": 3800,      # Дренажный колодец смотровой d315 (H=1.5-2.0 м) + дно + люк
+    "well_drain_coupling": 350,  # Муфта по месту врезки 110 в колодец 315
+    "well_cone": 1800,           # Конус-переходник
+    "softrock_coupling": 420,    # Соединительная муфта для блоков Софтрок
+
+    # 4. Подземная ливневая канализация
+    "storm_inlet_box": 1950,     # Дождеприёмник 300х300 с корзиной, перегородкой и решёткой
+    "storm_pipe110": 480,        # Труба наружная рыжая 110х3.2 безнапорная (за метр)
+    "storm_well_315": 3800,      # Поворотный колодец 315 с крышкой
+    "sand_trap": 2400,           # Пескоуловитель пластиковый 110
+    "leaf_grate": 350,           # Листвоуловитель
+    "storm_back_valve": 2900     # Обратный клапан 110 для сброса в канаву
 }
 
 EXTRA_ITEMS = {
@@ -83,7 +99,15 @@ EXTRA_ITEMS = {
     "elbow110_45": {"unit": "шт.", "name": "Отвод 110х45° рыжий", "price": PRICES["elbow110_45"]},
     "tee110": {"unit": "шт.", "name": "Тройник 110х110х87° рыжий", "price": PRICES["tee110"]},
     "bacteria": {"unit": "шт.", "name": "Бактерии для септика (старт)", "price": PRICES["bacteria"]},
-    "drain_pipe": {"unit": "м", "name": "Труба дренажная 110 с перфорацией", "price": PRICES["drain_pipe"]}
+    "drain_pipe": {"unit": "м", "name": "Труба дренажная 110 с перфорацией", "price": PRICES["drain_pipe_classic"]},
+
+    # Дренаж
+    "geotextile": {"unit": "рул.", "name": "Геотекстиль иглопробивной (рулон)", "price": PRICES["geotextile_roll"]},
+    "well_cone": {"unit": "шт.", "name": "Конус-переходник для колодца 315", "price": PRICES["well_cone"]},
+
+    # Ливнёвка
+    "sand_trap": {"unit": "шт.", "name": "Пескоуловитель пластиковый 110", "price": PRICES["sand_trap"]},
+    "leaf_grate": {"unit": "шт.", "name": "Листвоуловитель для дождеприёмника", "price": PRICES["leaf_grate"]}
 }
 
 def send_to_all_admins(bot, text: str):
@@ -96,7 +120,6 @@ def send_to_all_admins(bot, text: str):
             print(f"[ERROR] Не удалось отправить админу {a_id}: {e}")
 
 def calculate_well_estimate(data: dict):
-    """Расчет оборудования и стоимости для скважины/кессона."""
     depth = data["depth"]
     houses = data["houses"]
     distances = data["distances"]
@@ -190,16 +213,13 @@ def calculate_well_estimate(data: dict):
 
     return lines, total_sum, pump_depth, req_head
 
-
 def calculate_septic_estimate(data: dict):
-    """Расчет оборудования и стоимости для септика/канализации."""
     users = data.get("users", 5)
     discharge = data.get("discharge", "gravity")
     distance = data.get("distance", 10)
     chosen_septic = data.get("chosen_septic", "auto")
     extras = data.get("extras", {})
 
-    # Подбор модели септика
     if "Био 3" in chosen_septic:
         s_name, s_price = "Станция биоочистки «МИШКА-Био 3»", PRICES["septic_bio3"]
     elif "Био 5" in chosen_septic:
@@ -211,7 +231,6 @@ def calculate_septic_estimate(data: dict):
     elif "3.0 м³" in chosen_septic:
         s_name, s_price = "Септик-накопитель «МИШКА» 3.0 м³", PRICES["septic_tank3"]
     else:
-        # Автоподбор по числу проживающих
         if users <= 3:
             s_name, s_price = "Станция биоочистки «МИШКА-Био 3» (до 3 чел.)", PRICES["septic_bio3"]
         elif users <= 5:
@@ -234,7 +253,6 @@ def calculate_septic_estimate(data: dict):
         {"name": "Бактерии биологические для быстрого запуска", "qty": 1, "unit": "компл.", "price": PRICES["bacteria"]}
     ]
 
-    # Добавление элементов принудительного сброса
     if discharge == "forced":
         items.extend([
             {"name": "Насос дренажный погружной с поплавком", "qty": 1, "unit": "шт.", "price": PRICES["drain_pump"]},
@@ -257,9 +275,83 @@ def calculate_septic_estimate(data: dict):
 
     return lines, total_sum, s_name
 
+def calculate_drainage_estimate(data: dict):
+    drain_type = data.get("drain_type", "softrock")
+    length = data.get("drain_length", 50)
+    wells = data.get("drain_wells", 3)
+    extras = data.get("extras", {})
+
+    items = []
+    if drain_type == "softrock":
+        # Дренаж Софтрок (готовые блоки 110 в пенополистироле)
+        couplings_count = int(length // 3) + 1
+        items.append({"name": "Блоки дренажные «Софтрок/Лайтдрок» 110 (L=3м)", "qty": length, "unit": "м", "price": PRICES["drain_softrock"]})
+        items.append({"name": "Соединительные муфты для блоков Софтрок", "qty": couplings_count, "unit": "шт.", "price": PRICES["softrock_coupling"]})
+    else:
+        # Классический дренаж с щебнем
+        rolls_needed = max(1, int(length // 45) + 1)
+        items.append({"name": "Труба дренажная 110 перфорированная с фильтром", "qty": length, "unit": "м", "price": PRICES["drain_pipe_classic"]})
+        items.append({"name": "Геотекстиль иглопробивной Дорнит (рулон 2х50м)", "qty": rolls_needed, "unit": "рул.", "price": PRICES["geotextile_roll"]})
+
+    # Смотровые колодцы и муфты врезки
+    items.append({"name": "Колодец дренажный смотровой d315 (H=1.5-2.0м) + дно + крышка", "qty": wells, "unit": "шт.", "price": PRICES["well_drain_315"]})
+    items.append({"name": "Муфты по месту врезки трубы 110 в колодец 315", "qty": wells * 2, "unit": "шт.", "price": PRICES["well_drain_coupling"]})
+
+    for k, q in extras.items():
+        if k in EXTRA_ITEMS and q > 0:
+            e = EXTRA_ITEMS[k]
+            items.append({"name": f"[Доп] {e['name']}", "qty": q, "unit": e["unit"], "price": e["price"]})
+
+    total_sum = 0
+    lines = []
+    for it in items:
+        subtotal = int(it["qty"] * it["price"])
+        total_sum += subtotal
+        qty_str = f"{it['qty']:g}" if isinstance(it["qty"], float) else str(it["qty"])
+        lines.append(f"• <b>{it['name']}</b>\n   └ {qty_str} {it['unit']} × {it['price']:,} ₽ = <b>{subtotal:,} ₽</b>".replace(",", " "))
+
+    type_label = "Софтрок (без щебня)" if drain_type == "softrock" else "Классический (труба в щебне)"
+    return lines, total_sum, type_label
+
+def calculate_storm_estimate(data: dict):
+    inlets = data.get("storm_inlets", 4)
+    length = data.get("storm_length", 30)
+    wells = data.get("storm_wells", 2)
+    discharge = data.get("storm_discharge", "ditch")
+    extras = data.get("extras", {})
+
+    pipe_m = int(length * 1.05)
+    elbows = inlets * 2 + wells * 2
+    tees = max(1, inlets - 1)
+
+    items = [
+        {"name": "Дождеприёмник 300х300 с корзиной, сифоном и решёткой", "qty": inlets, "unit": "шт.", "price": PRICES["storm_inlet_box"]},
+        {"name": "Труба ПВХ рыжая 110х3.2 наружная (для ливнёвки)", "qty": pipe_m, "unit": "м", "price": PRICES["storm_pipe110"]},
+        {"name": "Отводы 110х45° рыжие (для плавных уклонов и подключений)", "qty": elbows, "unit": "шт.", "price": PRICES["elbow110_45"]},
+        {"name": "Тройники 110х110х87° рыжие для объединения веток", "qty": tees, "unit": "шт.", "price": PRICES["tee110"]},
+        {"name": "Колодец поворотный/коллекторный d315 с люком", "qty": wells, "unit": "шт.", "price": PRICES["storm_well_315"]}
+    ]
+
+    if discharge == "ditch":
+        items.append({"name": "Клапан обратный 110 (защита от обратного подпора из канавы)", "qty": 1, "unit": "шт.", "price": PRICES["storm_back_valve"]})
+
+    for k, q in extras.items():
+        if k in EXTRA_ITEMS and q > 0:
+            e = EXTRA_ITEMS[k]
+            items.append({"name": f"[Доп] {e['name']}", "qty": q, "unit": e["unit"], "price": e["price"]})
+
+    total_sum = 0
+    lines = []
+    for it in items:
+        subtotal = int(it["qty"] * it["price"])
+        total_sum += subtotal
+        qty_str = f"{it['qty']:g}" if isinstance(it["qty"], float) else str(it["qty"])
+        lines.append(f"• <b>{it['name']}</b>\n   └ {qty_str} {it['unit']} × {it['price']:,} ₽ = <b>{subtotal:,} ₽</b>".replace(",", " "))
+
+    dis_label = "Сброс в канаву/овраг" if discharge == "ditch" else "Сброс в поглотительный колодец"
+    return lines, total_sum, dis_label
 
 def build_warehouse_checklist(data: dict) -> str:
-    """Формирует смету в зависимости от выбранного режима (скважина или септик)."""
     mode = data.get("mode", "well")
 
     if mode == "septic":
@@ -267,7 +359,7 @@ def build_warehouse_checklist(data: dict) -> str:
         discharge_text = "Принудительный (насос)" if data.get("discharge") == "forced" else "Самотечный"
         items_block = "\n".join(lines)
 
-        text = (
+        return (
             f"🧾 <b>СМЕТА НА СЕПТИК И КАНАЛИЗАЦИЮ «МИШКА»</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"👷 <b>Монтажник:</b> {data['worker_name']} ({data['worker_tag']})\n"
@@ -281,7 +373,45 @@ def build_warehouse_checklist(data: dict) -> str:
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"💰 <b>ИТОГО К ОПЛАТЕ: {total_sum:,} ₽</b>".replace(",", " ")
         )
-        return text
+
+    elif mode == "drainage":
+        lines, total_sum, type_label = calculate_drainage_estimate(data)
+        items_block = "\n".join(lines)
+
+        return (
+            f"🧾 <b>СМЕТА НА ДРЕНАЖНУЮ СИСТЕМУ «МИШКА»</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👷 <b>Монтажник:</b> {data['worker_name']} ({data['worker_tag']})\n"
+            f"🆔 ID клиента: <code>{data['chat_id']}</code>\n\n"
+            f"📋 <b>Параметры объекта:</b>\n"
+            f"• Тип дренажа: <b>{type_label}</b>\n"
+            f"• Длина трассы: <b>{data.get('drain_length', 50)} м</b>\n"
+            f"• Смотровых колодцев: <b>{data.get('drain_wells', 3)} шт.</b>\n\n"
+            f"📦 <b>СПЕЦИФИКАЦИЯ И СТОИМОСТЬ ПО ПОЗИЦИЯМ:</b>\n\n"
+            f"{items_block}\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"💰 <b>ИТОГО К ОПЛАТЕ: {total_sum:,} ₽</b>".replace(",", " ")
+        )
+
+    elif mode == "storm":
+        lines, total_sum, dis_label = calculate_storm_estimate(data)
+        items_block = "\n".join(lines)
+
+        return (
+            f"🧾 <b>СМЕТА НА ПОДЗЕМНУЮ ЛИВНЁВКУ «МИШКА»</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👷 <b>Монтажник:</b> {data['worker_name']} ({data['worker_tag']})\n"
+            f"🆔 ID клиента: <code>{data['chat_id']}</code>\n\n"
+            f"📋 <b>Параметры объекта:</b>\n"
+            f"• Дождеприёмников: <b>{data.get('storm_inlets', 4)} шт.</b>\n"
+            f"• Длина подземной трубы 110: <b>{data.get('storm_length', 30)} м</b>\n"
+            f"• Поворотных колодцев: <b>{data.get('storm_wells', 2)} шт.</b>\n"
+            f"• Сброс: <b>{dis_label}</b>\n\n"
+            f"📦 <b>СПЕЦИФИКАЦИЯ И СТОИМОСТЬ ПО ПОЗИЦИЯМ:</b>\n\n"
+            f"{items_block}\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"💰 <b>ИТОГО К ОПЛАТЕ: {total_sum:,} ₽</b>".replace(",", " ")
+        )
 
     else:
         # Режим скважины
@@ -298,7 +428,7 @@ def build_warehouse_checklist(data: dict) -> str:
 
         items_block = "\n".join(lines)
 
-        text = (
+        return (
             f"🧾 <b>СМЕТА И СБОРОЧНЫЙ ЛИСТ «МИШКА» (СКВАЖИНА)</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"👷 <b>Монтажник:</b> {data['worker_name']} ({data['worker_tag']})\n"
@@ -312,4 +442,3 @@ def build_warehouse_checklist(data: dict) -> str:
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"💰 <b>ИТОГО К ОПЛАТЕ: {total_sum:,} ₽</b>".replace(",", " ")
         )
-        return text
