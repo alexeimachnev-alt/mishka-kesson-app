@@ -7,56 +7,62 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
-      --bg: var(--tg-theme-bg-color, #f2f3f7);
-      --card: var(--tg-theme-secondary-bg-color, #ffffff);
-      --text: var(--tg-theme-text-color, #1a1a1a);
-      --hint: var(--tg-theme-hint-color, #8e8e93);
-      --btn: var(--tg-theme-button-color, #2481cc);
+      --bg: var(--tg-theme-bg-color, #17212b);
+      --card: var(--tg-theme-secondary-bg-color, #232e3c);
+      --text: var(--tg-theme-text-color, #f5f5f5);
+      --hint: var(--tg-theme-hint-color, #7f8c99);
+      --btn: var(--tg-theme-button-color, #2ea6ff);
       --btn-text: var(--tg-theme-button-text-color, #ffffff);
+      --border: rgba(255, 255, 255, 0.12);
     }
     body {
-      margin: 0; padding: 14px;
+      margin: 0; padding: 12px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--text);
     }
-    h2 { font-size: 1.2rem; text-align: center; margin: 4px 0 14px; }
+    h2 { font-size: 1.15rem; text-align: center; margin: 4px 0 12px; }
     .card {
       background: var(--card); border-radius: 12px; padding: 12px 14px;
-      margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 10px; border: 1px solid var(--border);
     }
     label { display: block; font-weight: 600; font-size: 0.82rem; margin-bottom: 5px; color: var(--text); }
     input, select {
-      width: 100%; box-sizing: border-box; padding: 9px 11px;
-      border: 1px solid #dcdce0; border-radius: 9px; font-size: 0.95rem;
-      background: var(--bg); color: var(--text);
+      width: 100%; box-sizing: border-box; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 9px; font-size: 0.95rem;
+      background: var(--bg); color: var(--text); outline: none;
     }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .extra-item {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 7px 0; border-bottom: 1px solid #ececee;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
     }
     .extra-item:last-child { border-bottom: none; }
-    .qty-ctrl { display: flex; align-items: center; gap: 7px; }
+    .qty-ctrl { display: flex; align-items: center; gap: 6px; }
     .qty-btn {
-      width: 30px; height: 30px; border-radius: 7px; border: none;
-      background: var(--btn); color: var(--btn-text); font-size: 1.1rem; cursor: pointer;
+      width: 32px; height: 32px; border-radius: 8px; border: none;
+      background: var(--btn); color: var(--btn-text); font-size: 1.2rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
-    .qty-val { min-width: 32px; text-align: center; font-weight: 700; font-size: 0.88rem; }
+    .qty-input {
+      width: 58px !important; text-align: center; padding: 6px 4px !important;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .unit-tag { font-size: 0.8rem; color: var(--hint); min-width: 24px; }
     .btn-submit {
-      width: 100%; padding: 13px; border: none; border-radius: 11px;
-      background: var(--btn); color: var(--btn-text); font-size: 1rem;
-      font-weight: 700; margin-top: 10px; cursor: pointer;
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      background: var(--btn); color: var(--btn-text); font-size: 1.05rem;
+      font-weight: 700; margin: 12px 0 20px; cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <h2>📦 Сборка скважины «МИШКА»</h2>
+  <h2 id="uiTitle">📦 Сборка скважины «МИШКА»</h2>
 
   <div class="card">
-    <label>🌐 Язык / Забон / Til / Լեզու / Тил</label>
-    <select id="langSelect">
-      <option value="ru">🇷🇺 Русский</option>
+    <label id="lblLang">🌐 Язык / Забон / Til / Լեզու / Тил</label>
+    <select id="langSelect" onchange="applyLanguage()">
+      <option value="ru" selected>🇷🇺 Русский</option>
       <option value="tj">🇹🇯 Тоҷикӣ</option>
       <option value="uz">🇺🇿 Oʻzbekcha</option>
       <option value="hy">🇦🇲 Հայերեն</option>
@@ -67,26 +73,26 @@
   <div class="card">
     <div class="grid-2">
       <div>
-        <label>Глубина скважины (м)</label>
+        <label id="lblDepth">Глубина скважины (м)</label>
         <input type="number" id="depth" value="40" required>
       </div>
       <div>
-        <label>Дебит (м³/ч)</label>
+        <label id="lblYield">Дебит (м³/ч)</label>
         <input type="number" step="0.1" id="yield" value="2.5" required>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <label>Количество домов</label>
+    <label id="lblHouses">Количество домов</label>
     <input type="number" id="houses" min="1" max="10" value="1" onchange="renderDistanceFields()" required>
     <div id="distanceContainer" style="margin-top: 8px;"></div>
   </div>
 
   <div class="card">
-    <label>Выбор кессона</label>
+    <label id="lblKesson">Выбор кессона</label>
     <select id="kessonSelect">
-      <option value="auto">🤝 На выбор продавца (автоподбор)</option>
+      <option value="auto" id="optKessonAuto">🤝 На выбор продавца (автоподбор)</option>
       <option value="Мишка 1 (Ø1050)">Мишка 1 (Ø1050 мм)</option>
       <option value="Мишка 2 (Ø1300)">Мишка 2 (Ø1300 мм)</option>
       <option value="Мишка 3 (Ø1600)">Мишка 3 (Ø1600 мм)</option>
@@ -96,7 +102,7 @@
   </div>
 
   <div class="card">
-    <label>Дополнительные расходники</label>
+    <label id="lblExtras">Дополнительные расходники</label>
     <div id="extrasList"></div>
   </div>
 
@@ -106,58 +112,243 @@
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.expand(); tg.ready(); }
 
-    const extrasData = [
-      { id: "pnd32", name: "Труба ПНД 32 SDR11", unit: "м", step: 10 },
-      { id: "pnd25", name: "Труба ПНД 25 (полив)", unit: "м", step: 10 },
-      { id: "insul", name: "Утеплитель Энергофлекс 32", unit: "м", step: 10 },
-      { id: "heat_cable", name: "Кабель греющий саморег.", unit: "м", step: 2 },
-      { id: "ball_valve", name: "Кран 1\" с американкой", unit: "шт.", step: 1 },
-      { id: "fitting_32_1", name: "Муфта ПНД 32х1\" НР", unit: "шт.", step: 1 },
-      { id: "elbow_32", name: "Уголок ПНД 32х32 (90°)", unit: "шт.", step: 1 },
-      { id: "unipak", name: "Лён + паста Unipak", unit: "шт.", step: 1 }
+    const I18N = {
+      ru: {
+        title: "📦 Сборка скважины «МИШКА»",
+        lblLang: "🌐 Язык интерфейса",
+        lblDepth: "Глубина скважины (м)",
+        lblYield: "Дебит (м³/ч)",
+        lblHouses: "Количество домов",
+        distSingle: "Расстояние до дома (м)",
+        distMulti: "Дом №{i}: расстояние (м)",
+        lblKesson: "Выбор кессона",
+        kessonAuto: "🤝 На выбор продавца (автоподбор)",
+        lblExtras: "Дополнительные расходники (любое кол-во)",
+        btnSubmit: "🚀 Отправить заказ на склад",
+        unitM: "м",
+        unitPcs: "шт.",
+        sending: "⏳ Отправка...",
+        successMsg: "✅ Заказ принят! Комплектуем на складе.",
+        items: {
+          pnd32: "Труба ПНД 32 SDR11",
+          pnd25: "Труба ПНД 25 (полив)",
+          insul: "Утеплитель Энергофлекс 32",
+          heat_cable: "Кабель греющий саморег.",
+          ball_valve: "Кран 1\" с американкой",
+          fitting_32_1: "Муфта ПНД 32х1\" НР",
+          elbow_32: "Уголок ПНД 32х32 (90°)",
+          unipak: "Лён + паста Unipak"
+        }
+      },
+      tj: {
+        title: "📦 Комплекткунии чоҳ «МИШКА»",
+        lblLang: "🌐 Забони барнома",
+        lblDepth: "Чуқурии чоҳ (бо метр)",
+        lblYield: "Дебит (м³/соат)",
+        lblHouses: "Шумораи хонаҳо",
+        distSingle: "Масофа то хона (бо метр)",
+        distMulti: "Хонаи №{i}: масофа (бо метр)",
+        lblKesson: "Интихоби кессон",
+        kessonAuto: "🤝 Ба ихтиёри фурӯшанда (автоматӣ)",
+        lblExtras: "Маводи иловагӣ (миқдори дилхоҳ)",
+        btnSubmit: "🚀 Фармоишро ба анбор фиристед",
+        unitM: "м",
+        unitPcs: "дона",
+        sending: "⏳ Интиқол...",
+        successMsg: "✅ Фармоиш қабул шуд! Мо борро дар анбор тайёр мекунем.",
+        items: {
+          pnd32: "Қубури ПНД 32 SDR11",
+          pnd25: "Қубури ПНД 25 (обёрӣ)",
+          insul: "Гармидиҳандаи Энергофлекс 32",
+          heat_cable: "Кабели гармкунанда",
+          ball_valve: "Крани 1\" бо американка",
+          fitting_32_1: "Муфтаи ПНД 32х1\" БО",
+          elbow_32: "Кунҷак ПНД 32х32 (90°)",
+          unipak: "Зиғирпоя (лён) + хамираи Unipak"
+        }
+      },
+      uz: {
+        title: "📦 «MISHKA» quduq jamlanmasi",
+        lblLang: "🌐 Dastur tili",
+        lblDepth: "Quduq chuqurligi (m)",
+        lblYield: "Debit (m³/soat)",
+        lblHouses: "Uylar soni",
+        distSingle: "Uygacha masofa (metrda)",
+        distMulti: "{i}-uy: masofa (metrda)",
+        lblKesson: "Kesson tanlash",
+        kessonAuto: "🤝 Sotuvchi tanloviga (avtomatik)",
+        lblExtras: "Qo'shimcha materiallar (ixtiyoriy miqdor)",
+        btnSubmit: "🚀 Buyurtmani omborga yuborish",
+        unitM: "m",
+        unitPcs: "dona",
+        sending: "⏳ Yuborilmoqda...",
+        successMsg: "✅ Buyurtma qabul qilindi! Ombor tayyorlamoqda.",
+        items: {
+          pnd32: "PND 32 trubasi SDR11",
+          pnd25: "PND 25 trubasi (sug'orish)",
+          insul: "Energofleks izolyatsiyasi 32",
+          heat_cable: "Isitish kabeli",
+          ball_valve: "Kran 1\" amerikanka bilan",
+          fitting_32_1: "Mufta PND 32x1\" TQ",
+          elbow_32: "Tirsak PND 32x32 (90°)",
+          unipak: "Zig'ir tolasi + Unipak pasta"
+        }
+      },
+      hy: {
+        title: "📦 Հորատանցքի հավաքածու «ՄԻՇԿԱ»",
+        lblLang: "🌐 Լեզու",
+        lblDepth: "Հորատանցքի խորություն (մ)",
+        lblYield: "Արտադրողականություն (մ³/ժ)",
+        lblHouses: "Տների քանակը",
+        distSingle: "Հեռավորությունը մինչև տուն (մ)",
+        distMulti: "Տուն №{i}: հեռավորություն (մ)",
+        lblKesson: "Կեսոնի ընտրություն",
+        kessonAuto: "🤝 Վաճառողի ընտրությամբ (ավտոմատ)",
+        lblExtras: "Լրացուցիչ նյութեր (ցանկացած քանակ)",
+        btnSubmit: "🚀 Ուղարկել պատվերը պահեստ",
+        unitM: "մ",
+        unitPcs: "հատ",
+        sending: "⏳ Ուղարկում...",
+        successMsg: "✅ Պատվերն ընդունված է: Պահեստը հավաքում է:",
+        items: {
+          pnd32: "Խողովակ ՊՆԴ 32 SDR11",
+          pnd25: "Խողովակ ՊՆԴ 25 (ոռոգում)",
+          insul: "Ջերմամեկուսիչ Էներգոֆլեքս 32",
+          heat_cable: "Տաքացնող մալուխ",
+          ball_valve: "Ծորակ 1\" ամերիկանկայով",
+          fitting_32_1: "Կցորդիչ ՊՆԴ 32х1\" ԱՊ",
+          elbow_32: "Անկյունակ ՊՆԴ 32х32 (90°)",
+          unipak: "Վուշաթել + մածուկ Unipak"
+        }
+      },
+      ky: {
+        title: "📦 «МИШКА» скважина комплекти",
+        lblLang: "🌐 Тилди тандоо",
+        lblDepth: "Скважина тереңдиги (м)",
+        lblYield: "Кубаттуулугу (м³/саат)",
+        lblHouses: "Үйлөрдүн саны",
+        distSingle: "Үйгө чейинки аралык (метр)",
+        distMulti: "№{i}-үй: аралык (метр)",
+        lblKesson: "Кессон тандоо",
+        kessonAuto: "🤝 Сатуучунун тандоосуна (автоматтык)",
+        lblExtras: "Кошумча материалдар (каалаган санда)",
+        btnSubmit: "🚀 Заказды кампага жөнөтүү",
+        unitM: "м",
+        unitPcs: "даана",
+        sending: "⏳ Жөнөтүлүүдө...",
+        successMsg: "✅ Буйрутма кабыл алынды! Жүктү кампада топтойбуз.",
+        items: {
+          pnd32: "ПНД 32 түтүгү SDR11",
+          pnd25: "ПНД 25 түтүгү (сугаруу)",
+          insul: "Энергофлекс жылуулагычы 32",
+          heat_cable: "Жылытуучу кабель",
+          ball_valve: "Кран 1\" американка менен",
+          fitting_32_1: "Муфта ПНД 32х1\" СТ",
+          elbow_32: "Бурчтук ПНД 32х32 (90°)",
+          unipak: "Зыгыр буласы + Unipak пастасы"
+        }
+      }
+    };
+
+    const extrasSchema = [
+      { id: "pnd32", type: "meters" },
+      { id: "pnd25", type: "meters" },
+      { id: "insul", type: "meters" },
+      { id: "heat_cable", type: "meters" },
+      { id: "ball_valve", type: "pieces" },
+      { id: "fitting_32_1", type: "pieces" },
+      { id: "elbow_32", type: "pieces" },
+      { id: "unipak", type: "pieces" }
     ];
 
     let extrasState = {};
 
+    function applyLanguage() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = I18N[lang] || I18N.ru;
+
+      document.getElementById('uiTitle').innerText = t.title;
+      document.getElementById('lblLang').innerText = t.lblLang;
+      document.getElementById('lblDepth').innerText = t.lblDepth;
+      document.getElementById('lblYield').innerText = t.lblYield;
+      document.getElementById('lblHouses').innerText = t.lblHouses;
+      document.getElementById('lblKesson').innerText = t.lblKesson;
+      document.getElementById('optKessonAuto').innerText = t.kessonAuto;
+      document.getElementById('lblExtras').innerText = t.lblExtras;
+      document.getElementById('btnSubmit').innerText = t.btnSubmit;
+
+      renderDistanceFields();
+      renderExtras();
+    }
+
     function renderDistanceFields() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = I18N[lang] || I18N.ru;
       const count = parseInt(document.getElementById('houses').value) || 1;
       const cont = document.getElementById('distanceContainer');
+      
+      const currentValues = [];
+      for (let i = 1; i <= 10; i++) {
+        const el = document.getElementById(`dist_${i}`);
+        if (el) currentValues[i] = el.value;
+      }
+
       cont.innerHTML = '';
       if (count === 1) {
-        cont.innerHTML = '<label>Расстояние до дома (м)</label><input type="number" id="dist_1" value="15" required>';
+        const val = currentValues[1] || 15;
+        cont.innerHTML = `<label>${t.distSingle}</label><input type="number" id="dist_1" value="${val}" required>`;
       } else {
         for (let i = 1; i <= count; i++) {
-          cont.innerHTML += `<div style="margin-bottom:6px;"><label>Дом №${i}: расстояние (м)</label><input type="number" id="dist_${i}" value="${15 + (i-1)*5}" required></div>`;
+          const val = currentValues[i] || (15 + (i - 1) * 5);
+          const labelText = t.distMulti.replace('{i}', i);
+          cont.innerHTML += `<div style="margin-bottom:6px;"><label>${labelText}</label><input type="number" id="dist_${i}" value="${val}" required></div>`;
         }
       }
     }
 
     function renderExtras() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = I18N[lang] || I18N.ru;
       const list = document.getElementById('extrasList');
       list.innerHTML = '';
-      extrasData.forEach(item => {
-        const qty = extrasState[item.id] || 0;
+
+      extrasSchema.forEach(item => {
+        const val = extrasState[item.id] || 0;
+        const name = t.items[item.id] || item.id;
+        const unit = item.type === 'meters' ? t.unitM : t.unitPcs;
+
         list.innerHTML += `
           <div class="extra-item">
-            <span style="font-size:0.85rem;">${item.name}</span>
+            <span style="font-size:0.86rem; flex:1; padding-right:8px;">${name}</span>
             <div class="qty-ctrl">
-              <button class="qty-btn" onclick="updateExtra('${item.id}', -${item.step})">-</button>
-              <span class="qty-val" id="val_${item.id}">${qty} ${item.unit}</span>
-              <button class="qty-btn" onclick="updateExtra('${item.id}', ${item.step})">+</button>
+              <button class="qty-btn" type="button" onclick="stepDelta('${item.id}', -1)">−</button>
+              <input class="qty-input" type="number" min="0" id="inp_${item.id}" value="${val}" oninput="manualSet('${item.id}', this.value)">
+              <button class="qty-btn" type="button" onclick="stepDelta('${item.id}', 1)">+</button>
+              <span class="unit-tag">${unit}</span>
             </div>
           </div>
         `;
       });
     }
 
-    function updateExtra(id, delta) {
-      extrasState[id] = Math.max(0, (extrasState[id] || 0) + delta);
-      const item = extrasData.find(x => x.id === id);
-      document.getElementById(`val_${id}`).innerText = `${extrasState[id]} ${item.unit}`;
+    function stepDelta(id, delta) {
+      const current = parseFloat(extrasState[id] || 0);
+      const next = Math.max(0, current + delta);
+      extrasState[id] = next;
+      const el = document.getElementById(`inp_${id}`);
+      if (el) el.value = next;
+    }
+
+    function manualSet(id, rawVal) {
+      const val = parseFloat(rawVal);
+      extrasState[id] = (!isNaN(val) && val >= 0) ? val : 0;
     }
 
     async function sendOrder() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = I18N[lang] || I18N.ru;
       const hCount = parseInt(document.getElementById('houses').value) || 1;
+
       const distances = [];
       for (let i = 1; i <= hCount; i++) {
         distances.push(parseFloat(document.getElementById(`dist_${i}`)?.value || 15));
@@ -169,7 +360,7 @@
       }
 
       const payload = {
-        lang: document.getElementById('langSelect').value,
+        lang: lang,
         depth: parseFloat(document.getElementById('depth').value) || 40,
         yield_flow: parseFloat(document.getElementById('yield').value) || 2.5,
         houses: hCount,
@@ -181,8 +372,9 @@
         first_name: tg?.initDataUnsafe?.user?.first_name || "Монтажник"
       };
 
-      document.getElementById('btnSubmit').innerText = "⏳ Отправка...";
-      document.getElementById('btnSubmit').disabled = true;
+      const btn = document.getElementById('btnSubmit');
+      btn.innerText = t.sending;
+      btn.disabled = true;
 
       try {
         const res = await fetch('/api/miniapp_order', {
@@ -192,23 +384,24 @@
         });
         if (res.ok) {
           if (tg) {
-            tg.showAlert("✅ Заказ принят! Комплектуем на складе.");
+            tg.showAlert(t.successMsg);
             tg.close();
           } else {
-            alert("Заказ принят!");
+            alert(t.successMsg);
           }
         } else {
-          alert("Ошибка отправки. Попробуйте еще раз.");
-          document.getElementById('btnSubmit').disabled = false;
+          alert("Ошибка отправки заказа.");
+          btn.disabled = false;
+          btn.innerText = t.btnSubmit;
         }
       } catch (e) {
         alert("Сбой соединения: " + e);
-        document.getElementById('btnSubmit').disabled = false;
+        btn.disabled = false;
+        btn.innerText = t.btnSubmit;
       }
     }
 
-    renderDistanceFields();
-    renderExtras();
+    applyLanguage();
   </script>
 </body>
 </html>
