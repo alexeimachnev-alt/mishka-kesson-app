@@ -1,18 +1,19 @@
 import os
 import uuid
+import requests
 from telebot import types
 
 PRIMARY_ADMIN_ID = int(os.getenv("ADMIN_CHAT_ID", "551209811"))
 SECOND_ADMIN_ID = int(os.getenv("SECOND_ADMIN_CHAT_ID", "447208738"))
 ADMIN_CHAT_IDS = [PRIMARY_ADMIN_ID, SECOND_ADMIN_ID]
 
-# База активных заказов в оперативной памяти склада
-# order_id -> { "client_id": int, "items": [...], "collected": [bool, ...], "phone": str, "mode": str }
+GOOGLE_SHEET_WEBHOOK = os.getenv("GOOGLE_SHEET_WEBHOOK", "").strip()
+
+# Хранилище заказов: order_id -> dict
 ACTIVE_ORDERS = {}
 
-# Базовый прайс (руб.)
+# Цены (руб.)
 PRICES = {
-    # 1. Скважина и кессон
     "pnd32": 130,
     "pnd25": 95,
     "cable": 220,
@@ -38,7 +39,6 @@ PRICES = {
     "filter_bb": 4500,
     "garden_tap": 1100,
 
-    # Кессоны МИШКА
     "kesson_m1": 39650,
     "kesson_m2": 50700,
     "kesson_m3": 76500,
@@ -52,7 +52,6 @@ PRICES = {
     "tank_150": 17500,
     "tank_200": 24000,
 
-    # 2. Септики
     "septic_bio3": 85000,
     "septic_bio5": 105000,
     "septic_bio8": 138000,
@@ -68,7 +67,6 @@ PRICES = {
     "bacteria": 1200,
     "cable_heat_septic": 380,
 
-    # 3. Дренаж
     "drain_pipe_classic": 280,
     "drain_softrock": 750,
     "geotextile_roll": 4500,
@@ -77,7 +75,6 @@ PRICES = {
     "well_cone": 1800,
     "softrock_coupling": 420,
 
-    # 4. Ливнёвка
     "storm_inlet_box": 1950,
     "storm_pipe110": 480,
     "storm_well_315": 3800,
@@ -107,8 +104,26 @@ EXTRA_ITEMS = {
     "leaf_grate": {"unit": "шт.", "name": "Листвоуловитель для дождеприёмника", "price": PRICES["leaf_grate"]}
 }
 
+def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
+    """Выгружает новую строчку в Google Таблицу по вебхуку."""
+    if not GOOGLE_SHEET_WEBHOOK:
+        return
+    payload = {
+        "order_id": order_id,
+        "client_name": data.get("worker_name", "Заказчик"),
+        "phone": data.get("phone", "Не указан"),
+        "delivery_type": data.get("delivery_type", "Самовывоз"),
+        "delivery_info": data.get("delivery_info", "-"),
+        "mode": data.get("mode", "well"),
+        "total_sum": total_sum
+    }
+    try:
+        requests.post(GOOGLE_SHEET_WEBHOOK, json=payload, timeout=5)
+        print(f"[SHEET SYNC] Заказ #{order_id} отправлен в Google Таблицу")
+    except Exception as e:
+        print(f"[SHEET SYNC ERR] {e}")
+
 def get_items_for_order(data: dict):
-    """Генерирует список объектов оборудования для конкретного заказа."""
     mode = data.get("mode", "well")
     extras = data.get("extras", {})
     items = []
@@ -125,25 +140,16 @@ def get_items_for_order(data: dict):
         total_pipe_run = pump_depth + max_dist
         req_head = int(pump_depth + (total_pipe_run * 0.10) + 35)
 
-        if req_head <= 60:
-            pump_name, pump_p = "Насос скважинный (до 65 м)", PRICES["pump_60"]
-        elif req_head <= 85:
-            pump_name, pump_p = "Насос скважинный (до 90 м)", PRICES["pump_85"]
-        elif req_head <= 110:
-            pump_name, pump_p = "Насос усиленный (до 115 м)", PRICES["pump_110"]
-        else:
-            pump_name, pump_p = "Насос высоконапорный (120+ м)", PRICES["pump_120"]
+        if req_head <= 60: pump_name, pump_p = "Насос скважинный (до 65 м)", PRICES["pump_60"]
+        elif req_head <= 85: pump_name, pump_p = "Насос скважинный (до 90 м)", PRICES["pump_85"]
+        elif req_head <= 110: pump_name, pump_p = "Насос усиленный (до 115 м)", PRICES["pump_110"]
+        else: pump_name, pump_p = "Насос высоконапорный (120+ м)", PRICES["pump_120"]
 
-        if "Мишка 1" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-1» (Ø1050)", PRICES["kesson_m1"]
-        elif "Мишка 2" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-2» (Ø1300)", PRICES["kesson_m2"]
-        elif "Мишка 3" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-3» (Ø1600)", PRICES["kesson_m3"]
-        elif "Мишка 4" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-4» (Ø2100)", PRICES["kesson_m4"]
-        elif "LONG" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА LONG» (H=2500)", PRICES["kesson_long"]
+        if "Мишка 1" in selected_kesson: k_name, k_p = "Кессон «МИШКА-1» (Ø1050)", PRICES["kesson_m1"]
+        elif "Мишка 2" in selected_kesson: k_name, k_p = "Кессон «МИШКА-2» (Ø1300)", PRICES["kesson_m2"]
+        elif "Мишка 3" in selected_kesson: k_name, k_p = "Кессон «МИШКА-3» (Ø1600)", PRICES["kesson_m3"]
+        elif "Мишка 4" in selected_kesson: k_name, k_p = "Кессон «МИШКА-4» (Ø2100)", PRICES["kesson_m4"]
+        elif "LONG" in selected_kesson: k_name, k_p = "Кессон «МИШКА LONG» (H=2500)", PRICES["kesson_long"]
         else:
             k_name, k_p = ("Кессон «МИШКА-2» (1000х2000)", PRICES["kesson_m2"]) if houses == 1 else (f"Кессон «МИШКА-3» ({houses} вывода)", PRICES["kesson_m3"])
 
@@ -173,7 +179,6 @@ def get_items_for_order(data: dict):
         ]
 
     elif mode == "septic":
-        users = data.get("users", 5)
         dist = data.get("distance", 10)
         discharge = data.get("discharge", "gravity")
         chosen = data.get("chosen_septic", "auto")
@@ -209,105 +214,3 @@ def get_items_for_order(data: dict):
                 {"name": "Соединительные муфты Софтрок", "qty": int(length // 3) + 1, "unit": "шт.", "price": PRICES["softrock_coupling"]}
             ]
         else:
-            items = [
-                {"name": "Труба дренажная 110 с фильтром", "qty": length, "unit": "м", "price": PRICES["drain_pipe_classic"]},
-                {"name": "Геотекстиль Дорнит (рулон 2х50м)", "qty": max(1, int(length // 45) + 1), "unit": "рул.", "price": PRICES["geotextile_roll"]}
-            ]
-        items.extend([
-            {"name": "Колодец смотровой d315 + люк + дно", "qty": wells, "unit": "шт.", "price": PRICES["well_drain_315"]},
-            {"name": "Муфты врезки 110 в колодец 315", "qty": wells * 2, "unit": "шт.", "price": PRICES["well_drain_coupling"]}
-        ])
-
-    elif mode == "storm":
-        inlets = data.get("storm_inlets", 4)
-        length = data.get("storm_length", 30)
-        wells = data.get("storm_wells", 2)
-        discharge = data.get("storm_discharge", "ditch")
-
-        items = [
-            {"name": "Дождеприёмник 300х300 с корзиной и решёткой", "qty": inlets, "unit": "шт.", "price": PRICES["storm_inlet_box"]},
-            {"name": "Труба ПВХ рыжая 110х3.2 наружная", "qty": int(length * 1.05), "unit": "м", "price": PRICES["storm_pipe110"]},
-            {"name": "Отводы 110х45° рыжие", "qty": inlets * 2 + wells * 2, "unit": "шт.", "price": PRICES["elbow110_45"]},
-            {"name": "Тройники 110х110х87° рыжие", "qty": max(1, inlets - 1), "unit": "шт.", "price": PRICES["tee110"]},
-            {"name": "Колодец поворотный d315 с люком", "qty": wells, "unit": "шт.", "price": PRICES["storm_well_315"]}
-        ]
-        if discharge == "ditch":
-            items.append({"name": "Клапан обратный 110 против подпора", "qty": 1, "unit": "шт.", "price": PRICES["storm_back_valve"]})
-
-    # Добавляем выбранные расходники
-    for k, q in extras.items():
-        if k in EXTRA_ITEMS and q > 0:
-            e = EXTRA_ITEMS[k]
-            items.append({"name": f"[Доп] {e['name']}", "qty": q, "unit": e["unit"], "price": e["price"]})
-
-    return items
-
-def build_order_payload(data: dict):
-    """Формирует данные заказа, генерирует смету и сохраняет заказ в реестр."""
-    order_id = str(uuid.uuid4())[:8]
-    items = get_items_for_order(data)
-    
-    total_sum = 0
-    lines = []
-    for it in items:
-        subtotal = int(it["qty"] * it["price"])
-        total_sum += subtotal
-        qty_str = f"{it['qty']:g}" if isinstance(it["qty"], float) else str(it["qty"])
-        lines.append(f"• <b>{it['name']}</b>\n   └ {qty_str} {it['unit']} × {it['price']:,} ₽ = <b>{subtotal:,} ₽</b>".replace(",", " "))
-
-    ACTIVE_ORDERS[order_id] = {
-        "client_id": data.get("chat_id"),
-        "client_name": data.get("worker_name", "Заказчик"),
-        "phone": data.get("phone", "Не указан"),
-        "items": items,
-        "collected": [False] * len(items),
-        "total_sum": total_sum,
-        "completed": False
-    }
-
-    # Формируем текст сметы
-    phone = data.get("phone", "Не указан")
-    items_block = "\n".join(lines)
-    header = (
-        f"🧾 <b>НОВЫЙ ЗАКАЗ #{order_id} «МИШКА»</b>\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"👷 <b>Заказчик:</b> {data.get('worker_name')} ({data.get('worker_tag')})\n"
-        f"📞 <b>Телефон:</b> <a href='tel:{phone}'>{phone}</a>\n"
-        f"🆔 ID клиента: <code>{data.get('chat_id')}</code>\n\n"
-        f"📦 <b>СПЕЦИФИКАЦИЯ:</b>\n\n"
-        f"{items_block}\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 <b>ИТОГО К ОПЛАТЕ: {total_sum:,} ₽</b>\n\n"
-        f"📋 <i>Отмечайте позиции кнопками ниже по мере комплектации на складе:</i>"
-    ).replace(",", " ")
-
-    return order_id, header, total_sum
-
-def make_warehouse_keyboard(order_id: str):
-    """Создаёт интерактивную клавиатуру с галочками позиций и кнопкой готовности."""
-    order = ACTIVE_ORDERS.get(order_id)
-    if not order:
-        return None
-
-    kb = types.InlineKeyboardMarkup(row_width=1)
-    
-    if order["completed"]:
-        kb.add(types.InlineKeyboardButton("🎉 ЗАКАЗ СОБРАН И ВЫДАН КЛИЕНТУ", callback_data="none"))
-        return kb
-
-    # Кнопки для каждой позиции в заказе
-    for idx, (item, is_done) in enumerate(zip(order["items"], order["collected"])):
-        mark = "🟢" if is_done else "⬜"
-        status_text = "готов" if is_done else "собрать"
-        qty_str = f"{item['qty']:g}" if isinstance(item['qty'], float) else str(item['qty'])
-        short_name = (item['name'][:22] + "..") if len(item['name']) > 22 else item['name']
-        btn_text = f"{mark} {idx+1}. {short_name} ({qty_str} {item['unit']})"
-        kb.add(types.InlineKeyboardButton(btn_text, callback_data=f"chk_{order_id}_{idx}"))
-
-    # Кнопка финальной готовности
-    all_done = all(order["collected"])
-    finish_icon = "🚀" if all_done else "📦"
-    finish_text = f"{finish_icon} ЗАКАЗ ПОЛНОСТЬЮ СОБРАН (Оповестить клиента)"
-    kb.add(types.InlineKeyboardButton(finish_text, callback_data=f"fin_{order_id}"))
-
-    return kb
