@@ -12,7 +12,7 @@ ADMIN_CHAT_IDS = [PRIMARY_ADMIN_ID, SECOND_ADMIN_ID]
 GOOGLE_SHEET_WEBHOOK = os.getenv("GOOGLE_SHEET_WEBHOOK", "").strip()
 
 ACTIVE_ORDERS = {}
-SENT_ORDER_IDS = set()
+REGISTERED_SHEET_ORDERS = set()
 
 # Прайс-лист склада «МИШКА» (руб.)
 PRICES = {
@@ -315,21 +315,22 @@ def extract_delivery_address(delivery_info: str) -> str:
         return text.split("|")[0].strip()
     return text.strip()
 
-def _async_post_sheets(payload: dict):
+def _send_to_sheet_now(payload: dict):
     webhook_url = GOOGLE_SHEET_WEBHOOK
     if not webhook_url:
         return
     try:
-        requests.post(webhook_url, json=payload, timeout=8, allow_redirects=True)
+        res = requests.post(webhook_url, json=payload, timeout=10, allow_redirects=True)
+        print(f"[SHEET SYNC] Action: {payload.get('action')}, Order: {payload.get('order_id')}, Code: {res.status_code}")
     except Exception as e:
-        print(f"[SHEET POST ERR] {e}")
+        print(f"[SHEET SYNC ERR] {e}")
 
 def sync_to_google_sheet(order_id: str, data: dict, total_sum: int, items_list: list = None):
     """Первичное добавление строки в Google Sheets строго по порядку A..L."""
     clean_id = str(order_id).strip()
-    if clean_id in SENT_ORDER_IDS:
+    if clean_id in REGISTERED_SHEET_ORDERS:
         return
-    SENT_ORDER_IDS.add(clean_id)
+    REGISTERED_SHEET_ORDERS.add(clean_id)
 
     full_client_info = format_worker_name(data.get("worker_name"), data.get("worker_tag"))
     
@@ -345,14 +346,10 @@ def sync_to_google_sheet(order_id: str, data: dict, total_sum: int, items_list: 
         "items": items_summary or get_system_name_ru(data.get("mode", "well")),
         "total_sum": int(total_sum),
         "delivery_info": str(data.get("delivery_info", "-")),
-        "delivery_type": str(data.get("delivery_type", "Самовывоз со склада")),
-        "status": "Принят на складе",
-        "comment": "",
-        "assembler": "",
-        "payment_type": ""
+        "delivery_type": str(data.get("delivery_type", "Самовывоз со склада"))
     }
 
-    threading.Thread(target=_async_post_sheets, args=(payload,), daemon=True).start()
+    threading.Thread(target=_send_to_sheet_now, args=(payload,), daemon=True).start()
 
 def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", manager: str = "", payment_method: str = "-", **kwargs):
     """Обновление статуса, причины (J), сборщика (K) и типа оплаты (L)."""
@@ -368,14 +365,11 @@ def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", man
         "order_id": str(order_id).strip(),
         "status": str(status),
         "comment": str(comment_val),
-        "cancel_reason": str(comment_val),
         "assembler": str(assembler_val),
-        "manager": str(assembler_val),
-        "payment_type": str(payment_val),
-        "payment_method": str(payment_val)
+        "payment_type": str(payment_val)
     }
 
-    threading.Thread(target=_async_post_sheets, args=(payload,), daemon=True).start()
+    threading.Thread(target=_send_to_sheet_now, args=(payload,), daemon=True).start()
 
 def get_items_for_order(data: dict):
     mode = data.get("mode", "well")
@@ -626,7 +620,6 @@ def build_order_payload(data: dict):
         "payment_status": "unpaid"
     }
 
-    # Единственная точка вызова отправки нового заказа в Sheets
     sync_to_google_sheet(order_id, data, total_sum, items_list=items)
     return order_id, admin_header, client_header, total_sum
 
@@ -637,27 +630,23 @@ def make_warehouse_keyboard(order_id: str):
 
     kb = types.InlineKeyboardMarkup(row_width=1)
 
-    # Построение маршрута
     if order.get("is_delivery"):
         addr = order.get("clean_address") or extract_delivery_address(order.get("delivery_info", ""))
         if addr:
             nav_url = f"https://yandex.ru/navi?text={urllib.parse.quote(addr)}"
             kb.add(types.InlineKeyboardButton("🚗 Построить маршрут к клиенту (Яндекс)", url=nav_url))
 
-    # Если отменен
     if order.get("status") == "cancelled":
         reason = order.get("cancel_reason", "")
         reason_txt = f": {reason}" if reason else ""
         kb.add(types.InlineKeyboardButton(f"❌ ЗАКАЗ ОТМЕНЁН{reason_txt}", callback_data="none"))
         return kb
 
-    # Если оплачен и выдан
     if order.get("status") == "paid":
         method = order.get("payment_method", "Оплачено")
         kb.add(types.InlineKeyboardButton(f"✅ ОПЛАЧЕН И ВЫДАН ({method})", callback_data="none"))
         return kb
 
-    # Если собран на складе
     if order.get("status") == "completed":
         kb.add(types.InlineKeyboardButton("🎉 ЗАКАЗ СОБРАН НА СКЛАДЕ", callback_data="none"))
         kb.add(types.InlineKeyboardButton("💳 ОПЛАТИТЬ И ВЫДАТЬ ТОВАР", callback_data=f"paymenu_{order_id}"))
@@ -667,7 +656,6 @@ def make_warehouse_keyboard(order_id: str):
         )
         return kb
 
-    # Чек-лист сборщика
     for idx, (item, is_done) in enumerate(zip(order["items"], order["collected"])):
         mark = "🟢" if is_done else "⬜"
         qty_str = f"{item['qty']:g}" if isinstance(item['qty'], float) else str(item['qty'])
