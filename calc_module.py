@@ -174,6 +174,8 @@ MESSAGES = {
         "accepted": "✅ <b>Ваш заказ принят складом! Номер: #{order_id}</b>\n\n{body}\n\n⏳ <i>Мы оповестим вас здесь, как только заказ будет собран!</i>",
         "collected_title": "🎉 <b>ВАШ ЗАКАЗ #{order_id} ПОЛНОСТЬЮ СОБРАН!</b>",
         "collected_body": "📦 Все комплектующие проверены и готовы к выдаче на складе «МИШКА».\n💰 Сумма к оплате: <b>{sum} ₽</b>\n🚚 Способ: <b>{delivery}</b>\n\nЖдём вас на складе!",
+        "paid_title": "✅ <b>ЗАКАЗ #{order_id} ОПЛАЧЕН И ВЫДАН!</b>",
+        "paid_body": "💰 Оплата успешно проведена: <b>{method}</b>\nСумма: <b>{sum} ₽</b>\n\nБлагодарим за сотрудничество с заводом «МИШКА»!",
         "btn_nav_sklad": "📍 Маршрут к складу (Яндекс)",
         "btn_repeat": "🔄 Повторить этот заказ",
         "unit_m": "м",
@@ -194,6 +196,8 @@ MESSAGES = {
         "accepted": "✅ <b>Фармоиши шумо қабул шуд! Рақам: #{order_id}</b>\n\n{body}\n\n⏳ <i>Ҳамин ки бор дар анбор омода шуд, мо ба шумо хабар медиҳем!</i>",
         "collected_title": "🎉 <b>ФАРМОИШИ ШУМО #{order_id} ПУРРА ОМОДА ШУД!</b>",
         "collected_body": "📦 Ҳамаи таҷҳизот санҷида шуда, дар анбори «МИШКА» омода аст.\n💰 Маблағи пардохт: <b>{sum} ₽</b>\n🚚 Тарзи гирифтан: <b>{delivery}</b>\n\nШуморо дар анбор интизорем!",
+        "paid_title": "✅ <b>ФАРМОИШ #{order_id} СУПОРИДА ШУД!</b>",
+        "paid_body": "💰 Пардохт қабул шуд: <b>{method}</b>\nМаблағ: <b>{sum} ₽</b>\n\nТашаккур барои ҳамкорӣ бо корхонаи «МИШКА»!",
         "btn_nav_sklad": "📍 Харитаи роҳ ба анбор (Яндекс)",
         "btn_repeat": "🔄 Ин фармоишро такрор кардан",
         "unit_m": "м",
@@ -214,6 +218,8 @@ MESSAGES = {
         "accepted": "✅ <b>Buyurtmangiz qabul qilindi! Raqam: #{order_id}</b>\n\n{body}\n\n⏳ <i>Buyurtma omborda tayyor bo'lishi bilan bu yerda xabar beramiz!</i>",
         "collected_title": "🎉 <b>BUYURTMANGIZ #{order_id} TO'LIQ TAYYOR BO'LDI!</b>",
         "collected_body": "📦 Barcha uskunalar tekshirildi va «MISHKA» omborida tayyor.\n💰 To'lov summasi: <b>{sum} ₽</b>\n🚚 Qabul qilish: <b>{delivery}</b>\n\nSizni omborda kutamiz!",
+        "paid_title": "✅ <b>BUYURTMA #{order_id} TO'LANDI VA TOPSHIRILDI!</b>",
+        "paid_body": "💰 To'lov qabul qilindi: <b>{method}</b>\nSumma: <b>{sum} ₽</b>\n\n«MISHKA» zavodi bilan hamkorlik uchun rahmat!",
         "btn_nav_sklad": "📍 Omborga yo'nalish (Yandeks)",
         "btn_repeat": "🔄 Ushbu buyurtmani takrorlash",
         "unit_m": "m",
@@ -234,6 +240,8 @@ MESSAGES = {
         "accepted": "✅ <b>Ձեր պատվերն ընդունված է: Համար: #{order_id}</b>\n\n{body}\n\n⏳ <i>Մենք կտեղեկացնենք Ձեզ, երբ պատվերը պատրաստ լինի:</i>",
         "collected_title": "🎉 <b>ՁԵՐ ՊԱՏՎԵՐԸ #{order_id} ԱՄԲՈՂՋՈՒԹՅԱՄԲ ՀԱՎԱՔՎԱԾ Է:</b>",
         "collected_body": "📦 Բոլոր ապրանքները ստուգված են և պատրաստ են «ՄԻՇԿԱ» պահեստում:\n💰 Գումար: <b>{sum} ₽</b>\n🚚 Ստացում: <b>{delivery}</b>\n\nՍպասում ենք Ձեզ պահեստում:",
+        "paid_title": "✅ <b>ՊԱՏՎԵՐ #{order_id} ՎՃԱՐՎԱԾ Է:</b>",
+        "paid_body": "💰 Վճարման եղանակ: <b>{method}</b>\nԳումար: <b>{sum} ₽</b>\n\nՇնորհակալություն «ՄԻՇԿԱ» գործարանի հետ համագործակցության համար:",
         "btn_nav_sklad": "📍 Ճանապարհ դեպի պահեստ (Yandex)",
         "btn_repeat": "🔄 Կրկնել այս պատվերը",
         "unit_m": "մ",
@@ -254,6 +262,8 @@ MESSAGES = {
         "accepted": "✅ <b>Заказыңыз кабыл алынды! Номери: #{order_id}</b>\n\n{body}\n\n⏳ <i>Кампада жүк топтолору менен сизге кабар беребиз!</i>",
         "collected_title": "🎉 <b>СИЗДИН ЗАКАЗ #{order_id} ТОЛУГУ МЕНЕН ТОПТОЛДУ!</b>",
         "collected_body": "📦 Бардык жабдуулар текшерилди жана «МИШКА» кампасында даяр.\n💰 Төлөм суммасы: <b>{sum} ₽</b>\n🚚 Алуу түрү: <b>{delivery}</b>\n\nКампада сизди күтөбүз!",
+        "paid_title": "✅ <b>ЗАКАЗ #{order_id} ТӨЛӨНДҮ ЖАНА БЕРИЛДИ!</b>",
+        "paid_body": "💰 Төлөм түрү: <b>{method}</b>\nСумма: <b>{sum} ₽</b>\n\n«МИШКА» заводу менен кызматташканыңыз үчүн рахмат!",
         "btn_nav_sklad": "📍 Кампага баруучу жол (Яндекс)",
         "btn_repeat": "🔄 Бул заказды кайталоо",
         "unit_m": "м",
@@ -263,13 +273,19 @@ MESSAGES = {
     }
 }
 
-def get_admin_name(user_id: int) -> str:
+def get_admin_name(user_id) -> str:
     """Определяет сотрудника склада по Telegram ID."""
-    if user_id == PRIMARY_ADMIN_ID:
+    try:
+        uid = int(str(user_id).strip())
+    except (ValueError, TypeError):
         return "Алексей"
-    elif user_id == SECOND_ADMIN_ID:
+
+    if uid in [PRIMARY_ADMIN_ID, 551209811]:
+        return "Алексей"
+    elif uid in [SECOND_ADMIN_ID, 447208738]:
         return "Артур"
-    return "Сотрудник склада"
+    
+    return "Алексей"
 
 def format_worker_name(worker_name: str, worker_tag: str) -> str:
     name = str(worker_name or "").strip()
@@ -323,8 +339,8 @@ def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
     except Exception as e:
         print(f"[SHEET SYNC ERR] {e}")
 
-def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", manager: str = ""):
-    """Обновление статуса, причины отмены и фиксация сборщика (Колонка K)."""
+def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", manager: str = "", payment_method: str = "-"):
+    """Обновление статуса, причины отмены, сборщика (K) и оплаты (L)."""
     webhook_url = GOOGLE_SHEET_WEBHOOK
     if not webhook_url:
         return
@@ -332,6 +348,9 @@ def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", man
     order = ACTIVE_ORDERS.get(order_id, {})
     raw_data = order.get("raw_data", {})
     full_client_info = format_worker_name(raw_data.get("worker_name"), raw_data.get("worker_tag"))
+
+    if not manager:
+        manager = order.get("collected_by", "Алексей")
 
     payload = {
         "action": "update_status",
@@ -344,12 +363,13 @@ def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", man
         "total_sum": int(order.get("total_sum", 0)),
         "status": str(status),
         "cancel_reason": str(cancel_reason),
-        "manager": str(manager)
+        "manager": str(manager),
+        "payment_method": str(payment_method)
     }
 
     try:
         res = requests.post(webhook_url, json=payload, timeout=10, allow_redirects=True)
-        print(f"[SHEET UPDATE] {order_id} -> {status} (by {manager}): {res.status_code}")
+        print(f"[SHEET UPDATE] {order_id} -> {status} (Сборщик: {manager}, Оплата: {payment_method}): {res.status_code}")
     except Exception as e:
         print(f"[SHEET UPDATE ERR] {e}")
 
@@ -598,7 +618,8 @@ def build_order_payload(data: dict):
         "items": items,
         "collected": [False] * len(items),
         "total_sum": total_sum,
-        "status": "active"
+        "status": "active",
+        "payment_status": "unpaid"
     }
 
     sync_to_google_sheet(order_id, data, total_sum)
@@ -611,26 +632,37 @@ def make_warehouse_keyboard(order_id: str):
 
     kb = types.InlineKeyboardMarkup(row_width=1)
 
+    # Маршрут к клиенту (активен всегда при доставке)
     if order.get("is_delivery"):
         addr = order.get("clean_address") or extract_delivery_address(order.get("delivery_info", ""))
         if addr:
             nav_url = f"https://yandex.ru/navi?text={urllib.parse.quote(addr)}"
             kb.add(types.InlineKeyboardButton("🚗 Построить маршрут к клиенту (Яндекс)", url=nav_url))
 
+    # Если отменен
     if order.get("status") == "cancelled":
         reason = order.get("cancel_reason", "")
         reason_txt = f": {reason}" if reason else ""
         kb.add(types.InlineKeyboardButton(f"❌ ЗАКАЗ ОТМЕНЁН{reason_txt}", callback_data="none"))
         return kb
 
+    # Если оплачен и выдан
+    if order.get("status") == "paid":
+        method = order.get("payment_method", "Оплачено")
+        kb.add(types.InlineKeyboardButton(f"✅ ОПЛАЧЕН И ВЫДАН ({method})", callback_data="none"))
+        return kb
+
+    # Если собран на складе — появляется кнопка оплаты
     if order.get("status") == "completed":
-        kb.add(types.InlineKeyboardButton("🎉 ЗАКАЗ СОБРАН И ВЫДАН", callback_data="none"))
+        kb.add(types.InlineKeyboardButton("🎉 ЗАКАЗ СОБРАН НА СКЛАДЕ", callback_data="none"))
+        kb.add(types.InlineKeyboardButton("💳 ОПЛАТИТЬ И ВЫДАТЬ ТОВАР", callback_data=f"paymenu_{order_id}"))
         kb.row(
             types.InlineKeyboardButton("❌ Отменить заказ", callback_data=f"cancel_{order_id}"),
             types.InlineKeyboardButton("✏️ Изменить комплектацию", callback_data=f"editmenu_{order_id}")
         )
         return kb
 
+    # В процессе сборки
     for idx, (item, is_done) in enumerate(zip(order["items"], order["collected"])):
         mark = "🟢" if is_done else "⬜"
         qty_str = f"{item['qty']:g}" if isinstance(item['qty'], float) else str(item['qty'])
