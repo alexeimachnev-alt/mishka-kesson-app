@@ -316,12 +316,16 @@ def extract_delivery_address(delivery_info: str) -> str:
         return text.split("|")[0].strip()
     return text.strip()
 
-def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
+def sync_to_google_sheet(order_id: str, data: dict, total_sum: int, items_list: list = None):
     webhook_url = GOOGLE_SHEET_WEBHOOK
     if not webhook_url:
         return
 
     full_client_info = format_worker_name(data.get("worker_name"), data.get("worker_tag"))
+    
+    items_summary = ""
+    if items_list:
+        items_summary = ", ".join([f"{it['name']} ({it['qty']} {it['unit']})" for it in items_list])
 
     payload = {
         "action": "create_order",
@@ -331,16 +335,25 @@ def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
         "system_type": get_system_name_ru(data.get("mode", "well")),
         "delivery_type": str(data.get("delivery_type", "Самовывоз со склада")),
         "delivery_info": str(data.get("delivery_info", "-")),
-        "total_sum": int(total_sum)
+        "address": extract_delivery_address(data.get("delivery_info", "-")),
+        "items": items_summary,
+        "total_sum": int(total_sum),
+        "total_price": int(total_sum),
+        "status": "Новый",
+        "comment": "",
+        "assembler": "",
+        "manager": "",
+        "payment_type": "",
+        "payment_method": ""
     }
 
     try:
-        requests.post(webhook_url, json=payload, timeout=10, allow_redirects=True)
+        requests.post(webhook_url, json=payload, timeout=12, allow_redirects=True)
     except Exception as e:
         print(f"[SHEET SYNC ERR] {e}")
 
-def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", manager: str = "", payment_method: str = "-"):
-    """Обновление статуса, причины отмены, сборщика (K) и оплаты (L)."""
+def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", manager: str = "", payment_method: str = "-", **kwargs):
+    """Обновление статуса, причины отмены (J), сборщика (K) и оплаты (L)."""
     webhook_url = GOOGLE_SHEET_WEBHOOK
     if not webhook_url:
         return
@@ -349,11 +362,17 @@ def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", man
     raw_data = order.get("raw_data", {})
     full_client_info = format_worker_name(raw_data.get("worker_name"), raw_data.get("worker_tag"))
 
-    if not manager:
-        manager = order.get("collected_by", "Алексей")
+    # Согласование сборщика
+    assembler_val = kwargs.get("assembler") or manager or order.get("collected_by", "")
+    # Согласование оплаты
+    payment_val = kwargs.get("payment_type") or payment_method or order.get("payment_method", "")
+    if payment_val == "-":
+        payment_val = ""
+    # Согласование причины отмены
+    comment_val = kwargs.get("comment") or cancel_reason or order.get("cancel_reason", "")
 
     payload = {
-        "action": "update_status",
+        "action": kwargs.get("action", "update_order"),
         "order_id": str(order_id).strip(),
         "client_name": full_client_info,
         "phone": str(order.get("phone", "")),
@@ -362,14 +381,19 @@ def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", man
         "delivery_info": str(order.get("delivery_info", "")),
         "total_sum": int(order.get("total_sum", 0)),
         "status": str(status),
-        "cancel_reason": str(cancel_reason),
-        "manager": str(manager),
-        "payment_method": str(payment_method)
+        # Ключи для совместимости с любым вариантом Google Apps Script
+        "comment": str(comment_val),
+        "cancel_reason": str(comment_val),
+        "assembler": str(assembler_val),
+        "manager": str(assembler_val),
+        "who_assembled": str(assembler_val),
+        "payment_type": str(payment_val),
+        "payment_method": str(payment_val)
     }
 
     try:
-        res = requests.post(webhook_url, json=payload, timeout=10, allow_redirects=True)
-        print(f"[SHEET UPDATE] {order_id} -> {status} (Сборщик: {manager}, Оплата: {payment_method}): {res.status_code}")
+        res = requests.post(webhook_url, json=payload, timeout=12, allow_redirects=True)
+        print(f"[SHEET UPDATE] {order_id} -> {status} (Сборщик: {assembler_val}, Оплата: {payment_val}): {res.status_code}")
     except Exception as e:
         print(f"[SHEET UPDATE ERR] {e}")
 
@@ -622,7 +646,7 @@ def build_order_payload(data: dict):
         "payment_status": "unpaid"
     }
 
-    sync_to_google_sheet(order_id, data, total_sum)
+    sync_to_google_sheet(order_id, data, total_sum, items_list=items)
     return order_id, admin_header, client_header, total_sum
 
 def make_warehouse_keyboard(order_id: str):
