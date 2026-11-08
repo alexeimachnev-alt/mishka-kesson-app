@@ -103,7 +103,7 @@ def handle_miniapp_order():
 def handle_callbacks(call):
     data = call.data
 
-    # Чек-лист сборки
+    # Чек-лист сборщика
     if data.startswith("chk_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -124,7 +124,7 @@ def handle_callbacks(call):
         st = "взят со склада ✅" if order["collected"][item_idx] else "снят с отметки ❌"
         bot.answer_callback_query(call.id, f"{order['items'][item_idx]['name']}: {st}")
 
-    # Завершение сборки
+    # Завершение сборки (Сборщик: Алексей / Артур)
     elif data.startswith("fin_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -162,6 +162,83 @@ def handle_callbacks(call):
                 bot.send_message(client_id, alert_text, parse_mode="HTML", reply_markup=kb_nav)
             except Exception as e:
                 print(f"[ERR NOTIFY CLIENT] {client_id}: {e}")
+
+    # Меню выбора способа оплаты
+    elif data.startswith("paymenu_"):
+        order_id = data.split("_")[1]
+        order = ACTIVE_ORDERS.get(order_id)
+        if not order:
+            bot.answer_callback_query(call.id, "Заказ не найден")
+            return
+
+        bot.answer_callback_query(call.id, "Выбор способа оплаты")
+        kb_pay = tele_types.InlineKeyboardMarkup(row_width=1)
+        kb_pay.add(
+            tele_types.InlineKeyboardButton("💵 Наличные", callback_data=f"setpay_{order_id}_cash"),
+            tele_types.InlineKeyboardButton("📑 По счёту (Безнал)", callback_data=f"setpay_{order_id}_invoice"),
+            tele_types.InlineKeyboardButton("🔙 Назад", callback_data=f"backorder_{order_id}")
+        )
+
+        sum_formatted = f"{order['total_sum']:,}".replace(",", " ")
+        bot.send_message(
+            call.message.chat.id,
+            f"💳 <b>Оплата заказа #{order_id}</b>\n"
+            f"Сумма к получению: <b>{sum_formatted} ₽</b>\n\n"
+            f"Укажите способ расчёта с клиентом:",
+            parse_mode="HTML",
+            reply_markup=kb_pay
+        )
+
+    # Фиксация факта оплаты
+    elif data.startswith("setpay_"):
+        parts = data.split("_")
+        order_id = parts[1]
+        pay_type = parts[2]
+
+        order = ACTIVE_ORDERS.get(order_id)
+        if not order:
+            bot.answer_callback_query(call.id, "Заказ не найден")
+            return
+
+        manager_name = get_admin_name(call.from_user.id)
+        pay_title = "Наличные" if pay_type == "cash" else "По счёту (Безнал)"
+
+        order["status"] = "paid"
+        order["payment_method"] = pay_title
+        order["paid_by"] = manager_name
+
+        new_kb = make_warehouse_keyboard(order_id)
+        try:
+            bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=new_kb)
+        except Exception:
+            pass
+
+        update_sheet_status(order_id, "Оплачен и выдан", manager=manager_name, payment_method=pay_title)
+        bot.answer_callback_query(call.id, f"Оплачено: {pay_title} ✅")
+
+        sum_formatted = f"{order['total_sum']:,}".replace(",", " ")
+        bot.send_message(
+            call.message.chat.id,
+            f"🎉 <b>Заказ #{order_id} успешно выдан и оплачен!</b>\n"
+            f"Способ: <b>{pay_title}</b>\n"
+            f"Сумма: <b>{sum_formatted} ₽</b>\n"
+            f"Менеджер: <b>{manager_name}</b>",
+            parse_mode="HTML"
+        )
+
+        client_id = order.get("client_id")
+        if client_id:
+            try:
+                lang = order.get("lang", "ru")
+                t_client = MESSAGES.get(lang, MESSAGES["ru"])
+                client_alert = (
+                    f"{t_client['paid_title'].format(order_id=order_id)}\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"{t_client['paid_body'].format(sum=sum_formatted, method=pay_title)}"
+                )
+                bot.send_message(client_id, client_alert, parse_mode="HTML")
+            except Exception as e:
+                print(f"[ERR CLIENT PAID NOTIFY] {e}")
 
     # Запрос на отмену
     elif data.startswith("cancel_"):
