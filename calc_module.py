@@ -119,6 +119,20 @@ def get_system_name_ru(mode: str) -> str:
     }
     return mapping.get(str(mode).lower().strip(), "Скважина / Кессон")
 
+def extract_delivery_address(delivery_info: str) -> str:
+    """Извлекает чистый адрес из строки описания доставки."""
+    if not delivery_info:
+        return ""
+    text = str(delivery_info)
+    if "Адрес:" in text:
+        addr_part = text.split("Адрес:")[1]
+        if "|" in addr_part:
+            addr_part = addr_part.split("|")[0]
+        return addr_part.strip()
+    if "|" in text:
+        return text.split("|")[0].strip()
+    return text.strip()
+
 def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
     """Выгрузка нового заказа в Google Таблицу (Колонки A-J)."""
     webhook_url = GOOGLE_SHEET_WEBHOOK
@@ -311,12 +325,19 @@ def build_order_payload(data: dict):
         qty_str = f"{it['qty']:g}" if isinstance(it["qty"], float) else str(it["qty"])
         lines.append(f"• <b>{it['name']}</b>\n   └ {qty_str} {it['unit']} × {it['price']:,} ₽ = <b>{subtotal:,} ₽</b>".replace(",", " "))
 
+    delivery_type = data.get("delivery_type", "Самовывоз со склада")
+    delivery_info = data.get("delivery_info", "-")
+    is_delivery = "Доставка" in delivery_type
+    clean_address = extract_delivery_address(delivery_info)
+
     ACTIVE_ORDERS[order_id] = {
         "client_id": data.get("chat_id"),
         "client_name": data.get("worker_name", "Монтажник"),
         "phone": data.get("phone", "Не указан"),
-        "delivery_type": data.get("delivery_type", "Самовывоз"),
-        "delivery_info": data.get("delivery_info", "-"),
+        "delivery_type": delivery_type,
+        "delivery_info": delivery_info,
+        "clean_address": clean_address,
+        "is_delivery": is_delivery,
         "raw_data": data,
         "items": items,
         "collected": [False] * len(items),
@@ -329,13 +350,26 @@ def build_order_payload(data: dict):
 
     phone = data.get("phone", "Не указан")
     items_block = "\n".join(lines)
+
+    # Формируем наглядный блок логистики для менеджера
+    if is_delivery:
+        logistics_block = (
+            f"🚚 <b>Получение:</b> 🚛 <b>ДОСТАВКА НА ОБЪЕКТ</b>\n"
+            f"📍 <b>Адрес доставки:</b> <code>{clean_address or 'Не указан'}</code>\n"
+            f"🕒 <b>Детали/Время:</b> <i>{delivery_info}</i>"
+        )
+    else:
+        logistics_block = (
+            f"🚚 <b>Получение:</b> 📦 <b>Самовывоз со склада</b>\n"
+            f"🕒 <b>Время приезда:</b> <i>{delivery_info}</i>"
+        )
+
     header = (
         f"🧾 <b>НОВЫЙ ЗАКАЗ #{order_id} «МИШКА»</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"👷 <b>Заказчик:</b> {data.get('worker_name')} ({data.get('worker_tag')})\n"
         f"📞 <b>Телефон:</b> <a href='tel:{phone}'>{phone}</a>\n"
-        f"🚚 <b>Получение:</b> {data.get('delivery_type')}\n"
-        f"📍 <b>Детали/Адрес:</b> <code>{data.get('delivery_info')}</code>\n"
+        f"{logistics_block}\n"
         f"🆔 ID клиента: <code>{data.get('chat_id')}</code>\n\n"
         f"📦 <b>СПЕЦИФИКАЦИЯ:</b>\n\n"
         f"{items_block}\n\n"
@@ -346,7 +380,7 @@ def build_order_payload(data: dict):
     return order_id, header, total_sum
 
 def make_warehouse_keyboard(order_id: str):
-    """Клавиатура склада с отметками, маршрутом к клиенту и кнопками отмены."""
+    """Клавиатура склада с кнопкой маршрута к клиенту, отметками и отменой."""
     order = ACTIVE_ORDERS.get(order_id)
     if not order:
         return None
@@ -363,15 +397,14 @@ def make_warehouse_keyboard(order_id: str):
         kb.add(types.InlineKeyboardButton("🎉 ЗАКАЗ СОБРАН И ВЫДАН", callback_data="none"))
         return kb
 
-    # Если выбрана доставка и клиент указал адрес, добавляем кнопку маршрута для водителя/склада
-    delivery_info = order.get("delivery_info", "")
-    if "Доставка" in order.get("delivery_type", "") and delivery_info:
-        clean_addr = delivery_info.split("|")[0].replace("Адрес:", "").strip()
-        if clean_addr:
-            nav_url = f"https://yandex.ru/navi?text={urllib.parse.quote(clean_addr)}"
-            kb.add(types.InlineKeyboardButton("🚗 Маршрут к клиенту (Яндекс Навигатор)", url=nav_url))
+    # Кнопка маршрута прямо к объекту клиента при доставке
+    if order.get("is_delivery"):
+        addr = order.get("clean_address") or extract_delivery_address(order.get("delivery_info", ""))
+        if addr:
+            nav_url = f"https://yandex.ru/navi?text={urllib.parse.quote(addr)}"
+            kb.add(types.InlineKeyboardButton("🚗 Построить маршрут к клиенту (Яндекс)", url=nav_url))
 
-    # Кнопки сбора позиций
+    # Кнопки сбора позиций на складе
     for idx, (item, is_done) in enumerate(zip(order["items"], order["collected"])):
         mark = "🟢" if is_done else "⬜"
         qty_str = f"{item['qty']:g}" if isinstance(item['qty'], float) else str(item['qty'])
