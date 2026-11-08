@@ -70,18 +70,18 @@ def handle_miniapp_order():
             "storm_discharge": data.get("storm_discharge", "ditch")
         }
 
-        # build_order_payload создаёт заказ в памяти и сразу отправляет в Google Sheets
+        # Вызов build_order_payload формирует заказ и асинхронно пишет его в Таблицу (1 раз)
         order_id, admin_text, client_text, total_sum = build_order_payload(session_data)
         kb_admin = make_warehouse_keyboard(order_id)
 
-        # 1. Отправляем уведомления администраторам склада
+        # Уведомление админов склада
         for a_id in ADMIN_CHAT_IDS:
             try:
                 bot.send_message(a_id, admin_text, parse_mode="HTML", reply_markup=kb_admin)
             except Exception as e:
                 print(f"[ERR ADMIN SEND] {a_id}: {e}")
 
-        # 2. Отправляем подтверждение клиенту
+        # Уведомление клиенту
         if user_id:
             try:
                 lang = session_data.get("lang", "ru")
@@ -97,7 +97,6 @@ def handle_miniapp_order():
             except Exception as client_err:
                 print(f"[ERR CLIENT SEND] {user_id}: {client_err}")
 
-        # Мгновенно возвращаем 200 Mini App, чтобы избежать таймаутов браузера
         return jsonify({"status": "ok", "order_id": order_id}), 200
     except Exception as e:
         print(f"[ERROR API] {e}")
@@ -128,7 +127,7 @@ def handle_callbacks(call):
         st = "взят со склада ✅" if order["collected"][item_idx] else "снят с отметки ❌"
         bot.answer_callback_query(call.id, f"{order['items'][item_idx]['name']}: {st}")
 
-    # Завершение сборки: запись сборщика (Колонка K) и покраска в зеленый
+    # Завершение сборки: запись сборщика (Колонка K) и подсветка зеленым
     elif data.startswith("fin_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -146,7 +145,6 @@ def handle_callbacks(call):
         except Exception:
             pass
 
-        # Передаем статус и сборщика в таблицу
         update_sheet_status(order_id, "Собран на складе", assembler=manager_name, manager=manager_name)
         bot.answer_callback_query(call.id, f"Заказ #{order_id} собрал: {manager_name} ✅")
 
@@ -194,7 +192,7 @@ def handle_callbacks(call):
             reply_markup=kb_pay
         )
 
-    # Фиксация факта оплаты: запись способа оплаты (Колонка L)
+    # Фиксация способа оплаты: запись типа оплаты (Колонка L)
     elif data.startswith("setpay_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -218,7 +216,6 @@ def handle_callbacks(call):
         except Exception:
             pass
 
-        # Передаем статус и тип оплаты в таблицу
         update_sheet_status(order_id, "Оплачен и выдан", payment_type=pay_title, payment_method=pay_title, manager=manager_name)
         bot.answer_callback_query(call.id, f"Оплачено: {pay_title} ✅")
 
@@ -246,7 +243,7 @@ def handle_callbacks(call):
             except Exception as e:
                 print(f"[ERR CLIENT PAID NOTIFY] {e}")
 
-    # Запрос на отмену заказа
+    # Запрос причины отмены заказа
     elif data.startswith("cancel_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -263,7 +260,7 @@ def handle_callbacks(call):
         )
         bot.register_next_step_handler(msg, process_cancel_reason, order_id, call.message.message_id)
 
-    # Главное меню редактирования
+    # Меню редактирования
     elif data.startswith("editmenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -288,7 +285,7 @@ def handle_callbacks(call):
             reply_markup=kb_edit
         )
 
-    # Каталог склада для добавления
+    # Выбор позиции каталога
     elif data.startswith("addmenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -305,7 +302,7 @@ def handle_callbacks(call):
 
         bot.send_message(call.message.chat.id, "📦 <b>Выберите позицию для добавления в заказ:</b>", parse_mode="HTML", reply_markup=kb_add)
 
-    # Выбор количества выбранного товара
+    # Ввод количества
     elif data.startswith("pickitem_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -327,7 +324,7 @@ def handle_callbacks(call):
         )
         bot.register_next_step_handler(msg, process_add_item_qty, order_id, item_idx)
 
-    # Меню удаления позиций
+    # Меню удаления
     elif data.startswith("delmenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -343,7 +340,7 @@ def handle_callbacks(call):
 
         bot.send_message(call.message.chat.id, f"❌ <b>Нажмите на позицию, которую требуется убрать из заказа #{order_id}:</b>", parse_mode="HTML", reply_markup=kb_del)
 
-    # Удаление конкретной позиции
+    # Удаление позиции
     elif data.startswith("delitem_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -371,7 +368,7 @@ def handle_callbacks(call):
             except Exception:
                 pass
 
-    # Возврат к карточке заказа
+    # Возврат к заказу
     elif data.startswith("backorder_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -481,7 +478,6 @@ def process_cancel_reason(message, order_id, original_msg_id):
     except Exception:
         pass
 
-    # Отправляем причину отмены (Колонка J) и красим строку в розовый
     update_sheet_status(order_id, "Отменён", cancel_reason=reason, comment=reason, manager=manager_name)
     bot.reply_to(message, f"✅ Заказ #{order_id} отменён ({manager_name}).\nПричина <i>«{reason}»</i> записана в Google Таблицу.", parse_mode="HTML")
 
