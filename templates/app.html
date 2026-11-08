@@ -962,4 +962,13 @@
           btn.innerText = t.btnSubmit;
         }
       } catch (err) {
-        alert("Сбой соединения: " + err
+        alert("Сбой соединения: " + err);
+        btn.disabled = false;
+        btn.innerText = t.btnSubmit;
+      }
+    }
+
+    onLanguageChanged();
+  </script>
+</body>
+</html>
