@@ -73,12 +73,33 @@ def handle_miniapp_order():
         order_id, admin_text, client_text, total_sum = build_order_payload(session_data)
         kb_admin = make_warehouse_keyboard(order_id)
 
+        # 1. Запись нового заказа в Google Sheets (Колонки A..L)
+        try:
+            order_info = ACTIVE_ORDERS.get(order_id, {})
+            items_str = ", ".join([f"{it['name']} ({it['qty']} {it['unit']})" for it in order_info.get("items", [])])
+            update_sheet_status(
+                order_id=order_id,
+                status="Новый",
+                action="create_order",
+                client_name=f"{session_data['worker_name']} ({session_data['worker_tag']})",
+                phone=session_data["phone"],
+                items=items_str,
+                total_price=total_sum,
+                address=session_data["delivery_info"],
+                delivery_type=session_data["delivery_type"],
+                comment=""
+            )
+        except Exception as sheet_err:
+            print(f"[ERR SHEETS EXPORT] {sheet_err}")
+
+        # 2. Уведомление администраторов
         for a_id in ADMIN_CHAT_IDS:
             try:
                 bot.send_message(a_id, admin_text, parse_mode="HTML", reply_markup=kb_admin)
             except Exception as e:
                 print(f"[ERR ADMIN SEND] {a_id}: {e}")
 
+        # 3. Ответ клиенту
         if user_id:
             try:
                 lang = session_data.get("lang", "ru")
@@ -124,7 +145,7 @@ def handle_callbacks(call):
         st = "взят со склада ✅" if order["collected"][item_idx] else "снят с отметки ❌"
         bot.answer_callback_query(call.id, f"{order['items'][item_idx]['name']}: {st}")
 
-    # Завершение сборки (Сборщик: Алексей / Артур)
+    # Завершение сборки (Сборщик: Алексей / Артур -> Столбец K)
     elif data.startswith("fin_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -142,7 +163,8 @@ def handle_callbacks(call):
         except Exception:
             pass
 
-        update_sheet_status(order_id, "Собран на складе", manager=manager_name)
+        # Передаем явно assembler для записи в столбец K таблицы
+        update_sheet_status(order_id, "Собран на складе", assembler=manager_name, manager=manager_name)
         bot.answer_callback_query(call.id, f"Заказ #{order_id} собрал: {manager_name} ✅")
 
         client_id = order.get("client_id")
@@ -189,7 +211,7 @@ def handle_callbacks(call):
             reply_markup=kb_pay
         )
 
-    # Фиксация факта оплаты
+    # Фиксация факта оплаты (Тип оплаты -> Столбец L)
     elif data.startswith("setpay_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -213,7 +235,8 @@ def handle_callbacks(call):
         except Exception:
             pass
 
-        update_sheet_status(order_id, "Оплачен и выдан", manager=manager_name, payment_method=pay_title)
+        # Передаем явно payment_type для записи в столбец L таблицы
+        update_sheet_status(order_id, "Оплачен и выдан", payment_type=pay_title, payment_method=pay_title, manager=manager_name)
         bot.answer_callback_query(call.id, f"Оплачено: {pay_title} ✅")
 
         sum_formatted = f"{order['total_sum']:,}".replace(",", " ")
@@ -240,7 +263,7 @@ def handle_callbacks(call):
             except Exception as e:
                 print(f"[ERR CLIENT PAID NOTIFY] {e}")
 
-    # Запрос на отмену
+    # Запрос на отмену (Причина отмены -> Столбец J)
     elif data.startswith("cancel_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -409,7 +432,6 @@ def handle_callbacks(call):
             pass
 
 def process_add_item_qty(message, order_id, catalog_idx):
-    """Принимает количество, добавляет товар в заказ и обновляет смету."""
     try:
         qty = float(message.text.strip().replace(",", "."))
         if qty <= 0:
@@ -476,7 +498,8 @@ def process_cancel_reason(message, order_id, original_msg_id):
     except Exception:
         pass
 
-    update_sheet_status(order_id, "Отменён", cancel_reason=reason, manager=manager_name)
+    # Передаем comment и cancel_reason для корректной записи в столбец J
+    update_sheet_status(order_id, "Отменён", cancel_reason=reason, comment=reason, manager=manager_name)
     bot.reply_to(message, f"✅ Заказ #{order_id} отменён ({manager_name}).\nПричина <i>«{reason}»</i> записана в Google Таблицу.", parse_mode="HTML")
 
     client_id = order.get("client_id")
