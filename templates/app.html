@@ -852,7 +852,6 @@
       const next = Math.max(0, cur + delta);
       userQuantities[id] = next;
       
-      // Обновляем все поля ввода с этим id (и в септике, и в ливневке)
       ['well', 'septic', 'drain', 'storm'].forEach(p => {
         const el = document.getElementById(`inp_${p}_${id}`);
         if (el) el.value = next;
@@ -963,13 +962,4 @@
           btn.innerText = t.btnSubmit;
         }
       } catch (err) {
-        alert("Сбой соединения: " + err);
-        btn.disabled = false;
-        btn.innerText = t.btnSubmit;
-      }
-    }
-
-    onLanguageChanged();
-  </script>
-</body>
-</html>
+        alert("Сбой соединения: " + err
