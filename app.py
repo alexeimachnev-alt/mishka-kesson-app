@@ -42,7 +42,7 @@ def handle_miniapp_order():
             "mode": data.get("mode", "well"),
             "lang": data.get("lang", "ru"),
             "phone": data.get("phone", "Не указан"),
-            "delivery_type": data.get("delivery_type", "Самовывоз"),
+            "delivery_type": data.get("delivery_type", "Самовывоз со склада"),
             "delivery_info": data.get("delivery_info", "-"),
             "extras": data.get("extras", {}),
             "worker_tag": f"@{data.get('username')}" if data.get('username') else "нет username",
@@ -80,16 +80,14 @@ def handle_miniapp_order():
         if user_id:
             try:
                 kb_client = tele_types.InlineKeyboardMarkup(row_width=1)
-                kb_client.add(
-                    tele_types.InlineKeyboardButton("📍 Маршрут к складу (Яндекс Навигатор)", url=YANDEX_MAPS_URL),
-                    tele_types.InlineKeyboardButton("🔄 Повторить этот заказ", callback_data=f"repeat_{order_id}")
-                )
+                if "Доставка" not in session_data["delivery_type"]:
+                    kb_client.add(tele_types.InlineKeyboardButton("📍 Маршрут к складу (Яндекс Навигатор)", url=YANDEX_MAPS_URL))
+                kb_client.add(tele_types.InlineKeyboardButton("🔄 Повторить этот заказ", callback_data=f"repeat_{order_id}"))
 
                 client_msg = (
                     f"✅ <b>Ваш заказ принят складом! Номер: #{order_id}</b>\n\n"
                     f"{estimate_text}\n\n"
-                    f"📍 <b>Адрес склада:</b> МО, Дмитровский район, пос. Некрасовский\n"
-                    f"⏳ <i>Мы оповестим вас здесь, как только заказ будет собран к отгрузке!</i>"
+                    f"⏳ <i>Мы оповестим вас здесь, как только заказ будет полностью скомплектован!</i>"
                 )
                 bot.send_message(user_id, client_msg, parse_mode="HTML", reply_markup=kb_client)
             except Exception as client_err:
@@ -156,7 +154,8 @@ def handle_callbacks(call):
                     f"Ждём вас на складе!".replace(",", " ")
                 )
                 kb_nav = tele_types.InlineKeyboardMarkup()
-                kb_nav.add(tele_types.InlineKeyboardButton("📍 Маршрут к складу (Яндекс)", url=YANDEX_MAPS_URL))
+                if not order.get("is_delivery"):
+                    kb_nav.add(tele_types.InlineKeyboardButton("📍 Маршрут к складу (Яндекс)", url=YANDEX_MAPS_URL))
                 bot.send_message(client_id, alert_text, parse_mode="HTML", reply_markup=kb_nav)
             except Exception as e:
                 print(f"[ERR NOTIFY CLIENT] {client_id}: {e}")
