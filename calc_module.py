@@ -263,6 +263,14 @@ MESSAGES = {
     }
 }
 
+def get_admin_name(user_id: int) -> str:
+    """Определяет сотрудника склада по Telegram ID."""
+    if user_id == PRIMARY_ADMIN_ID:
+        return "Алексей"
+    elif user_id == SECOND_ADMIN_ID:
+        return "Артур"
+    return "Сотрудник склада"
+
 def format_worker_name(worker_name: str, worker_tag: str) -> str:
     name = str(worker_name or "").strip()
     tag = str(worker_tag or "").strip()
@@ -315,7 +323,8 @@ def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
     except Exception as e:
         print(f"[SHEET SYNC ERR] {e}")
 
-def update_sheet_status(order_id: str, status: str, cancel_reason: str = ""):
+def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", manager: str = ""):
+    """Обновление статуса, причины отмены и фиксация сборщика (Колонка K)."""
     webhook_url = GOOGLE_SHEET_WEBHOOK
     if not webhook_url:
         return
@@ -334,12 +343,13 @@ def update_sheet_status(order_id: str, status: str, cancel_reason: str = ""):
         "delivery_info": str(order.get("delivery_info", "")),
         "total_sum": int(order.get("total_sum", 0)),
         "status": str(status),
-        "cancel_reason": str(cancel_reason)
+        "cancel_reason": str(cancel_reason),
+        "manager": str(manager)
     }
 
     try:
         res = requests.post(webhook_url, json=payload, timeout=10, allow_redirects=True)
-        print(f"[SHEET UPDATE] {order_id} -> {status}: {res.status_code}")
+        print(f"[SHEET UPDATE] {order_id} -> {status} (by {manager}): {res.status_code}")
     except Exception as e:
         print(f"[SHEET UPDATE ERR] {e}")
 
@@ -595,7 +605,6 @@ def build_order_payload(data: dict):
     return order_id, admin_header, client_header, total_sum
 
 def make_warehouse_keyboard(order_id: str):
-    """Клавиатура менеджера: даже после сборки доступны отмена и редактирование."""
     order = ACTIVE_ORDERS.get(order_id)
     if not order:
         return None
