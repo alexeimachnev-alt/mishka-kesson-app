@@ -110,38 +110,69 @@ EXTRA_ITEMS = {
     "leaf_grate": {"unit": "шт.", "name": "Листвоуловитель для дождеприёмника", "price": PRICES["leaf_grate"]}
 }
 
-def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
-    """Выгружает новый заказ в Google Таблицу."""
-    if not GOOGLE_SHEET_WEBHOOK:
-        return
-    payload = {
-        "order_id": order_id,
-        "client_name": data.get("worker_name", "Заказчик"),
-        "phone": data.get("phone", "Не указан"),
-        "delivery_type": data.get("delivery_type", "Самовывоз"),
-        "delivery_info": data.get("delivery_info", "-"),
-        "mode": data.get("mode", "well"),
-        "total_sum": total_sum,
-        "status": "Принят на складе"
+def get_system_name_ru(mode: str) -> str:
+    mapping = {
+        "well": "Скважина / Кессон",
+        "septic": "Септик / Канализация",
+        "drainage": "Дренаж участка",
+        "storm": "Ливнёвка в земле"
     }
+    return mapping.get(str(mode).lower().strip(), "Скважина / Кессон")
+
+def sync_to_google_sheet(order_id: str, data: dict, total_sum: int):
+    """Выгрузка нового заказа в Google Таблицу (Колонки A-J)."""
+    webhook_url = GOOGLE_SHEET_WEBHOOK
+    if not webhook_url:
+        return
+
+    client_name = data.get("worker_name", "Монтажник")
+    worker_tag = data.get("worker_tag", "")
+    full_client_info = f"{client_name} ({worker_tag})" if worker_tag else client_name
+
+    payload = {
+        "action": "create_order",
+        "order_id": str(order_id).strip(),
+        "client_name": str(full_client_info),
+        "phone": str(data.get("phone", "")),
+        "system_type": get_system_name_ru(data.get("mode", "well")),
+        "delivery_type": str(data.get("delivery_type", "Самовывоз")),
+        "delivery_info": str(data.get("delivery_info", "-")),
+        "total_sum": int(total_sum)
+    }
+
     try:
-        requests.post(GOOGLE_SHEET_WEBHOOK, json=payload, timeout=10, allow_redirects=True)
+        requests.post(webhook_url, json=payload, timeout=10, allow_redirects=True)
     except Exception as e:
         print(f"[SHEET SYNC ERR] {e}")
 
 def update_sheet_status(order_id: str, status: str, cancel_reason: str = ""):
-    """Обновляет статус заказа и причину отмены в Google Таблице."""
-    if not GOOGLE_SHEET_WEBHOOK:
+    """Обновление статуса (Колонка I) и причины отмены (Колонка J)."""
+    webhook_url = GOOGLE_SHEET_WEBHOOK
+    if not webhook_url:
         return
+
+    order = ACTIVE_ORDERS.get(order_id, {})
+    raw_data = order.get("raw_data", {})
+    client_name = raw_data.get("worker_name", "Монтажник")
+    worker_tag = raw_data.get("worker_tag", "")
+    full_client_info = f"{client_name} ({worker_tag})" if worker_tag else client_name
+
     payload = {
         "action": "update_status",
-        "order_id": order_id,
-        "status": status,
-        "cancel_reason": cancel_reason
+        "order_id": str(order_id).strip(),
+        "client_name": str(full_client_info),
+        "phone": str(order.get("phone", "")),
+        "system_type": get_system_name_ru(raw_data.get("mode", "well")),
+        "delivery_type": str(order.get("delivery_type", "")),
+        "delivery_info": str(order.get("delivery_info", "")),
+        "total_sum": int(order.get("total_sum", 0)),
+        "status": str(status),
+        "cancel_reason": str(cancel_reason)
     }
+
     try:
-        requests.post(GOOGLE_SHEET_WEBHOOK, json=payload, timeout=10, allow_redirects=True)
-        print(f"[SHEET UPDATE] Статус заказа #{order_id} обновлен на: {status}")
+        res = requests.post(webhook_url, json=payload, timeout=10, allow_redirects=True)
+        print(f"[SHEET UPDATE] {order_id} -> {status}: {res.status_code}")
     except Exception as e:
         print(f"[SHEET UPDATE ERR] {e}")
 
@@ -282,7 +313,7 @@ def build_order_payload(data: dict):
 
     ACTIVE_ORDERS[order_id] = {
         "client_id": data.get("chat_id"),
-        "client_name": data.get("worker_name", "Заказчик"),
+        "client_name": data.get("worker_name", "Монтажник"),
         "phone": data.get("phone", "Не указан"),
         "delivery_type": data.get("delivery_type", "Самовывоз"),
         "delivery_info": data.get("delivery_info", "-"),
