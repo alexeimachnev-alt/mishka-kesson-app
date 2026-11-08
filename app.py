@@ -10,7 +10,8 @@ from calc_module import (
     make_warehouse_keyboard, 
     update_sheet_status,
     ACTIVE_ORDERS, 
-    ADMIN_CHAT_IDS
+    ADMIN_CHAT_IDS,
+    MESSAGES
 )
 
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip().strip("'\"")
@@ -66,29 +67,28 @@ def handle_miniapp_order():
             "storm_discharge": data.get("storm_discharge", "ditch")
         }
 
-        order_id, estimate_text, total_sum = build_order_payload(session_data)
+        order_id, admin_text, client_text, total_sum = build_order_payload(session_data)
         kb_admin = make_warehouse_keyboard(order_id)
 
-        # 1. Отправка администраторам склада
+        # 1. Отправка администраторам склада (на русском языке)
         for a_id in ADMIN_CHAT_IDS:
             try:
-                bot.send_message(a_id, estimate_text, parse_mode="HTML", reply_markup=kb_admin)
+                bot.send_message(a_id, admin_text, parse_mode="HTML", reply_markup=kb_admin)
             except Exception as e:
                 print(f"[ERR ADMIN SEND] {a_id}: {e}")
 
-        # 2. Отправка подтверждения заказчику
+        # 2. Отправка подтверждения заказчику (на его родном языке)
         if user_id:
             try:
-                kb_client = tele_types.InlineKeyboardMarkup(row_width=1)
-                if "Доставка" not in session_data["delivery_type"]:
-                    kb_client.add(tele_types.InlineKeyboardButton("📍 Маршрут к складу (Яндекс Навигатор)", url=YANDEX_MAPS_URL))
-                kb_client.add(tele_types.InlineKeyboardButton("🔄 Повторить этот заказ", callback_data=f"repeat_{order_id}"))
+                lang = session_data.get("lang", "ru")
+                t_client = MESSAGES.get(lang, MESSAGES["ru"])
 
-                client_msg = (
-                    f"✅ <b>Ваш заказ принят складом! Номер: #{order_id}</b>\n\n"
-                    f"{estimate_text}\n\n"
-                    f"⏳ <i>Мы оповестим вас здесь, как только заказ будет полностью скомплектован!</i>"
-                )
+                kb_client = tele_types.InlineKeyboardMarkup(row_width=1)
+                if not session_data.get("is_delivery"):
+                    kb_client.add(tele_types.InlineKeyboardButton(t_client["btn_nav_sklad"], url=YANDEX_MAPS_URL))
+                kb_client.add(tele_types.InlineKeyboardButton(t_client["btn_repeat"], callback_data=f"repeat_{order_id}"))
+
+                client_msg = t_client["accepted"].format(order_id=order_id, body=client_text)
                 bot.send_message(user_id, client_msg, parse_mode="HTML", reply_markup=kb_client)
             except Exception as client_err:
                 print(f"[ERR CLIENT SEND] {user_id}: {client_err}")
@@ -133,6 +133,7 @@ def handle_callbacks(call):
             return
 
         order["status"] = "completed"
+        # Клавиатура перерисуется, но кнопка маршрута к клиенту останется активной
         new_kb = make_warehouse_keyboard(order_id)
         try:
             bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=new_kb)
@@ -142,20 +143,23 @@ def handle_callbacks(call):
         update_sheet_status(order_id, "Собран на складе")
         bot.answer_callback_query(call.id, f"Заказ #{order_id} собран! Клиент уведомлен.")
 
+        # Уведомляем клиента на ЕГО родном языке
         client_id = order.get("client_id")
         if client_id:
             try:
+                lang = order.get("lang", "ru")
+                t_client = MESSAGES.get(lang, MESSAGES["ru"])
+                
+                sum_formatted = f"{order['total_sum']:,}".replace(",", " ")
                 alert_text = (
-                    f"🎉 <b>ВАШ ЗАКАЗ #{order_id} ПОЛНОСТЬЮ СОБРАН!</b>\n"
+                    f"{t_client['collected_title'].format(order_id=order_id)}\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"📦 Все комплектующие проверены и готовы к выдаче на складе «МИШКА».\n"
-                    f"💰 Сумма: <b>{order['total_sum']:,} ₽</b>\n"
-                    f"🚚 Способ: <b>{order.get('delivery_type')}</b>\n\n"
-                    f"Ждём вас на складе!".replace(",", " ")
+                    f"{t_client['collected_body'].format(sum=sum_formatted, delivery=order.get('delivery_type'))}"
                 )
+
                 kb_nav = tele_types.InlineKeyboardMarkup()
                 if not order.get("is_delivery"):
-                    kb_nav.add(tele_types.InlineKeyboardButton("📍 Маршрут к складу (Яндекс)", url=YANDEX_MAPS_URL))
+                    kb_nav.add(tele_types.InlineKeyboardButton(t_client["btn_nav_sklad"], url=YANDEX_MAPS_URL))
                 bot.send_message(client_id, alert_text, parse_mode="HTML", reply_markup=kb_nav)
             except Exception as e:
                 print(f"[ERR NOTIFY CLIENT] {client_id}: {e}")
@@ -189,7 +193,15 @@ def handle_callbacks(call):
         client_id = order.get("client_id")
         if client_id:
             try:
-                bot.send_message(client_id, f"✏️ <b>По заказу #{order_id} требуется уточнение!</b>\nМенеджер склада свяжется с вами или вы можете отправить обновлённый расчёт через приложение.", parse_mode="HTML")
+                lang = order.get("lang", "ru")
+                edit_msgs = {
+                    "ru": f"✏️ <b>По заказу #{order_id} требуется уточнение!</b>\nМенеджер склада свяжется с вами или отправьте обновлённый расчёт через приложение.",
+                    "tj": f"✏️ <b>Оид ба фармоиши #{order_id} маълумоти иловагӣ лозим аст!</b>\nМенеҷери анбор бо шумо тамос мегирад ё метавонед ҳисоби навро тавассути барнома фиристед.",
+                    "uz": f"✏️ <b>#{order_id} buyurtmasi bo'yicha aniqlik kiritish kerak!</b>\nOmbor menejeri siz bilan bog'lanadi yoki dastur orqali yangilangan hisob-kitobni yuboring.",
+                    "hy": f"✏️ <b>#{order_id} պատվերի վերաբերյալ ճշգրտում է պահանջվում:</b>\nՊահեստապետը կկապվի Ձեզ հետ կամ կարող եք ուղարկել թարմացված հաշվարկը:",
+                    "ky": f"✏️ <b>#{order_id} буйрутмасы боюнча тактоо талап кылынат!</b>\nКампа менеджери сиз менен байланышат же тиркеме аркылуу жаңыланган эсепти жөнөтүңүз."
+                }
+                bot.send_message(client_id, edit_msgs.get(lang, edit_msgs["ru"]), parse_mode="HTML")
             except Exception:
                 pass
 
@@ -203,22 +215,29 @@ def handle_callbacks(call):
 
         bot.answer_callback_query(call.id, "Создаём повторный заказ...")
         new_data = dict(old_order["raw_data"])
-        new_order_id, new_estimate, _ = build_order_payload(new_data)
+        new_order_id, admin_text, client_text, _ = build_order_payload(new_data)
         new_kb = make_warehouse_keyboard(new_order_id)
 
         for a_id in ADMIN_CHAT_IDS:
             try:
-                bot.send_message(a_id, f"🔄 <b>ПОВТОР ЗАКАЗА #{old_order_id} ➔ #{new_order_id}</b>\n\n" + new_estimate, parse_mode="HTML", reply_markup=new_kb)
+                bot.send_message(a_id, f"🔄 <b>ПОВТОР ЗАКАЗА #{old_order_id} ➔ #{new_order_id}</b>\n\n" + admin_text, parse_mode="HTML", reply_markup=new_kb)
             except Exception:
                 pass
 
         try:
-            bot.send_message(call.message.chat.id, f"✅ <b>Заказ успешно повторен! Новый номер: #{new_order_id}</b>\n\nСклад уже приступил к сборке.", parse_mode="HTML")
+            lang = new_data.get("lang", "ru")
+            repeat_confirm = {
+                "ru": f"✅ <b>Заказ успешно повторен! Новый номер: #{new_order_id}</b>\n\nСклад уже приступил к сборке.",
+                "tj": f"✅ <b>Фармоиш такрор шуд! Рақами нав: #{new_order_id}</b>\n\nАнбор ба тайёр кардани бор оғоз кард.",
+                "uz": f"✅ <b>Buyurtma muvaffaqiyatli takrorlandi! Yangi raqam: #{new_order_id}</b>\n\nOmbor mahsulotlarni yig'ishga kirishdi.",
+                "hy": f"✅ <b>Պատվերը հաջողությամբ կրկնվեց: Նոր համար: #{new_order_id}</b>\n\nՊահեստը սկսել է հավաքել:",
+                "ky": f"✅ <b>Заказ кайталанды! Жаңы номери: #{new_order_id}</b>\n\nКампа топтоону баштады."
+            }
+            bot.send_message(call.message.chat.id, repeat_confirm.get(lang, repeat_confirm["ru"]), parse_mode="HTML")
         except Exception:
             pass
 
 def process_cancel_reason(message, order_id, original_msg_id):
-    """Принимает причину отмены от менеджера, обновляет статус и выгружает в таблицу."""
     reason = message.text.strip()
     order = ACTIVE_ORDERS.get(order_id)
     if not order:
@@ -228,29 +247,27 @@ def process_cancel_reason(message, order_id, original_msg_id):
     order["status"] = "cancelled"
     order["cancel_reason"] = reason
 
-    # Обновляем клавиатуру заказа у администратора
     new_kb = make_warehouse_keyboard(order_id)
     try:
         bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=original_msg_id, reply_markup=new_kb)
     except Exception:
         pass
 
-    # Отправляем обновленный статус и причину в Google Таблицу
     update_sheet_status(order_id, "Отменён", reason)
-
-    # Подтверждение менеджеру
     bot.reply_to(message, f"✅ Заказ #{order_id} отменён.\nПричина <i>«{reason}»</i> записана в Google Таблицу.", parse_mode="HTML")
 
-    # Уведомляем клиента (без показа внутренней причины)
     client_id = order.get("client_id")
     if client_id:
         try:
-            bot.send_message(
-                client_id,
-                f"❌ <b>Ваш заказ #{order_id} отменён складом.</b>\n"
-                f"Если у вас возникли вопросы или нужно изменить состав заказа, свяжитесь с отделом продаж завода «МИШКА».",
-                parse_mode="HTML"
-            )
+            lang = order.get("lang", "ru")
+            cancel_msgs = {
+                "ru": f"❌ <b>Ваш заказ #{order_id} отменён складом.</b>\nЕсли у вас есть вопросы, свяжитесь с отделом продаж завода «МИШКА».",
+                "tj": f"❌ <b>Фармоиши шумо #{order_id} аз ҷониби анбор бекор карда шуд.</b>\nАгар саволҳо бошанд, бо шуъбаи фурӯши корхонаи «МИШКА» дар тамос шавед.",
+                "uz": f"❌ <b>#{order_id} raqamli buyurtmangiz ombor tomonidan bekor qilindi.</b>\nSavollaringiz bo'lsa, «MISHKA» savdo bo'limi bilan bog'laning.",
+                "hy": f"❌ <b>Ձեր #{order_id} պատվերը չեղարկվել է պահեստի կողմից:</b>\nՀարցերի դեպքում կապվեք «ՄԻՇԿԱ» գործարանի վաճառքի բաժնի հետ:",
+                "ky": f"❌ <b>Сиздин #{order_id} буйрутмаңыз кампа тарабынан жокко чыгарылды.</b>\nСуроолор болсо, «МИШКА» сатуу бөлүмүнө кайрылыңыз."
+            }
+            bot.send_message(client_id, cancel_msgs.get(lang, cancel_msgs["ru"]), parse_mode="HTML")
         except Exception:
             pass
 
