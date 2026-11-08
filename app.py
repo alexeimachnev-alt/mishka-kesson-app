@@ -10,6 +10,7 @@ from calc_module import (
     make_warehouse_keyboard, 
     update_sheet_status,
     render_order_texts,
+    get_admin_name,
     ACTIVE_ORDERS, 
     ADMIN_CHAT_IDS,
     MESSAGES,
@@ -131,15 +132,18 @@ def handle_callbacks(call):
             bot.answer_callback_query(call.id, "Заказ не найден")
             return
 
+        manager_name = get_admin_name(call.from_user.id)
         order["status"] = "completed"
+        order["collected_by"] = manager_name
+
         new_kb = make_warehouse_keyboard(order_id)
         try:
             bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=new_kb)
         except Exception:
             pass
 
-        update_sheet_status(order_id, "Собран на складе")
-        bot.answer_callback_query(call.id, f"Заказ #{order_id} собран! Дубликат добавлен в таблицу.")
+        update_sheet_status(order_id, "Собран на складе", manager=manager_name)
+        bot.answer_callback_query(call.id, f"Заказ #{order_id} собрал: {manager_name} ✅")
 
         client_id = order.get("client_id")
         if client_id:
@@ -385,6 +389,7 @@ def process_cancel_reason(message, order_id, original_msg_id):
         bot.reply_to(message, "Заказ не найден в текущей сессии.")
         return
 
+    manager_name = get_admin_name(message.from_user.id)
     order["status"] = "cancelled"
     order["cancel_reason"] = reason
 
@@ -394,8 +399,8 @@ def process_cancel_reason(message, order_id, original_msg_id):
     except Exception:
         pass
 
-    update_sheet_status(order_id, "Отменён", reason)
-    bot.reply_to(message, f"✅ Заказ #{order_id} отменён.\nКрасный дубликат с причиной <i>«{reason}»</i> добавлен в Google Таблицу.", parse_mode="HTML")
+    update_sheet_status(order_id, "Отменён", cancel_reason=reason, manager=manager_name)
+    bot.reply_to(message, f"✅ Заказ #{order_id} отменён ({manager_name}).\nПричина <i>«{reason}»</i> записана в Google Таблицу.", parse_mode="HTML")
 
     client_id = order.get("client_id")
     if client_id:
