@@ -15,7 +15,6 @@ def get_well_items(data):
     equip_type = data.get("equip_type", "kesson_vfd")
     chosen_tank = str(data.get("chosen_tank", "tank_100"))
 
-    # Сопоставление гидроаккумуляторов BELAMOS
     tank_catalog = {
         "tank_50": ("Гидроаккумулятор 50VT BELAMOS", PRICES.get("tank_50", 5420.00)),
         "tank_80": ("Гидроаккумулятор 80VT BELAMOS", PRICES.get("tank_80", 7150.00)),
@@ -27,11 +26,8 @@ def get_well_items(data):
 
     items = []
 
-    # =========================================================================
     # 1. БАЗОВЫЙ КОМПЛЕКТ ОБУСТРОЙСТВА
-    # =========================================================================
     if equip_type == "adapter":
-        # Смета: Набор Адаптер 1.pdf (базовая часть)
         t_name, t_price = tank_catalog.get(chosen_tank, tank_catalog["tank_100"])
         items.extend([
             {"name": 'Адаптер скважинный с сливным клапаном 1" TIM', "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["adapter_tim_1"]},
@@ -51,7 +47,6 @@ def get_well_items(data):
         ])
 
     elif equip_type == "kesson_vfd":
-        # Смета: Набор_кессона_мишка_1_с_частотный_приоброзователь.pdf
         k_name = "Кессон Мишка 1 (муфта 125/133) 1050x2000"
         k_price = PRICES["kesson_m1"]
         if "Мишка 2" in selected_kesson:
@@ -82,7 +77,6 @@ def get_well_items(data):
         ])
 
     else:
-        # Смета: набор_Кессон_мишка_1_обвяска_на_гидробаке_и_РДМ_.pdf
         k_name = "Кессон Мишка 1 (муфта 125/133) 1050x2000"
         k_price = PRICES["kesson_m1"]
         if "Мишка 2" in selected_kesson:
@@ -119,10 +113,7 @@ def get_well_items(data):
             {"name": 'Ниппель НН 1/2" (латунь)', "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["brass_nipple_1_2"]},
         ])
 
-    # =========================================================================
-    # 2. ОПУСК НАСОСА В СКВАЖИНУ (подтягивается от глубины depth)
-    # Смета: Комлект_для_обвязки_нассоса_в_скважине.pdf
-    # =========================================================================
+    # 2. ОПУСК НАСОСА В СКВАЖИНУ (от глубины depth)
     if equip_type != "adapter":
         items.extend([
             {"name": 'Обратный клапан с металлическим седлом 1" г/ш Millennium', "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["check_valve_1"]},
@@ -138,17 +129,13 @@ def get_well_items(data):
             {"name": "Зажим для троса, AISI 316 (А4), 4мм", "qty": 4, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["cable_clamp_4mm"]},
         ])
 
-    # Погонаж опуска от глубины depth
     pump_h = int(depth)
     items.extend([
         {"name": "Трос нержавеющая сталь 7х7 AISI 304, 3мм", "qty": pump_h, "unit": "м", "unit_key": "unit_m", "price": PRICES["rope_3mm_304"]},
         {"name": "Труба ПНД 32х3,0 SDR 11 (PN 16) бух. 250м (синяя)", "qty": pump_h, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_pnd_32"]},
     ])
 
-    # =========================================================================
-    # 3. ТРАССА ВОДЫ И КАБЕЛЯ В ДОМ (подтягивается от расстояния distance)
-    # Смета: Могестраль.pdf
-    # =========================================================================
+    # 3. ТРАССА В ДОМ (от расстояния distance)
     dist_m = int(distance)
     items.extend([
         {"name": "Муфта ПНД 32x32 Unidelta", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_32"]},
