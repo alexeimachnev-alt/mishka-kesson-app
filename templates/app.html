@@ -16,7 +16,7 @@
       --btn-text: #ffffff;
       --border: rgba(255, 255, 255, 0.12);
       --accent: #2e8b57;
-      --accent-hover: #247346;
+      --danger: #eb5757;
     }
     body {
       margin: 0; padding: 12px;
@@ -53,10 +53,90 @@
     input:focus, select:focus { border-color: var(--btn); }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     
-    .spec-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
-    .spec-table th, .spec-table td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border); }
-    .spec-table th { color: var(--hint); font-size: 11px; text-transform: uppercase; }
-    .spec-table td.num { text-align: right; }
+    /* Интерактивные строки спецификации */
+    .spec-item {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .spec-item:last-child { border-bottom: none; }
+    .spec-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .spec-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #ffffff;
+      line-height: 1.35;
+      flex: 1;
+    }
+    .spec-unit-price {
+      font-size: 0.78rem;
+      color: var(--hint);
+      margin-top: 2px;
+    }
+    .spec-controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .qty-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #2a3848;
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qty-btn:hover { background: var(--btn); }
+    .qty-input {
+      width: 58px !important;
+      text-align: center;
+      padding: 6px 2px !important;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0 !important;
+    }
+    .spec-subtotal {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #71b1ff;
+      text-align: right;
+    }
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      margin-left: 6px;
+    }
+
+    .add-item-card {
+      background: #1e2836;
+      border: 1px dashed #3a506b;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
 
     .total-box {
       margin-top: 14px; padding: 12px 14px; background: #163323; border: 1px solid #2e7a4b;
@@ -158,11 +238,33 @@
     </div>
 
     <div class="card">
-      <div class="card-title" id="tSpec">3. Спецификация оборудования со склада</div>
+      <div class="card-title" id="tSpec">3. Спецификация оборудования (можно изменить любое кол-во)</div>
       <div id="spec-list"></div>
+
+      <!-- Блок ручного добавления позиции со склада -->
+      <div class="add-item-card">
+        <label id="lblAddExtra" style="color:#71b1ff;">➕ Добавить дополнительную позицию со склада:</label>
+        <div style="display:flex; gap:6px;">
+          <select id="extraCatalogSelect" style="flex:1; margin-bottom:0;">
+            <option value="pipe_pnd_32">Труба ПНД 32х3.0 синяя (78 ₽/м)</option>
+            <option value="pipe_pnd_20">Труба ПНД 20х2.0 под кабель (42.54 ₽/м)</option>
+            <option value="cable_pvs_3x2_5">Кабель ПВС 3х2.5 белый гибкий (84.89 ₽/м)</option>
+            <option value="rope_3mm_304">Трос нерж. 3мм AISI 304 (19.20 ₽/м)</option>
+            <option value="cable_clamp_4mm">Зажим троса нерж. 4мм (40.80 ₽/шт)</option>
+            <option value="valve_watering_1_2">Кран поливочный 1/2' с носиком (436.13 ₽/шт)</option>
+            <option value="valve_brass_1">Кран шаровой 1' латунь (874.43 ₽/шт)</option>
+            <option value="valve_ppr_32">Кран шаровой ППР 32мм (180.93 ₽/шт)</option>
+            <option value="ppr_union_32_1">Муфта разъемная ППР 32-1' американка (648.03 ₽/шт)</option>
+            <option value="tank_8bw">Гидроаккумулятор 8BW подвесной (1 832 ₽/шт)</option>
+            <option value="bacteria">Бактерии для септика старт (1 200 ₽/шт)</option>
+          </select>
+          <button class="qty-btn" type="button" style="width:auto; padding:0 14px; background:var(--accent);" onclick="addCatalogItem()">+ Добавить</button>
+        </div>
+      </div>
+
       <div class="total-box">
         <span id="lblTotalText">ИТОГО К ОПЛАТЕ:</span>
-        <span id="kesson-total">0 ₽</span>
+        <span id="kesson-total">0.00 ₽</span>
       </div>
     </div>
   </div>
@@ -305,7 +407,8 @@
         tParams: "2. Параметры скважины и участка",
         lblDepth: "Глубина скважины (м):",
         lblDist: "Расстояние до дома (м):",
-        tSpec: "3. Спецификация оборудования со склада",
+        tSpec: "3. Спецификация оборудования (можно изменить любое кол-во)",
+        lblAddExtra: "➕ Добавить дополнительную позицию со склада:",
         lblTotalText: "ИТОГО К ОПЛАТЕ:",
         tLogistics: "🚚 Получение заказа",
         lblLogType: "Способ получения:",
@@ -346,7 +449,8 @@
         tParams: "2. Параметрҳои чоҳ ва замин",
         lblDepth: "Чуқурии чоҳ (м):",
         lblDist: "Масофа то хона (м):",
-        tSpec: "3. Рӯйхати таҷҳизот аз анбор",
+        tSpec: "3. Рӯйхати таҷҳизот (миқдорро иваз кардан мумкин аст)",
+        lblAddExtra: "➕ Илова кардани таҷҳизоти иловагӣ аз анбор:",
         lblTotalText: "ҲАМАГӢ БАРОИ ПАРДОХТ:",
         tLogistics: "🚚 Тарзи гирифтани мол",
         lblLogType: "Тарзи гирифтан:",
@@ -387,7 +491,8 @@
         tParams: "2. Quduq va hudud parametrlari",
         lblDepth: "Quduq chuqurligi (m):",
         lblDist: "Uygacha masofa (m):",
-        tSpec: "3. Uskunalar ro'yxati ombordan",
+        tSpec: "3. Uskunalar ro'yxati (miqdorini o'zgartirish mumkin)",
+        lblAddExtra: "➕ Ombordan qo'shimcha tovar qo'shish:",
         lblTotalText: "TO'LOV UCHUN JAMI:",
         tLogistics: "🚚 Buyurtmani olish",
         lblLogType: "Olish usuli:",
@@ -428,7 +533,8 @@
         tParams: "2. Պարամետրեր",
         lblDepth: "Հորատանցքի խորություն (մ):",
         lblDist: "Հեռավորություն մինչև տուն (մ):",
-        tSpec: "3. Ապրանքացուցակ պահեստից",
+        tSpec: "3. Ապրանքացուցակ (քանակը կարող եք փոխել)",
+        lblAddExtra: "➕ Ավելացնել ապրանք պահեստից:",
         lblTotalText: "ԸՆԴԱՄԵՆԸ ՎՃԱՐՄԱՆ:",
         tLogistics: "🚚 Ստացման եղանակ",
         lblLogType: "Ստացման ձև:",
@@ -469,7 +575,8 @@
         tParams: "2. Скважина параметрлери",
         lblDepth: "Скважина тереңдиги (м):",
         lblDist: "Үйгө чейинки аралык (м):",
-        tSpec: "3. Кампа жабдууларынын тизмеси",
+        tSpec: "3. Кампа жабдуулары (санын өзгөртсө болот)",
+        lblAddExtra: "➕ Кампадан кошумча товар кошуу:",
         lblTotalText: "ТӨЛӨМ ҮЧҮН ЖАЛПЫ:",
         tLogistics: "🚚 Заказды алуу",
         lblLogType: "Алуу ыкмасы:",
@@ -546,6 +653,7 @@
       setT('lblDepth', t.lblDepth);
       setT('lblDist', t.lblDist);
       setT('tSpec', t.tSpec);
+      setT('lblAddExtra', t.lblAddExtra);
       setT('lblTotalText', t.lblTotalText);
       setT('tLogistics', t.tLogistics);
       setT('lblLogType', t.lblLogType);
@@ -596,27 +704,105 @@
         });
         const data = await res.json();
         currentItems = data.items || [];
-        currentTotal = data.total || 0;
-        renderSpec(currentItems, currentTotal);
+        recalcAndRender();
       } catch (err) {
         console.error('Ошибка расчета:', err);
       }
     }
 
-    function renderSpec(items, total) {
-      let html = '<table class="spec-table"><thead><tr><th>Наименование</th><th>Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead><tbody>';
-      items.forEach(it => {
+    function modifyItemQty(idx, delta) {
+      if (!currentItems[idx]) return;
+      currentItems[idx].qty = Math.max(0, (parseFloat(currentItems[idx].qty) || 0) + delta);
+      if (currentItems[idx].qty === 0) {
+        // если 0, можно либо удалить либо оставить с 0
+        if (confirm(`Удалить «${currentItems[idx].name}» из сметы?`)) {
+          currentItems.splice(idx, 1);
+        }
+      }
+      recalcAndRender();
+    }
+
+    function setItemQtyManual(idx, val) {
+      if (!currentItems[idx]) return;
+      const parsed = parseFloat(val);
+      currentItems[idx].qty = (!isNaN(parsed) && parsed >= 0) ? parsed : 0;
+      recalcAndRender();
+    }
+
+    function removeItem(idx) {
+      if (!currentItems[idx]) return;
+      currentItems.splice(idx, 1);
+      recalcAndRender();
+    }
+
+    function addCatalogItem() {
+      const select = document.getElementById('extraCatalogSelect');
+      const val = select.value;
+      const text = select.options[select.selectedIndex].text;
+
+      const catalogPrices = {
+        "pipe_pnd_32": { name: "Труба ПНД 32х3,0 SDR 11 синяя", price: 78.00, unit: "м" },
+        "pipe_pnd_20": { name: "Труба ПНД 20x2,0 SDR 11 (под кабель)", price: 42.54, unit: "м" },
+        "cable_pvs_3x2_5": { name: "Кабель ПВС 3х2,5 белый гибкий", price: 84.89, unit: "м" },
+        "rope_3mm_304": { name: "Трос нержавеющая сталь 3мм AISI 304", price: 19.20, unit: "м" },
+        "cable_clamp_4mm": { name: "Зажим для троса AISI 316 4мм", price: 40.80, unit: "шт" },
+        "valve_watering_1_2": { name: "Кран шаровый VALFEX 1/2' с носиком под шланг", price: 436.13, unit: "шт" },
+        "valve_brass_1": { name: "Кран шаровой Вн/Нр (бабочка) 1'", price: 874.43, unit: "шт" },
+        "valve_ppr_32": { name: "Кран шаровой PP-R VALFEX OPTIMA 32мм", price: 180.93, unit: "шт" },
+        "ppr_union_32_1": { name: "Муфта разъемная PP-R 32-1' ВР (американка)", price: 648.03, unit: "шт" },
+        "tank_8bw": { name: "Гидроаккумулятор BELAMOS 8BW синий (подвесной)", price: 1832.00, unit: "шт" },
+        "bacteria": { name: "Бактерии для быстрого запуска", price: 1200.00, unit: "компл." }
+      };
+
+      const info = catalogPrices[val] || { name: text, price: 500, unit: "шт" };
+      
+      // Проверяем, есть ли уже такая позиция
+      const existing = currentItems.find(it => it.name === info.name);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        currentItems.push({
+          name: info.name,
+          price: info.price,
+          unit: info.unit,
+          qty: 1
+        });
+      }
+      recalcAndRender();
+    }
+
+    function recalcAndRender() {
+      currentTotal = 0;
+      let html = '<div style="display:flex; flex-direction:column; gap:2px;">';
+      currentItems.forEach((it, idx) => {
         const itemSum = it.qty * it.price;
-        html += `<tr>
-          <td>${it.name}</td>
-          <td>${it.qty} ${it.unit || 'шт'}</td>
-          <td class="num">${it.price.toFixed(2)}</td>
-          <td class="num">${itemSum.toFixed(2)}</td>
-        </tr>`;
+        currentTotal += itemSum;
+        const qtyFormatted = (typeof it.qty === 'number') ? it.qty : parseFloat(it.qty || 0);
+
+        html += `
+        <div class="spec-item">
+          <div class="spec-header">
+            <div class="spec-name">
+              ${idx+1}. ${it.name}
+              <div class="spec-unit-price">${it.price.toFixed(2)} ₽ / ${it.unit || 'шт'}</div>
+            </div>
+            <button class="del-btn" title="Убрать" onclick="removeItem(${idx})">✖</button>
+          </div>
+          <div class="spec-controls-row">
+            <div class="qty-ctrl">
+              <button class="qty-btn" type="button" onclick="modifyItemQty(${idx}, -1)">−</button>
+              <input class="qty-input" type="number" min="0" step="any" value="${qtyFormatted}" oninput="setItemQtyManual(${idx}, this.value)">
+              <button class="qty-btn" type="button" onclick="modifyItemQty(${idx}, 1)">+</button>
+              <span style="font-size:0.82rem; color:var(--hint); margin-left:4px;">${it.unit || 'шт'}</span>
+            </div>
+            <div class="spec-subtotal">${itemSum.toFixed(2)} ₽</div>
+          </div>
+        </div>`;
       });
-      html += '</tbody></table>';
+      html += '</div>';
+
       document.getElementById('spec-list').innerHTML = html;
-      document.getElementById('kesson-total').innerText = total.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+      document.getElementById('kesson-total').innerText = currentTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
     }
 
     async function sendOrder() {
@@ -648,6 +834,9 @@
         deliveryDetails = `Адрес: ${addr} | Время: ${dTime}`;
       }
 
+      // Отфильтровываем только позиции с qty > 0
+      const activeItems = currentItems.filter(it => it.qty > 0);
+
       const payload = {
         mode: activeTab,
         lang: lang,
@@ -665,7 +854,8 @@
         depth: parseFloat(document.getElementById('depth').value || 40),
         distance: parseFloat(document.getElementById('dist_1').value || 15),
         distances: [parseFloat(document.getElementById('dist_1').value || 15)],
-        items: currentItems
+        items: activeItems,
+        total: currentTotal
       };
 
       if (activeTab === 'septic') {
@@ -709,9 +899,9 @@
           if (deliveryDetails && deliveryDetails !== '-') {
             detHtml += `<p><b>Детали логистики:</b> ${deliveryDetails}</p>`;
           }
-          detHtml += '<div style="margin-top:10px; max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:6px;">';
-          (resp.items || currentItems).forEach((x, i) => {
-            detHtml += `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px;">${i+1}. ${x.name} — <b>${x.qty} ${x.unit}</b> (${(x.qty*x.price).toFixed(2)} ₽)</div>`;
+          detHtml += '<div style="margin-top:10px; max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:6px;">';
+          (resp.items || activeItems).forEach((x, i) => {
+            detHtml += `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px;">${i+1}. ${x.name} — <b>${x.qty} ${x.unit || 'шт'}</b> (${(x.qty*x.price).toFixed(2)} ₽)</div>`;
           });
           detHtml += '</div>';
           document.getElementById('receipt-details').innerHTML = detHtml;
