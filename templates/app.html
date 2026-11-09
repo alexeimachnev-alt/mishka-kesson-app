@@ -123,8 +123,8 @@
     <div class="card highlight-card">
       <label id="lblWellEquipType">Тип обустройства скважины</label>
       <select id="wellEquipType" onchange="toggleWellEquipFields()">
-        <option value="kesson_vfd" id="optEquipVfd">⚡ Обустройство кессона через частотный преобразователь</option>
-        <option value="kesson_ga" id="optEquipGa" selected>📦 Обустройство кессона стандартный ГА</option>
+        <option value="kesson_vfd" id="optEquipVfd" selected>⚡ Обустройство кессона через частотный преобразователь</option>
+        <option value="kesson_ga" id="optEquipGa">📦 Обустройство кессона стандартный ГА</option>
         <option value="adapter" id="optEquipAdapter">🔩 Обустройство через скважинный адаптер</option>
       </select>
     </div>
@@ -142,8 +142,8 @@
       </select>
     </div>
 
-    <!-- ВЫБОР ГИДРОБАКА (отображается для стандартного ГА и адаптера) -->
-    <div class="card" id="boxHydrotankSelect">
+    <!-- ВЫБОР ГИДРОБАКА (для стандартного ГА и скважинного адаптера) -->
+    <div class="card" id="boxHydrotankSelect" style="display: none;">
       <label id="lblHydrotank">Выбор гидроаккумулятора (ГА)</label>
       <select id="hydrotankSelect">
         <option value="auto" id="optHydroAuto">🤝 Автоподбор по числу домов</option>
