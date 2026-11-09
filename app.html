@@ -168,8 +168,16 @@
 </head>
 <body>
 
-  <h2 id="uiTitle">📦 Склад оборудования «МИШКА»</h2>
+    <h2 id="uiTitle">📦 Склад и Монтаж «МИШКА»</h2>
 
+  <!-- ПЕРЕКЛЮЧАТЕЛЬ: МАТЕРИАЛЫ / РАБОТЫ -->
+  <div class="mode-switch-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+    <button class="tab-btn active" id="btnModeMaterials" style="padding:12px 6px; font-size:0.85rem;" onclick="switchOrderMode('materials')">📦 Только материалы</button>
+    <button class="tab-btn" id="btnModeWorks" style="padding:12px 6px; font-size:0.85rem; background:#243245;" onclick="switchOrderMode('works')">🔨 Только монтаж и работы</button>
+  </div>
+
+
+  <div id="containerMaterials">
   <div class="tab-grid">
     <div class="tab-btn active" id="btnTabWell" onclick="selectTab('well')">💧 Скважина / Кессон</div>
     <div class="tab-btn" id="btnTabSeptic" onclick="selectTab('septic')">☣️ Септик / Слив</div>
@@ -328,6 +336,32 @@
     </div>
   </div>
 
+  </div><!-- /containerMaterials -->
+
+  <!-- ==================== БЛОК: ТОЛЬКО РАБОТЫ ==================== -->
+  <div id="containerWorks" style="display: none;">
+    <div class="card">
+      <div class="card-title" style="color:#f59e0b;">🔨 Корзина монтажных и земляных работ (Лето 2026)</div>
+      
+      <!-- Фильтр по видам работ -->
+      <div style="display:flex; overflow-x:auto; gap:6px; padding-bottom:8px; margin-bottom:8px;">
+        <button class="tab-btn active" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('all', this)">Все работы</button>
+        <button class="tab-btn" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('kesson', this)">Кессоны / Скважины</button>
+        <button class="tab-btn" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('septic', this)">Септики</button>
+        <button class="tab-btn" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('earth', this)">Земляные работы</button>
+        <button class="tab-btn" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('drainage', this)">Дренаж / Ливнёвка</button>
+        <button class="tab-btn" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('plumbing', this)">Сантехника в доме</button>
+      </div>
+
+      <div id="worksListContainer"></div>
+
+      <div class="total-box" style="background:#262013; border-color:#854d0e;">
+        <span style="color:#fde047;">ИТОГО РАБОТЫ:</span>
+        <span id="worksTotalSum" style="color:#fde047;">0.00 ₽</span>
+      </div>
+    </div>
+  </div>
+
   <!-- ЛОГИСТИКА: САМОВЫВОЗ ИЛИ ДОСТАВКА + ЯНДЕКС КАРТЫ -->
   <div class="card highlight-card">
     <div class="card-title" id="tLogistics">🚚 Получение заказа</div>
@@ -387,6 +421,10 @@
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.expand(); tg.ready(); }
 
+        const ALL_WORKS = [{'code': 'work_kesson_std', 'cat': 'kesson', 'name': 'Монтаж кессона (обвязка, ПНР, выход под кабель и магистраль)', 'price': 23000.0, 'unit': 'усл.'}, {'code': 'work_kesson_weld', 'cat': 'kesson', 'name': 'Монтаж кессона со сваркой (обвязка, ПНР, кабель, магистраль)', 'price': 26000.0, 'unit': 'усл.'}, {'code': 'work_kesson_extra_outlet', 'cat': 'kesson', 'name': 'Дополнительный выход из кессона', 'price': 1500.0, 'unit': 'шт.'}, {'code': 'work_kesson_demount_mount', 'cat': 'kesson', 'name': 'Демонтаж и повторный монтаж кессона', 'price': 55000.0, 'unit': 'компл.'}, {'code': 'work_adapter_turnkey', 'cat': 'kesson', 'name': 'Монтаж скважинного адаптера «под ключ»', 'price': 17000.0, 'unit': 'усл.'}, {'code': 'work_well_turnkey', 'cat': 'kesson', 'name': 'Монтаж колодца «под ключ»', 'price': 17000.0, 'unit': 'усл.'}, {'code': 'work_summer_tap', 'cat': 'kesson', 'name': 'Монтаж узла летнего полива', 'price': 12000.0, 'unit': 'усл.'}, {'code': 'work_pump_change_50', 'cat': 'kesson', 'name': 'Замена скважинного насоса до 50 м (труба 32 мм)', 'price': 35000.0, 'unit': 'усл.'}, {'code': 'work_pump_change_100', 'cat': 'kesson', 'name': 'Замена скважинного насоса от 50 до 100 м (труба 32 мм)', 'price': 45000.0, 'unit': 'усл.'}, {'code': 'work_pump_demount', 'cat': 'kesson', 'name': 'Демонтаж скважинного насоса (отдельно)', 'price': 12000.0, 'unit': 'усл.'}, {'code': 'work_self_overflow_3', 'cat': 'kesson', 'name': 'Монтаж самоизливной скважины с кессоном (до 3 м³/ч)', 'price': 45000.0, 'unit': 'усл.'}, {'code': 'work_self_overflow_10', 'cat': 'kesson', 'name': 'Монтаж самоизливной скважины с кессоном (от 3 до 10 м³/ч)', 'price': 75000.0, 'unit': 'усл.'}, {'code': 'work_self_overflow_30', 'cat': 'kesson', 'name': 'Монтаж самоизливной скважины с кессоном (от 10 до 30 м³/ч)', 'price': 100000.0, 'unit': 'усл.'}, {'code': 'work_septic_mount', 'cat': 'septic', 'name': 'Монтаж септика от 3 до 6 (стандарт)', 'price': 15000.0, 'unit': 'усл.'}, {'code': 'work_pipe_110_lay', 'cat': 'septic', 'name': 'Укладка трубы 110 в траншею', 'price': 200.0, 'unit': 'м.п.'}, {'code': 'work_dig_septic', 'cat': 'septic', 'name': 'Копка котлована под септик (стандарт 1.2х2 м)', 'price': 10000.0, 'unit': 'усл.'}, {'code': 'work_dig_trench_50', 'cat': 'earth', 'name': 'Земляные работы (траншея глубиной до 50 см)', 'price': 650.0, 'unit': 'м.п.'}, {'code': 'work_dig_trench_100', 'cat': 'earth', 'name': 'Земляные работы (траншея глубиной до 100 см)', 'price': 800.0, 'unit': 'м.п.'}, {'code': 'work_dig_trench_150', 'cat': 'earth', 'name': 'Земляные работы (траншея глубиной до 150 см)', 'price': 1100.0, 'unit': 'м.п.'}, {'code': 'work_dig_trench_200', 'cat': 'earth', 'name': 'Земляные работы (траншея глубиной до 200 см)', 'price': 1600.0, 'unit': 'м.п.'}, {'code': 'work_dig_kesson_type2', 'cat': 'earth', 'name': 'Копка котлована под кессон Тип 2 (1.2 м)', 'price': 9000.0, 'unit': 'усл.'}, {'code': 'work_dig_kesson_type3', 'cat': 'earth', 'name': 'Копка котлована под кессон Тип 3 (1.2–2.0 м)', 'price': 12000.0, 'unit': 'усл.'}, {'code': 'work_dig_kesson_type4', 'cat': 'earth', 'name': 'Копка котлована под кессон Тип 4 (1.5–2.0 м)', 'price': 15000.0, 'unit': 'усл.'}, {'code': 'work_undermine_2m', 'cat': 'earth', 'name': 'Подкоп под фундаментом / препятствием (до 2 м)', 'price': 3000.0, 'unit': 'усл.'}, {'code': 'work_undermine_5m', 'cat': 'earth', 'name': 'Подкоп под фундаментом / препятствием (от 2 до 5 м)', 'price': 5000.0, 'unit': 'усл.'}, {'code': 'work_trench_under_stilts', 'cat': 'earth', 'name': 'Копка траншеи под домом на сваях (глубина до 1 м)', 'price': 2000.0, 'unit': 'м.п.'}, {'code': 'work_min_digger_shift', 'cat': 'earth', 'name': 'Минимальный выезд землекопа', 'price': 5000.0, 'unit': 'выход'}, {'code': 'work_formwork_mount', 'cat': 'earth', 'name': 'Монтаж опалубки в траншее / котловане', 'price': 10000.0, 'unit': 'усл.'}, {'code': 'work_jackhammer_rent', 'cat': 'earth', 'name': 'Аренда отбойного молотка (за 1 день)', 'price': 2000.0, 'unit': 'день'}, {'code': 'work_soil_move_20m', 'cat': 'earth', 'name': 'Перенос грунта по участку (до 20 м)', 'price': 2500.0, 'unit': 'м³'}, {'code': 'work_sand_move_20m', 'cat': 'earth', 'name': 'Перевозка песка по участку (до 20 м)', 'price': 1500.0, 'unit': 'м³'}, {'code': 'work_sand_move_50m', 'cat': 'earth', 'name': 'Перевозка песка по участку (от 20 до 50 м)', 'price': 2500.0, 'unit': 'м³'}, {'code': 'work_equip_carry_40m', 'cat': 'earth', 'name': 'Перенос оборудования по участку (от 20 до 40 м)', 'price': 2500.0, 'unit': 'усл.'}, {'code': 'work_storm_lay_50', 'cat': 'drainage', 'name': 'Монтаж ливнёвки (глубина до 50 см)', 'price': 750.0, 'unit': 'м.п.'}, {'code': 'work_drain_softrock_1m', 'cat': 'drainage', 'name': 'Монтаж дренажа «Софтрок» (глубина до 1 м)', 'price': 900.0, 'unit': 'м.п.'}, {'code': 'work_drain_storm_combo_1m', 'cat': 'drainage', 'name': 'Монтаж дренажа и ливнёвки в одной траншее (глубина до 1 м)', 'price': 1200.0, 'unit': 'м.п.'}, {'code': 'work_drain_classic_1m', 'cat': 'drainage', 'name': 'Монтаж классического дренажа в щебне (глубина до 1 м)', 'price': 850.0, 'unit': 'м.п.'}, {'code': 'work_drain_sand_rubble_move', 'cat': 'drainage', 'name': 'Перенос песка и щебня под дренаж (до 30 м)', 'price': 1000.0, 'unit': 'м³'}, {'code': 'work_boiler_mount', 'cat': 'plumbing', 'name': 'Монтаж водонагревателя (бойлера)', 'price': 3000.0, 'unit': 'шт.'}, {'code': 'work_boiler_bypass', 'cat': 'plumbing', 'name': 'Сборка байпаса водонагревателя', 'price': 1500.0, 'unit': 'шт.'}, {'code': 'work_water_point', 'cat': 'plumbing', 'name': 'Монтаж точки водоснабжения (ХВС / ГВС)', 'price': 750.0, 'unit': 'точка'}, {'code': 'work_pipe_water_lay', 'cat': 'plumbing', 'name': 'Укладка трубы водопровода внутри дома', 'price': 200.0, 'unit': 'м.п.'}, {'code': 'work_sewer_point_110', 'cat': 'plumbing', 'name': 'Монтаж точки канализации D=110 мм', 'price': 1500.0, 'unit': 'точка'}, {'code': 'work_sewer_point_50', 'cat': 'plumbing', 'name': 'Монтаж точки канализации D=50 мм', 'price': 1000.0, 'unit': 'точка'}, {'code': 'work_toilet_mount', 'cat': 'plumbing', 'name': 'Установка и подключение унитаза', 'price': 1500.0, 'unit': 'шт.'}, {'code': 'work_sink_mount', 'cat': 'plumbing', 'name': 'Установка и подключение раковины / мойки', 'price': 1500.0, 'unit': 'шт.'}, {'code': 'work_shower_cabin', 'cat': 'plumbing', 'name': 'Сборка душевой кабины (стандарт)', 'price': 7000.0, 'unit': 'шт.'}, {'code': 'work_wall_hole_50', 'cat': 'plumbing', 'name': 'Отверстие в стене диаметром до 50 мм', 'price': 2500.0, 'unit': 'шт.'}, {'code': 'work_wall_hole_110', 'cat': 'plumbing', 'name': 'Отверстие в стене диаметром 50–110 мм', 'price': 4000.0, 'unit': 'шт.'}, {'code': 'work_diamond_drilling', 'cat': 'plumbing', 'name': 'Алмазное бурение технологических отверстий', 'price': 15000.0, 'unit': 'усл.'}, {'code': 'work_diagnostic_visit', 'cat': 'plumbing', 'name': 'Выезд специалиста, осмотр и диагностика', 'price': 10000.0, 'unit': 'выезд'}];
+    let currentOrderMode = 'materials';
+    let selectedWorks = {};
+    let currentWorkFilter = 'all';
     let activeTab = 'well';
     let currentItems = [];
     let currentTotal = 0;
@@ -841,6 +879,162 @@
 
       const name = document.getElementById('contactName').value.trim() || 'Монтажник';
       const company = document.getElementById('contactCompany') ? document.getElementById('contactCompany').value.trim() : '';
+
+      let deliveryDetails = '';
+      let deliveryType = '';
+      let itemsToOrder = [];
+      let totalAmount = 0;
+
+      if (currentOrderMode === 'works') {
+        deliveryType = 'Выезд монтажной бригады на объект';
+        const addr = document.getElementById('deliveryAddress').value.trim();
+        if (!addr) {
+          alert('Пожалуйста, укажите точный адрес объекта для выезда бригады!');
+          document.getElementById('deliveryAddress').focus();
+          return;
+        }
+        const dTime = document.getElementById('deliveryTime').value.trim() || 'В согласованное время';
+        deliveryDetails = `Объект: ${addr} | Время: ${dTime}`;
+
+        ALL_WORKS.forEach(w => {
+          const q = selectedWorks[w.code] || 0;
+          if (q > 0) {
+            itemsToOrder.push({
+              item_key: w.code,
+              name: w.name,
+              qty: q,
+              unit: w.unit,
+              price: w.price
+            });
+            totalAmount += q * w.price;
+          }
+        });
+
+        if (itemsToOrder.length === 0) {
+          alert('Пожалуйста, выберите хотя бы одну услугу из списка работ!');
+          return;
+        }
+
+      } else {
+        const logisticsType = document.getElementById('logisticsType').value;
+        if (logisticsType === 'pickup') {
+          deliveryType = 'Самовывоз со склада';
+          deliveryDetails = document.getElementById('pickupDateTime').value.trim() || 'Самовывоз со склада';
+        } else {
+          deliveryType = 'Доставка на объект';
+          const addr = document.getElementById('deliveryAddress').value.trim();
+          if (!addr) {
+            alert(t.errDelivery);
+            document.getElementById('deliveryAddress').focus();
+            return;
+          }
+          const dTime = document.getElementById('deliveryTime').value.trim() || 'В течение дня';
+          deliveryDetails = `Адрес: ${addr} | Время: ${dTime}`;
+        }
+        itemsToOrder = currentItems.filter(it => it.qty > 0);
+        totalAmount = currentTotal;
+      }
+
+      const payload = {
+        mode: currentOrderMode === 'works' ? 'works' : activeTab,
+        lang: lang,
+        client_name: name,
+        worker_name: name,
+        company: company,
+        phone: phone,
+        delivery_type: deliveryType,
+        delivery_info: deliveryDetails,
+        user_id: tg?.initDataUnsafe?.user?.id || 0,
+        worker_tag: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : '',
+        equip_type: document.getElementById('equip_type').value,
+        chosen_kesson: document.getElementById('chosen_kesson').value,
+        chosen_tank: document.getElementById('chosen_tank').value,
+        depth: parseFloat(document.getElementById('depth').value || 40),
+        distance: parseFloat(document.getElementById('dist_1').value || 15),
+        distances: [parseFloat(document.getElementById('dist_1').value || 15)],
+        items: itemsToOrder,
+        total: totalAmount
+      };
+
+      const btn = document.getElementById('btnSubmit');
+      btn.innerText = t.sending;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/miniapp_order', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const resp = await res.json();
+        if (resp.status === 'ok') {
+          document.getElementById('containerMaterials').style.display = 'none';
+          document.getElementById('containerWorks').style.display = 'none';
+          
+          const receipt = document.getElementById('receipt-modal');
+          receipt.style.display = 'block';
+          document.getElementById('receipt-id').innerText = 'Заказ #' + resp.order_id;
+          document.getElementById('receipt-total').innerText = (resp.total || totalAmount).toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+
+          let detHtml = `<p><b>Заказчик:</b> ${name} (${phone})</p>`;
+          if (company) detHtml += `<p><b>Компания:</b> ${company}</p>`;
+          detHtml += `<p><b>Тип заказа:</b> ${deliveryType}</p>`;
+          if (deliveryDetails && deliveryDetails !== '-') {
+            detHtml += `<p><b>Детали логистики:</b> ${deliveryDetails}</p>`;
+          }
+          detHtml += '<div style="margin-top:10px; max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:6px;">';
+          const curLang = document.getElementById('langSelect').value || 'ru';
+          const unitMap = {
+            'м': { ru: 'м', tj: 'м', uz: 'm', hy: 'մ', ky: 'м' },
+            'м.п.': { ru: 'м.п.', tj: 'м.п.', uz: 'm.p.', hy: 'գծ․մ', ky: 'м.п.' },
+            'шт': { ru: 'шт', tj: 'дона', uz: 'dona', hy: 'հատ', ky: 'даана' },
+            'шт.': { ru: 'шт.', tj: 'дона', uz: 'dona', hy: 'հատ', ky: 'даана' },
+            'усл.': { ru: 'усл.', tj: 'хизм.', uz: 'xizm.', hy: 'ծառ.', ky: 'кызм.' },
+            'точка': { ru: 'точка', tj: 'нуқта', uz: 'nuqta', hy: 'կետ', ky: 'чекит' },
+            'компл.': { ru: 'компл.', tj: 'маҷм.', uz: "to'plam", hy: 'հավաք.', ky: 'компл.' }
+          };
+          (resp.items || itemsToOrder).forEach((x, i) => {
+            let rName = x.name;
+            if (x.item_key && ITEM_NAMES[x.item_key] && ITEM_NAMES[x.item_key][curLang]) {
+              rName = ITEM_NAMES[x.item_key][curLang];
+            } else {
+              for (let k in ITEM_NAMES) {
+                if (ITEM_NAMES[k]['ru'] === x.name && ITEM_NAMES[k][curLang]) {
+                  rName = ITEM_NAMES[k][curLang];
+                  break;
+                }
+              }
+            }
+            const rUnit = (unitMap[x.unit] && unitMap[x.unit][curLang]) ? unitMap[x.unit][curLang] : (x.unit || 'усл.');
+            detHtml += `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px;">${i+1}. ${rName} — <b>${x.qty} ${rUnit}</b> (${(x.qty*x.price).toFixed(2)} ₽)</div>`;
+          });
+          detHtml += '</div>';
+          document.getElementById('receipt-details').innerHTML = detHtml;
+        } else {
+          alert('Ошибка оформления заказа: ' + (resp.error || 'попробуйте позже'));
+        }
+      } catch (err) {
+        alert('Сбой сети при отправке: ' + err);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = t.btnSubmit;
+      }
+      return;
+    }
+    async function _legacySendOrder() {
+
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = DICT[lang] || DICT.ru;
+
+      const phone = document.getElementById('contactPhone').value.trim();
+      if (!phone || phone.length < 6) {
+        alert(t.errPhone);
+        document.getElementById('contactPhone').focus();
+        return;
+      }
+
+      const name = document.getElementById('contactName').value.trim() || 'Монтажник';
+      const company = document.getElementById('contactCompany') ? document.getElementById('contactCompany').value.trim() : '';
       const logisticsType = document.getElementById('logisticsType').value;
       let deliveryDetails = '';
 
@@ -960,6 +1154,103 @@
     function resetOrder() {
       document.getElementById('receipt-modal').style.display = 'none';
       selectTab('well');
+    }
+
+    
+    function switchOrderMode(mode) {
+      currentOrderMode = mode;
+      document.getElementById('btnModeMaterials').classList.toggle('active', mode === 'materials');
+      document.getElementById('btnModeWorks').classList.toggle('active', mode === 'works');
+
+      if (mode === 'materials') {
+        document.getElementById('containerMaterials').style.display = 'block';
+        document.getElementById('containerWorks').style.display = 'none';
+        document.getElementById('pickupBox').style.display = document.getElementById('logisticsType').value === 'pickup' ? 'block' : 'none';
+        document.getElementById('deliveryBox').style.display = document.getElementById('logisticsType').value === 'delivery' ? 'block' : 'none';
+        calcWell();
+      } else {
+        document.getElementById('containerMaterials').style.display = 'none';
+        document.getElementById('containerWorks').style.display = 'block';
+        // В режиме работ всегда требуется адрес объекта
+        document.getElementById('pickupBox').style.display = 'none';
+        document.getElementById('deliveryBox').style.display = 'block';
+        renderWorksList();
+      }
+    }
+
+    function filterWorks(cat, btn) {
+      currentWorkFilter = cat;
+      btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderWorksList();
+    }
+
+    function renderWorksList() {
+      const curLang = document.getElementById('langSelect').value || 'ru';
+      const container = document.getElementById('worksListContainer');
+      let html = '<div style="display:flex; flex-direction:column; gap:4px;">';
+
+      const filtered = ALL_WORKS.filter(w => currentWorkFilter === 'all' || w.cat === currentWorkFilter);
+
+      filtered.forEach(w => {
+        const qty = selectedWorks[w.code] || 0;
+        let displayName = w.name;
+        if (ITEM_NAMES[w.code] && ITEM_NAMES[w.code][curLang]) {
+          displayName = ITEM_NAMES[w.code][curLang];
+        }
+
+        const isChecked = (qty > 0) ? 'checked' : '';
+
+        html += `
+        <div style="padding:10px 4px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <input type="checkbox" style="width:20px; height:20px; margin-bottom:0;" ${isChecked} onchange="toggleWorkCheck('${w.code}', this.checked)">
+          <div style="flex:1;">
+            <div style="font-size:0.86rem; font-weight:600; color:#fff; line-height:1.3;">${displayName}</div>
+            <div style="font-size:0.78rem; color:#94a3b8; margin-top:2px;">${w.price.toLocaleString('ru-RU')} ₽ / ${w.unit}</div>
+          </div>
+          <div class="qty-ctrl">
+            <button class="qty-btn" type="button" onclick="modifyWorkQty('${w.code}', -1)">−</button>
+            <input class="qty-input" type="number" min="0" value="${qty}" oninput="setWorkQtyManual('${w.code}', this.value)">
+            <button class="qty-btn" type="button" onclick="modifyWorkQty('${w.code}', 1)">+</button>
+          </div>
+        </div>`;
+      });
+
+      html += '</div>';
+      container.innerHTML = html;
+      recalcWorksTotal();
+    }
+
+    function toggleWorkCheck(code, checked) {
+      if (checked) {
+        if (!selectedWorks[code] || selectedWorks[code] <= 0) {
+          selectedWorks[code] = 1;
+        }
+      } else {
+        selectedWorks[code] = 0;
+      }
+      renderWorksList();
+    }
+
+    function modifyWorkQty(code, delta) {
+      const cur = selectedWorks[code] || 0;
+      selectedWorks[code] = Math.max(0, cur + delta);
+      renderWorksList();
+    }
+
+    function setWorkQtyManual(code, val) {
+      const parsed = parseFloat(val);
+      selectedWorks[code] = (!isNaN(parsed) && parsed >= 0) ? parsed : 0;
+      recalcWorksTotal();
+    }
+
+    function recalcWorksTotal() {
+      let sum = 0;
+      ALL_WORKS.forEach(w => {
+        const q = selectedWorks[w.code] || 0;
+        sum += q * w.price;
+      });
+      document.getElementById('worksTotalSum').innerText = sum.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
     }
 
     calcWell();
