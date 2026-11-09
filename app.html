@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Склад МИШКА</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #17212b;
+      --card: #232e3c;
+      --text: #f5f5f5;
+      --hint: #7f8c99;
+      --btn: #2ea6ff;
+      --btn-text: #ffffff;
+      --border: rgba(255, 255, 255, 0.12);
+    }
+    body {
+      margin: 0; padding: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+    h2 { font-size: 1.15rem; text-align: center; margin: 4px 0 10px; }
+    
+    .tab-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;
+    }
+    .tab-btn {
+      padding: 10px 4px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-weight: 700; font-size: 0.8rem;
+      cursor: pointer; text-align: center; user-select: none;
+    }
+    .tab-btn.active {
+      background: var(--btn) !important; color: var(--btn-text) !important; border-color: var(--btn) !important;
+    }
+
+    .card {
+      background: var(--card); border-radius: 12px; padding: 12px 14px;
+      margin-bottom: 10px; border: 1px solid var(--border);
+    }
+    label { display: block; font-weight: 600; font-size: 0.82rem; margin-bottom: 5px; color: var(--text); }
+    input, select {
+      width: 100%; box-sizing: border-box; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 9px; font-size: 0.95rem;
+      background: var(--bg); color: var(--text); outline: none;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    
+    .extra-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .extra-item:last-child { border-bottom: none; }
+    .qty-ctrl { display: flex; align-items: center; gap: 6px; }
+    .qty-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: none;
+      background: var(--btn); color: var(--btn-text); font-size: 1.2rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-weight: bold;
+    }
+    .qty-input {
+      width: 55px !important; text-align: center; padding: 6px 2px !important;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .unit-tag { font-size: 0.8rem; color: var(--hint); min-width: 24px; text-align: left; }
+    
+    .btn-submit {
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      background: var(--btn); color: var(--btn-text); font-size: 1.05rem;
+      font-weight: 700; margin: 12px 0 24px; cursor: pointer;
+    }
+    .highlight-card {
+      border: 1.5px solid var(--btn) !important;
+    }
+  </style>
+</head>
+<body>
+
+  <h2 id="uiTitle">📦 Склад оборудования «МИШКА»</h2>
+
+  <!-- 4 вкладки -->
+  <div class="tab-grid">
+    <div class="tab-btn active" id="btnTabWell" onclick="selectTab('well')">💧 Скважина / Кессон</div>
+    <div class="tab-btn" id="btnTabSeptic" onclick="selectTab('septic')">☣️ Септик / Слив</div>
+    <div class="tab-btn" id="btnTabDrain" onclick="selectTab('drainage')">🌾 Дренаж участка</div>
+    <div class="tab-btn" id="btnTabStorm" onclick="selectTab('storm')">🌧 Ливнёвка в земле</div>
+  </div>
+
+  <div class="card">
+    <label id="lblLang">🌐 Язык интерфейса</label>
+    <select id="langSelect" onchange="onLanguageChanged()">
+      <option value="ru" selected>🇷🇺 Русский</option>
+      <option value="tj">🇹🇯 Тоҷикӣ</option>
+      <option value="uz">🇺🇿 Oʻzbekcha</option>
+      <option value="hy">🇦🇲 Հայերեն</option>
+      <option value="ky">🇰🇬 Кыргызча</option>
+    </select>
+  </div>
+
+  <!-- РАЗДЕЛ 1: СКВАЖИНА -->
+  <div id="secWell">
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblDepth">Глубина скважины (м)</label>
+          <input type="number" id="depth" value="40">
+        </div>
+        <div>
+          <label id="lblYield">Дебит (м³/ч)</label>
+          <input type="number" step="0.1" id="yield" value="2.5">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label id="lblHouses">Количество домов</label>
+      <input type="number" id="houses" min="1" max="10" value="1" oninput="renderDistances()">
+      <div id="distanceContainer" style="margin-top: 8px;"></div>
+    </div>
+
+    <!-- ТИП ОБУСТРОЙСТВА СКВАЖИНЫ -->
+    <div class="card highlight-card">
+      <label id="lblWellEquipType">Тип обустройства скважины</label>
+      <select id="wellEquipType" onchange="toggleWellEquipFields()">
+        <option value="kesson_vfd" id="optEquipVfd" selected>⚡ Обустройство кессона через частотный преобразователь</option>
+        <option value="kesson_ga" id="optEquipGa">📦 Обустройство кессона стандартный ГА</option>
+        <option value="adapter" id="optEquipAdapter">🔩 Обустройство через скважинный адаптер</option>
+      </select>
+    </div>
+
+    <!-- ВЫБОР КЕССОНА (скрыт при адаптере) -->
+    <div class="card" id="boxKessonSelect">
+      <label id="lblKesson">Выбор кессона</label>
+      <select id="kessonSelect">
+        <option value="auto" id="optKessonAuto">🤝 На выбор продавца (автоподбор)</option>
+        <option value="Мишка 1 (Ø1050)">Мишка 1 (Ø1050 мм)</option>
+        <option value="Мишка 2 (Ø1300)">Мишка 2 (Ø1300 мм)</option>
+        <option value="Мишка 3 (Ø1600)">Мишка 3 (Ø1600 мм)</option>
+        <option value="Мишка 4 (Ø2100)">Мишка 4 (Ø2100 мм)</option>
+        <option value="Мишка LONG (H=2500)">Мишка LONG (H=2500 мм)</option>
+      </select>
+    </div>
+
+    <!-- ВЫБОР ГИДРОБАКА (для стандартного ГА и скважинного адаптера) -->
+    <div class="card" id="boxHydrotankSelect" style="display: none;">
+      <label id="lblHydrotank">Выбор гидроаккумулятора (ГА)</label>
+      <select id="hydrotankSelect">
+        <option value="auto" id="optHydroAuto">🤝 Автоподбор по числу домов</option>
+        <option value="tank_50">Гидроаккумулятор 50 л</option>
+        <option value="tank_80" selected>Гидроаккумулятор 80 л</option>
+        <option value="tank_100">Гидроаккумулятор 100 л</option>
+        <option value="tank_150">Гидроаккумулятор 150 л</option>
+        <option value="tank_200">Гидроаккумулятор 200 л</option>
+        <option value="tank_300">Гидроаккумулятор 300 л</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <label id="lblExtrasWell">Расходники к скважине</label>
+      <div id="boxExtrasWell"></div>
+    </div>
+  </div>
+
+  <!-- РАЗДЕЛ 2: СЕПТИК -->
+  <div id="secSeptic" style="display: none;">
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblUsers">Число проживающих</label>
+          <select id="septicUsers">
+            <option value="3" id="optUsers3">До 3 чел. (0.6 м³/сут)</option>
+            <option value="5" id="optUsers5" selected>До 5 чел. (1.0 м³/сут)</option>
+            <option value="8" id="optUsers8">До 8 чел. (1.6 м³/сут)</option>
+            <option value="10" id="optUsers10">До 10 чел. (2.0 м³/сут)</option>
+          </select>
+        </div>
+        <div>
+          <label id="lblDischarge">Сброс очищенной воды</label>
+          <select id="septicDischarge">
+            <option value="gravity" id="optDisGrav">Самотечный (дренаж)</option>
+            <option value="forced" id="optDisForce">Принудительный (насос)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label id="lblPipe110">Длина трассы канализации (м)</label>
+      <input type="number" id="septicDistance" value="10">
+    </div>
+
+    <div class="card">
+      <label id="lblSepticModel">Модель септика</label>
+      <select id="septicModelSelect">
+        <option value="auto" id="optSepticAuto">🤝 На выбор продавца (автоподбор)</option>
+        <option value="Септик МИШКА-Био 3">МИШКА-Био 3 (до 3 чел.)</option>
+        <option value="Септик МИШКА-Био 5">МИШКА-Био 5 (до 5 чел.)</option>
+        <option value="Септик МИШКА-Био 8">МИШКА-Био 8 (до 8 чел.)</option>
+        <option value="Накопитель МИШКА 2.0 м³">Накопитель МИШКА 2.0 м³</option>
+        <option value="Накопитель МИШКА 3.0 м³">Накопитель МИШКА 3.0 м³</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <label id="lblExtrasSeptic">Расходники для канализации</label>
+      <div id="boxExtrasSeptic"></div>
+    </div>
+  </div>
+
+  <!-- РАЗДЕЛ 3: ДРЕНАЖ -->
+  <div id="secDrain" style="display: none;">
+    <div class="card">
+      <label id="lblDrainType">Тип дренажной системы</label>
+      <select id="drainTypeSelect">
+        <option value="softrock" id="optDrainSoft" selected>📦 «Софтрок» / Лайтдрок (без щебня)</option>
+        <option value="classic" id="optDrainClass">🧱 Классический (труба в щебне + геотекстиль)</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblDrainLen">Длина трассы (м)</label>
+          <input type="number" id="drainLength" value="50">
+        </div>
+        <div>
+          <label id="lblDrainWells">Колодцев (шт.)</label>
+          <input type="number" id="drainWells" value="3">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label id="lblExtrasDrain">Расходники для дренажа</label>
+      <div id="boxExtrasDrain"></div>
+    </div>
+  </div>
+
+  <!-- РАЗДЕЛ 4: ЛИВНЁВКА -->
+  <div id="secStorm" style="display: none;">
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblInlets">Дождеприёмников (шт.)</label>
+          <input type="number" id="stormInlets" value="4">
+        </div>
+        <div>
+          <label id="lblStormLen">Длина трубы 110 (м)</label>
+          <input type="number" id="stormLength" value="30">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label id="lblStormWells">Колодцев (шт.)</label>
+          <input type="number" id="stormWells" value="2">
+        </div>
+        <div>
+          <label id="lblStormDischarge">Сброс воды</label>
+          <select id="stormDischarge">
+            <option value="ditch" id="optStormDitch">Канава / овраг</option>
+            <option value="well" id="optStormWell">Поглотительный колодец</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label id="lblExtrasStorm">Расходники для ливнёвки</label>
+      <div id="boxExtrasStorm"></div>
+    </div>
+  </div>
+
+  <!-- ЛОГИСТИКА -->
+  <div class="card highlight-card">
+    <label id="lblLogistics">🚚 Способ получения заказа</label>
+    <select id="logisticsType" onchange="toggleLogisticsFields()">
+      <option value="pickup" id="optLogPickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
+      <option value="delivery" id="optLogDelivery">🚛 Доставка на объект заказчика</option>
+    </select>
+
+    <div id="pickupBox" style="margin-top: 8px;">
+      <label id="lblPickupTime">Дата и время приезда на склад</label>
+      <input type="text" id="pickupDateTime" placeholder="Сегодня к 15:30 или завтра утром">
+    </div>
+
+    <div id="deliveryBox" style="display: none; margin-top: 8px;">
+      <label id="lblDeliveryAddress">Точный адрес доставки или координаты</label>
+      <input type="text" id="deliveryAddress" placeholder="МО, Дмитровский р-н, д. Подосинки...">
+      <label id="lblDeliveryTime" style="margin-top: 6px;">Желаемое время доставки</label>
+      <input type="text" id="deliveryTime" placeholder="Завтра с 10:00 до 14:00">
+    </div>
+  </div>
+
+  <!-- ТЕЛЕФОН -->
+  <div class="card highlight-card">
+    <label id="lblPhone">📞 Номер телефона для связи</label>
+    <input type="tel" id="contactPhone" placeholder="+7 (900) 000-00-00">
+  </div>
+
+  <button class="btn-submit" id="btnSubmit" onclick="sendOrder()">🚀 Отправить заказ на склад</button>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.expand(); tg.ready(); }
+
+    let activeTab = 'well';
+
+    const DICT = {
+      ru: {
+        title: "📦 Склад оборудования «МИШКА»",
+        tabWell: "💧 Скважина / Кессон",
+        tabSeptic: "☣️ Септик / Слив",
+        tabDrain: "🌾 Дренаж участка",
+        tabStorm: "🌧 Ливнёвка в земле",
+        lblLang: "🌐 Язык интерфейса",
+        lblDepth: "Глубина скважины (м)",
+        lblYield: "Дебит (м³/ч)",
+        lblHouses: "Количество домов",
+        distSingle: "Расстояние до дома (м)",
+        distMulti: "Дом №{i}: расстояние (м)",
+        lblWellEquipType: "Тип обустройства скважины",
+        optEquipVfd: "⚡ Обустройство кессона через частотный преобразователь",
+        optEquipGa: "📦 Обустройство кессона стандартный ГА",
+        optEquipAdapter: "🔩 Обустройство через скважинный адаптер",
+        lblHydrotank: "Выбор гидроаккумулятора (ГА)",
+        optHydroAuto: "🤝 Автоподбор по числу домов",
+        lblKesson: "Выбор кессона",
+        kessonAuto: "🤝 На выбор продавца (автоподбор)",
+        lblExtrasWell: "Расходники к скважине",
+        lblUsers: "Число проживающих",
+        lblDischarge: "Сброс очищенной воды",
+        optDisGrav: "Самотечный (дренаж)",
+        optDisForce: "Принудительный (насос)",
+        lblPipe110: "Длина трассы канализации (м)",
+        lblSepticModel: "Модель септика",
+        septicAuto: "🤝 На выбор продавца (автоподбор)",
+        lblExtrasSeptic: "Расходники для канализации",
+        lblDrainType: "Тип дренажной системы",
+        optDrainSoft: "📦 «Софтрок» / Лайтдрок (без щебня)",
+        optDrainClass: "🧱 Классический (труба в щебне + геотекстиль)",
+        lblDrainLen: "Длина трассы (м)",
+        lblDrainWells: "Колодцев (шт.)",
+        lblExtrasDrain: "Расходники для дренажа",
+        lblInlets: "Дождеприёмников (шт.)",
+        lblStormLen: "Длина трубы 110 (м)",
+        lblStormWells: "Колодцев (шт.)",
+        lblStormDischarge: "Сброс воды",
+        optStormDitch: "Канава / овраг",
+        optStormWell: "Поглотительный колодец",
+        lblExtrasStorm: "Расходники для ливнёвки",
+        lblLogistics: "🚚 Способ получения заказа",
+        optLogPickup: "📦 Самовывоз со склада (п. Некрасовский)",
+        optLogDelivery: "🚛 Доставка на объект заказчика",
+        lblPickupTime: "Дата и время приезда на склад",
+        phPickupTime: "Сегодня к 15:30 или завтра утром",
+        lblDeliveryAddress: "Точный адрес доставки",
+        phDeliveryAddress: "МО, Дмитровский р-н, д. Подосинки...",
+        lblDeliveryTime: "Желаемое время доставки",
+        phDeliveryTime: "Завтра с 10:00 до 14:00",
+        lblPhone: "📞 Номер телефона для связи",
+        errPhone: "⚠️ Пожалуйста, укажите ваш номер телефона для связи!",
+        errDelivery: "⚠️ Укажите адрес доставки оборудования!",
+        btnSubmit: "🚀 Отправить заказ на склад",
+        unitM: "м",
+        unitPcs: "шт.",
+        sending: "⏳ Отправка...",
+        successMsg: "✅ Заказ принят! Комплектуем на складе.",
+        items: {
+          pnd32: "Труба ПНД 32 SDR11",
+          pnd25: "Труба ПНД 25 (полив)",
+          insul: "Утеплитель Энергофлекс 32",
+          heat_cable: "Кабель греющий саморег.",
+          ball_valve: "Кран 1\" с американкой",
+          fitting_32_1: "Муфта ПНД 32х1\" НР",
+          elbow_32: "Уголок ПНД 32х32 (90°)",
+          unipak: "Лён + паста Unipak",
+          pipe110: "Труба рыжая 110х3.2 наружная",
+          insul110: "Утеплитель для трубы 110",
+          elbow110_45: "Отвод 110х45° рыжий",
+          tee110: "Тройник 110х110х87° рыжий",
+          bacteria: "Бактерии для септика (старт)",
+          drain_pipe: "Труба дренажная 110 с перфорацией",
+          geotextile: "Геотекстиль иглопробивной (рулон)",
+          well_cone: "Конус-переходник для колодца 315",
+          sand_trap: "Пескоуловитель пластиковый 110",
+          leaf_grate: "Листвоуловитель для дождеприёмника"
+        }
+      },
+      tj: {
+        title: "📦 Анбори таҷҳизоти «МИШКА»",
+        tabWell: "💧 Чоҳ / Кессон",
+        tabSeptic: "☣️ Септик / Слив",
+        tabDrain: "🌾 Дренажи замин",
+        tabStorm: "🌧 Оброҳаи зеризаминӣ",
+        lblLang: "🌐 Забони барнома",
+        lblDepth: "Чуқурии чоҳ (бо метр)",
+        lblYield: "Дебит (м³/соат)",
+        lblHouses: "Шумораи хонаҳо",
+        distSingle: "Масофа то хона (бо метр)",
+        distMulti: "Хонаи №{i}: масофа (бо метр)",
+        lblWellEquipType: "Тарзи таҷҳизонидани чоҳ",
+        optEquipVfd: "⚡ Бо воситаи басомадсоз (частотник)",
+        optEquipGa: "📦 Кессон бо гидробаки стандартӣ",
+        optEquipAdapter: "🔩 Тавассути адаптери чоҳ",
+        lblHydrotank: "Интихоби гидроаккумулятор",
+        optHydroAuto: "🤝 Интихоби автоматӣ",
+        lblKesson: "Интихоби кессон",
+        kessonAuto: "🤝 Ба ихтиёри фурӯшанда (автоматӣ)",
+        lblExtrasWell: "Маводи иловагӣ барои чоҳ",
+        lblUsers: "Шумораи одамон",
+        lblDischarge: "Партови оби тоза",
+        optDisGrav: "Худҷорӣ (дренаж)",
+        optDisForce: "Маҷбурӣ (бо насос)",
+        lblPipe110: "Дарозии қубури канализатсия (м)",
+        lblSepticModel: "Намуди септик",
+        septicAuto: "🤝 Ба интихоби фурӯшанда (автоматӣ)",
+        lblExtrasSeptic: "Мавод барои канализатсия",
+        lblDrainType: "Намуди системаи дренаж",
+        optDrainSoft: "📦 «Софтрок» (бе сангреза)",
+        optDrainClass: "🧱 Классикӣ (қубур дар шағал)",
+        lblDrainLen: "Дарозии хат (м)",
+        lblDrainWells: "Чоҳҳои назоратӣ (дона)",
+        lblExtrasDrain: "Мавод барои дренаж",
+        lblInlets: "Қабулкунакҳои бороноб (дона)",
+        lblStormLen: "Дарозии қубур 110 (м)",
+        lblStormWells: "Чоҳҳо (дона)",
+        lblStormDischarge: "Ҷои партови об",
+        optStormDitch: "Ҷӯйбор / ҷарӣ",
+        optStormWell: "Чоҳи ҷаббанда",
+        lblExtrasStorm: "Мавод барои оброҳа",
+        lblLogistics: "🚚 Тарзи гирифтани мол",
+        optLogPickup: "📦 Худам аз анбор мегирам (Некрасовский)",
+        optLogDelivery: "🚛 Бурдан ба суроғаи манзил",
+        lblPickupTime: "Сана ва вақти омадан ба анбор",
+        phPickupTime: "Имрӯз соати 15:30 ё пагоҳ пагоҳирӯзӣ",
+        lblDeliveryAddress: "Суроғаи бурдан",
+        phDeliveryAddress: "ноҳия, кӯча, рақами хона...",
+        lblDeliveryTime: "Вақти расонидан",
+        phDeliveryTime: "Пагоҳ аз соати 10:00 то 14:00",
+        lblPhone: "📞 Рақами телефон барои тамос",
+        errPhone: "⚠️ Лутфан рақами телефони худро нависед!",
+        errDelivery: "⚠️ Суроғаи расониданро нависед!",
+        btnSubmit: "🚀 Фармоишро ба анбор фиристед",
+        unitM: "м",
+        unitPcs: "дона",
+        sending: "⏳ Интиқол...",
+        successMsg: "✅ Фармоиш қабул шуд! Мо борро дар анбор тайёр мекунем.",
+        items: {
+          pnd32: "Қубури ПНД 32 SDR11",
+          pnd25: "Қубури ПНД 25 (обёрӣ)",
+          insul: "Гармидиҳандаи Энергофлекс 32",
+          heat_cable: "Кабели гармкунанда",
+          ball_valve: "Крани 1\" бо американка",
+          fitting_32_1: "Муфтаи ПНД 32х1\" БО",
+          elbow_32: "Кунҷак ПНД 32х32 (90°)",
+          unipak: "Зиғирпоя (лён) + хамираи Unipak",
+          pipe110: "Қубури норинҷӣ 110 беруна",
+          insul110: "Гармидиҳанда барои қубури 110",
+          elbow110_45: "Кунҷак 110х45° норинҷӣ",
+          tee110: "Тройник 110х110х87°",
+          bacteria: "Бактерия барои септик",
+          drain_pipe: "Қубури дренажӣ 110",
+          geotextile: "Геотекстил (рулон)",
+          well_cone: "Гузаришгоҳ барои чоҳи 315",
+          sand_trap: "Қумгирак 110",
+          leaf_grate: "Барггирак барои бороноб"
+        }
+      },
+      uz: {
+        title: "📦 «MISHKA» uskunalar ombori",
+        tabWell: "💧 Quduq / Kesson",
+        tabSeptic: "☣️ Septik / Kanalizatsiya",
+        tabDrain: "🌾 Maydon drenaji",
+        tabStorm: "🌧 Yomg'ir oqova tizimi",
+        lblLang: "🌐 Dastur tili",
+        lblDepth: "Quduq chuqurligi (m)",
+        lblYield: "Debit (m³/soat)",
+        lblHouses: "Uylar soni",
+        distSingle: "Uygacha masofa (metrda)",
+        distMulti: "{i}-uy: masofa (metrda)",
+        lblWellEquipType: "Quduqni jihozlash turi",
+        optEquipVfd: "⚡ Chastota o'zgartirgich orqali",
+        optEquipGa: "📦 Standart gidrobakli kesson",
+        optEquipAdapter: "🔩 Quduq adapteri orqali",
+        lblHydrotank: "Gidroakkumulyator tanlash",
+        optHydroAuto: "🤝 Avtomatik tanlov",
+        lblKesson: "Kesson tanlash",
+        kessonAuto: "🤝 Sotuvchi tanloviga (avtomatik)",
+        lblExtrasWell: "Quduq uchun qo'shimchalar",
+        lblUsers: "Odamlar soni",
+        lblDischarge: "Suv chiqishi",
+        optDisGrav: "O'zi oqar (drenaj)",
+        optDisForce: "Majburiy (nasos bilan)",
+        lblPipe110: "Kanalizatsiya quvuri (m)",
+        lblSepticModel: "Septik modeli",
+        septicAuto: "🤝 Sotuvchi tanloviga (avtomatik)",
+        lblExtrasSeptic: "Kanalizatsiya materiallari",
+        lblDrainType: "Drenaj turi",
+        optDrainSoft: "📦 «Softrok» (shag'alsiz)",
+        optDrainClass: "🧱 Klassik (shag'al va geotekstil)",
+        lblDrainLen: "Trassa uzunligi (m)",
+        lblDrainWells: "Quduqlar (dona)",
+        lblExtrasDrain: "Drenaj materiallari",
+        lblInlets: "Yomg'ir qabul qilgichlar (dona)",
+        lblStormLen: "Quvur uzunligi 110 (m)",
+        lblStormWells: "Quduqlar (dona)",
+        lblStormDischarge: "Suv tashlash joyi",
+        optStormDitch: "Ariq / jar",
+        optStormWell: "Shimdiruvchi quduq",
+        lblExtrasStorm: "Yomg'ir tizimi materiallari",
+        lblLogistics: "🚚 Buyurtmani olish usuli",
+        optLogPickup: "📦 Ombordan olib ketish (Nekrasovskiy)",
+        optLogDelivery: "🚛 Obyektga yetkazib berish",
+        lblPickupTime: "Omborga kelish vaqti",
+        phPickupTime: "Bugun 15:30 ga yoki ertaga ertalab",
+        lblDeliveryAddress: "Yetkazib berish manzili",
+        phDeliveryAddress: "Tuman, ko'cha, uy raqami...",
+        lblDeliveryTime: "Yetkazish vaqti",
+        phDeliveryTime: "Ertaga soat 10:00 dan 14:00 gacha",
+        lblPhone: "📞 Bog'lanish uchun telefon raqami",
+        errPhone: "⚠️ Iltimos telefon raqamingizni kiriting!",
+        errDelivery: "⚠️ Yetkazib berish manzilini kiriting!",
+        btnSubmit: "🚀 Buyurtmani omborga yuborish",
+        unitM: "m",
+        unitPcs: "dona",
+        sending: "⏳ Yuborilmoqda...",
+        successMsg: "✅ Buyurtma qabul qilindi! Ombor tayyorlamoqda.",
+        items: {
+          pnd32: "PND 32 trubasi SDR11",
+          pnd25: "PND 25 trubasi (sug'orish)",
+          insul: "Energofleks izolyatsiyasi 32",
+          heat_cable: "Isitish kabeli",
+          ball_valve: "Kran 1\" amerikanka bilan",
+          fitting_32_1: "Mufta PND 32x1\" TQ",
+          elbow_32: "Tirsak PND 32x32 (90°)",
+          unipak: "Zig'ir tolasi + Unipak pasta",
+          pipe110: "Zarg'aldoq quvur 110 tashqi",
+          insul110: "110 quvur uchun izolyatsiya",
+          elbow110_45: "Tirsak 110x45° zarg'aldoq",
+          tee110: "Troynik 110x110x87°",
+          bacteria: "Septik uchun bakteriyalar",
+          drain_pipe: "Drenaj quvuri 110",
+          geotextile: "Geotekstil (rulon)",
+          well_cone: "315 quduq adapteri",
+          sand_trap: "Qum tutgich 110",
+          leaf_grate: "Barg tutqich panjara"
+        }
+      },
+      hy: {
+        title: "📦 Սարքավորումների պահեստ «ՄԻՇԿԱ»",
+        tabWell: "💧 Հորատանցք / Կեսոն",
+        tabSeptic: "☣️ Սեպտիկ / Կոյուղի",
+        tabDrain: "🌾 Դրենաժային համակարգ",
+        tabStorm: "🌧 Անձրևաջրերի ստորգետնյա համակարգ",
+        lblLang: "🌐 Լեզու",
+        lblDepth: "Հորատանցքի խորություն (մ)",
+        lblYield: "Արտադրողականություն (մ³/ժ)",
+        lblHouses: "Տների քանակը",
+        distSingle: "Հեռավորությունը մինչև տուն (մ)",
+        distMulti: "Տուն №{i}: հեռավորություն (մ)",
+        lblWellEquipType: "Հորատանցքի կահավորման տեսակը",
+        optEquipVfd: "⚡ Հաճախականության կարգավորիչով",
+        optEquipGa: "📦 Ստանդարտ հիդրոբակով կեսոն",
+        optEquipAdapter: "🔩 Հորատանցքի ադապտերով",
+        lblHydrotank: "Հիդրոակումուլյատորի ընտրություն",
+        optHydroAuto: "🤝 Ավտոմատ ընտրություն",
+        lblKesson: "Կեսոնի ընտրություն",
+        kessonAuto: "🤝 Վաճառողի ընտրությամբ (ավտոմատ)",
+        lblExtrasWell: "Հորատանցքի նյութեր",
+        lblUsers: "Բնակիչների թիվը",
+        lblDischarge: "Մաքրված ջրի արտահոսք",
+        optDisGrav: "Ինքնահոս (դրենաժ)",
+        optDisForce: "Պոմպով (ստիպողական)",
+        lblPipe110: "Կոյուղագծի երկարություն (մ)",
+        lblSepticModel: "Սեպտիկի մոդել",
+        septicAuto: "🤝 Վաճառողի ընտրությամբ (ավտոմատ)",
+        lblExtrasSeptic: "Կոյուղու նյութեր",
+        lblDrainType: "Դրենաժի տեսակ",
+        optDrainSoft: "📦 «Սոֆթռոք» (առանց խճի)",
+        optDrainClass: "🧱 Դասական (խճով և գեոտեքստիլով)",
+        lblDrainLen: "Երկարությունը (մ)",
+        lblDrainWells: "Հորեր (հատ)",
+        lblExtrasDrain: "Դրենաժի նյութեր",
+        lblInlets: "Անձրևընդունիչներ (հատ)",
+        lblStormLen: "Խողովակ 110 (մ)",
+        lblStormWells: "Հորեր (հատ)",
+        lblStormDischarge: "Արտահոսքի կետ",
+        optStormDitch: "Առու / ձորակ",
+        optStormWell: "Ներծծող հոր",
+        lblExtrasStorm: "Անձրևաջրերի նյութեր",
+        lblLogistics: "🚚 Ստանալու եղանակը",
+        optLogPickup: "📦 Ինքնուրույն պահեստից (Նեկրասովսկի)",
+        optLogDelivery: "🚛 Առաքում դեպի օբյեկտ",
+        lblPickupTime: "Պահեստ գալու ամսաթիվ և ժամ",
+        phPickupTime: "Այսօր մինչև 15:30 կամ վաղը առավոտյան",
+        lblDeliveryAddress: "Առաքման հասցե",
+        phDeliveryAddress: "Մարզ, փողոց, տան համար...",
+        lblDeliveryTime: "Առաքման ժամ",
+        phDeliveryTime: "Վաղը 10:00-ից 14:00-ն",
+        lblPhone: "📞 Հեռախոսահամար կապի համար",
+        errPhone: "⚠️ Խնդրում ենք նշել Ձեր հեռախոսահամարը:",
+        errDelivery: "⚠️ Նշեք առաքման հասցեն:",
+        btnSubmit: "🚀 Ուղարկել պատվերը պահեստ",
+        unitM: "մ",
+        unitPcs: "հատ",
+        sending: "⏳ Ուղարկում...",
+        successMsg: "✅ Պատվերն ընդունված է: Պահեստը հավաքում է:",
+        items: {
+          pnd32: "Խողովակ ՊՆԴ 32 SDR11",
+          pnd25: "Խողովակ ՊՆԴ 25 (ոռոգում)",
+          insul: "Ջերմամեկուսիչ Էներգոֆլեքս 32",
+          heat_cable: "Տաքացնող մալուխ",
+          ball_valve: "Ծորակ 1\" ամերիկանկայով",
+          fitting_32_1: "Կցորդիչ ՊՆԴ 32х1\" ԱՊ",
+          elbow_32: "Անկյունակ ՊՆԴ 32х32 (90°)",
+          unipak: "Վուշաթել + մածուկ Unipak",
+          pipe110: "Նարնջագույն խողովակ 110",
+          insul110: "Ջերմամեկուսիչ 110",
+          elbow110_45: "Անկյունակ 110х45°",
+          tee110: "Եռաբաշխիչ 110х110х87°",
+          bacteria: "Բակտերիաներ սեպտիկի համար",
+          drain_pipe: "Դրենաժային խողովակ 110",
+          geotextile: "Գեոտեքստիլ (ռուլոն)",
+          well_cone: "315 հորի կոն",
+          sand_trap: "Ավազորսիչ 110",
+          leaf_grate: "Տերևորսիչ ցանց"
+        }
+      },
+      ky: {
+        title: "📦 «МИШКА» кампасы",
+        tabWell: "💧 Скважина / Кессон",
+        tabSeptic: "☣️ Септик / Канализация",
+        tabDrain: "🌾 Жер дренажы",
+        tabStorm: "🌧 Ливнёвка түтүгү",
+        lblLang: "🌐 Тилди тандоо",
+        lblDepth: "Скважина тереңдиги (м)",
+        lblYield: "Кубаттуулугу (м³/саат)",
+        lblHouses: "Үйлөрдүн саны",
+        distSingle: "Үйгө чейинки аралык (метр)",
+        distMulti: "№{i}-үй: аралык (метр)",
+        lblWellEquipType: "Скважинаны жабдуу түрү",
+        optEquipVfd: "⚡ Частотник аркылуу жабдуу",
+        optEquipGa: "📦 Стандарттуу гидробактуу кессон",
+        optEquipAdapter: "🔩 Скважина адаптери аркылуу",
+        lblHydrotank: "Гидроаккумулятор тандоо",
+        optHydroAuto: "🤝 Автоматтык тандоо",
+        lblKesson: "Кессон тандоо",
+        kessonAuto: "🤝 Сатуучунун тандоосуна (автоматтык)",
+        lblExtrasWell: "Скважина материалдары",
+        lblUsers: "Жашагандардын саны",
+        lblDischarge: "Тазаланган сууну агызуу",
+        optDisGrav: "Өзү агуучу (дренаж)",
+        optDisForce: "Насос менен мажбурлап",
+        lblPipe110: "Канализация түтүгү (м)",
+        lblSepticModel: "Септик модели",
+        septicAuto: "🤝 Сатуучунун тандоосуна (автоматтык)",
+        lblExtrasSeptic: "Канализация материалдары",
+        lblDrainType: "Дренаж түрү",
+        optDrainSoft: "📦 «Софтрок» (шагылсыз)",
+        optDrainClass: "🧱 Классикалык (шагыл жана геотекстиль)",
+        lblDrainLen: "Жалпы узундугу (м)",
+        lblDrainWells: "Көзөмөл кудуктары (даана)",
+        lblExtrasDrain: "Дренаж материалдары",
+        lblInlets: "Жаан суу кабыл алгычтар (даана)",
+        lblStormLen: "Түтүк узундугу 110 (м)",
+        lblStormWells: "Кудуктар (даана)",
+        lblStormDischarge: "Суу чыгаруу жери",
+        optStormDitch: "Арык / кокту",
+        optStormWell: "Сиңирүүчү кудук",
+        lblExtrasStorm: "Ливнёвка материалдары",
+        lblLogistics: "🚚 Алуу ыкмасы",
+        optLogPickup: "📦 Кампадан өзүм алам (Некрасовский)",
+        optLogDelivery: "🚛 Объектке жеткирүү",
+        lblPickupTime: "Кампага келүү күнү жана убактысы",
+        phPickupTime: "Бүгүн 15:30га чейин же эртең менен",
+        lblDeliveryAddress: "Жеткирүү дареги",
+        phDeliveryAddress: "Район, көчө, үй номери...",
+        lblDeliveryTime: "Жеткирүү убактысы",
+        phDeliveryTime: "Эртең саат 10:00дөн 14:00гө чейин",
+        lblPhone: "📞 Байланыш үчүн телефон номери",
+        errPhone: "⚠️ Байланыш үчүн телефон номериңизди жазыңыз!",
+        errDelivery: "⚠️ Жеткирүү дарегин жазыңыз!",
+        btnSubmit: "🚀 Заказды кампага жөнөтүү",
+        unitM: "м",
+        unitPcs: "даана",
+        sending: "⏳ Жөнөтүлүүдө...",
+        successMsg: "✅ Буйрутма кабыл алынды! Жүктү кампада топтойбуз.",
+        items: {
+          pnd32: "ПНД 32 түтүгү SDR11",
+          pnd25: "ПНД 25 түтүгү (сугаруу)",
+          insul: "Энергофлекс жылуулагычы 32",
+          heat_cable: "Жылытуучу кабель",
+          ball_valve: "Кран 1\" американка менен",
+          fitting_32_1: "Муфта ПНД 32х1\" СТ",
+          elbow_32: "Бурчтук ПНД 32х32 (90°)",
+          unipak: "Зыгыр буласы + Unipak пастасы",
+          pipe110: "Кызгылт түтүк 110 тышкы",
+          insul110: "110 түтүк жылуулагычы",
+          elbow110_45: "Бурчтук 110х45°",
+          tee110: "Тройник 110х110х87°",
+          bacteria: "Септик бактериялары",
+          drain_pipe: "Дренаж түтүгү 110",
+          geotextile: "Геотекстиль (рулон)",
+          well_cone: "315 кудук конусу",
+          sand_trap: "Кум туткуч 110",
+          leaf_grate: "Жалбырак тоскуч"
+        }
+      }
+    };
+
+    const CATALOG = {
+      well: [
+        { id: "pnd32", type: "meters" },
+        { id: "pnd25", type: "meters" },
+        { id: "insul", type: "meters" },
+        { id: "heat_cable", type: "meters" },
+        { id: "ball_valve", type: "pieces" },
+        { id: "fitting_32_1", type: "pieces" },
+        { id: "elbow_32", type: "pieces" },
+        { id: "unipak", type: "pieces" }
+      ],
+      septic: [
+        { id: "pipe110", type: "meters" },
+        { id: "insul110", type: "meters" },
+        { id: "elbow110_45", type: "pieces" },
+        { id: "tee110", type: "pieces" },
+        { id: "bacteria", type: "pieces" },
+        { id: "drain_pipe", type: "meters" }
+      ],
+      drainage: [
+        { id: "geotextile", type: "pieces" },
+        { id: "well_cone", type: "pieces" }
+      ],
+      storm: [
+        { id: "sand_trap", type: "pieces" },
+        { id: "leaf_grate", type: "pieces" },
+        { id: "elbow110_45", type: "pieces" },
+        { id: "tee110", type: "pieces" }
+      ]
+    };
+
+    let userQuantities = {};
+
+    function selectTab(mode) {
+      activeTab = mode;
+      const tabMap = {
+        well: { btn: 'btnTabWell', sec: 'secWell' },
+        septic: { btn: 'btnTabSeptic', sec: 'secSeptic' },
+        drainage: { btn: 'btnTabDrain', sec: 'secDrain' },
+        storm: { btn: 'btnTabStorm', sec: 'secStorm' }
+      };
+
+      for (let k in tabMap) {
+        const b = document.getElementById(tabMap[k].btn);
+        const s = document.getElementById(tabMap[k].sec);
+        if (b) b.classList.toggle('active', k === mode);
+        if (s) s.style.display = (k === mode) ? 'block' : 'none';
+      }
+    }
+
+    function toggleLogisticsFields() {
+      const isDelivery = document.getElementById('logisticsType').value === 'delivery';
+      document.getElementById('pickupBox').style.display = isDelivery ? 'none' : 'block';
+      document.getElementById('deliveryBox').style.display = isDelivery ? 'block' : 'none';
+    }
+
+    function toggleWellEquipFields() {
+      const equipType = document.getElementById('wellEquipType').value;
+      const boxKesson = document.getElementById('boxKessonSelect');
+      const boxHydro = document.getElementById('boxHydrotankSelect');
+
+      if (boxKesson) {
+        boxKesson.style.display = (equipType === 'adapter') ? 'none' : 'block';
+      }
+      if (boxHydro) {
+        boxHydro.style.display = (equipType === 'kesson_ga' || equipType === 'adapter') ? 'block' : 'none';
+      }
+    }
+
+    function onLanguageChanged() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = DICT[lang] || DICT.ru;
+
+      const safeSetText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el && text) el.innerText = text;
+      };
+
+      safeSetText('uiTitle', t.title);
+      safeSetText('btnTabWell', t.tabWell);
+      safeSetText('btnTabSeptic', t.tabSeptic);
+      safeSetText('btnTabDrain', t.tabDrain);
+      safeSetText('btnTabStorm', t.tabStorm);
+      safeSetText('lblLang', t.lblLang);
+
+      // Скважина
+      safeSetText('lblDepth', t.lblDepth);
+      safeSetText('lblYield', t.lblYield);
+      safeSetText('lblHouses', t.lblHouses);
+      safeSetText('lblWellEquipType', t.lblWellEquipType);
+      safeSetText('optEquipVfd', t.optEquipVfd);
+      safeSetText('optEquipGa', t.optEquipGa);
+      safeSetText('optEquipAdapter', t.optEquipAdapter);
+      safeSetText('lblHydrotank', t.lblHydrotank);
+      safeSetText('optHydroAuto', t.optHydroAuto);
+      safeSetText('lblKesson', t.lblKesson);
+      safeSetText('optKessonAuto', t.kessonAuto);
+      safeSetText('lblExtrasWell', t.lblExtrasWell);
+
+      // Септик
+      safeSetText('lblUsers', t.lblUsers);
+      safeSetText('lblDischarge', t.lblDischarge);
+      safeSetText('optDisGrav', t.optDisGrav);
+      safeSetText('optDisForce', t.optDisForce);
+      safeSetText('lblPipe110', t.lblPipe110);
+      safeSetText('lblSepticModel', t.lblSepticModel);
+      safeSetText('optSepticAuto', t.septicAuto);
+      safeSetText('lblExtrasSeptic', t.lblExtrasSeptic);
+
+      // Дренаж
+      safeSetText('lblDrainType', t.lblDrainType);
+      safeSetText('optDrainSoft', t.optDrainSoft);
+      safeSetText('optDrainClass', t.optDrainClass);
+      safeSetText('lblDrainLen', t.lblDrainLen);
+      safeSetText('lblDrainWells', t.lblDrainWells);
+      safeSetText('lblExtrasDrain', t.lblExtrasDrain);
+
+      // Ливнёвка
+      safeSetText('lblInlets', t.lblInlets);
+      safeSetText('lblStormLen', t.lblStormLen);
+      safeSetText('lblStormWells', t.lblStormWells);
+      safeSetText('lblStormDischarge', t.lblStormDischarge);
+      safeSetText('optStormDitch', t.optStormDitch);
+      safeSetText('optStormWell', t.optStormWell);
+      safeSetText('lblExtrasStorm', t.lblExtrasStorm);
+
+      // Логистика и подсказки
+      safeSetText('lblLogistics', t.lblLogistics);
+      safeSetText('optLogPickup', t.optLogPickup);
+      safeSetText('optLogDelivery', t.optLogDelivery);
+      safeSetText('lblPickupTime', t.lblPickupTime);
+      safeSetText('lblDeliveryAddress', t.lblDeliveryAddress);
+      safeSetText('lblDeliveryTime', t.lblDeliveryTime);
+      
+      const pTimeInp = document.getElementById('pickupDateTime');
+      if (pTimeInp) pTimeInp.placeholder = t.phPickupTime;
+      const dAddrInp = document.getElementById('deliveryAddress');
+      if (dAddrInp) dAddrInp.placeholder = t.phDeliveryAddress;
+      const dTimeInp = document.getElementById('deliveryTime');
+      if (dTimeInp) dTimeInp.placeholder = t.phDeliveryTime;
+
+      safeSetText('lblPhone', t.lblPhone);
+      safeSetText('btnSubmit', t.btnSubmit);
+
+      renderDistances();
+      renderAllItems();
+      toggleWellEquipFields();
+    }
+
+    function renderDistances() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = DICT[lang] || DICT.ru;
+      const count = parseInt(document.getElementById('houses').value) || 1;
+      const cont = document.getElementById('distanceContainer');
+      if (!cont) return;
+
+      const currentVals = [];
+      for (let i = 1; i <= 10; i++) {
+        const inp = document.getElementById('dist_' + i);
+        if (inp) currentVals[i] = inp.value;
+      }
+
+      cont.innerHTML = '';
+      if (count === 1) {
+        const v = currentVals[1] || 15;
+        cont.innerHTML = `<label>${t.distSingle}</label><input type="number" id="dist_1" value="${v}">`;
+      } else {
+        for (let i = 1; i <= count; i++) {
+          const v = currentVals[i] || (15 + (i - 1) * 5);
+          const txt = t.distMulti.replace('{i}', i);
+          cont.innerHTML += `<div style="margin-bottom:6px;"><label>${txt}</label><input type="number" id="dist_${i}" value="${v}"></div>`;
+        }
+      }
+    }
+
+    function renderBox(prefix, boxId, list) {
+      const box = document.getElementById(boxId);
+      if (!box) return;
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = DICT[lang] || DICT.ru;
+
+      box.innerHTML = '';
+      list.forEach(item => {
+        const val = userQuantities[item.id] || 0;
+        const name = (t.items && t.items[item.id]) ? t.items[item.id] : item.id;
+        const unit = (item.type === 'meters') ? t.unitM : t.unitPcs;
+        const inputDomId = `inp_${prefix}_${item.id}`;
+
+        const row = document.createElement('div');
+        row.className = 'extra-item';
+        row.innerHTML = `
+          <span style="font-size:0.86rem; flex:1; padding-right:8px;">${name}</span>
+          <div class="qty-ctrl">
+            <button class="qty-btn" type="button" onclick="modifyQty('${item.id}', -1, '${prefix}')">−</button>
+            <input class="qty-input" type="number" min="0" id="${inputDomId}" value="${val}" oninput="setQtyManual('${item.id}', this.value)">
+            <button class="qty-btn" type="button" onclick="modifyQty('${item.id}', 1, '${prefix}')">+</button>
+            <span class="unit-tag">${unit}</span>
+          </div>
+        `;
+        box.appendChild(row);
+      });
+    }
+
+    function renderAllItems() {
+      renderBox('well', 'boxExtrasWell', CATALOG.well);
+      renderBox('septic', 'boxExtrasSeptic', CATALOG.septic);
+      renderBox('drain', 'boxExtrasDrain', CATALOG.drainage);
+      renderBox('storm', 'boxExtrasStorm', CATALOG.storm);
+    }
+
+    function modifyQty(id, delta, prefix) {
+      const cur = parseFloat(userQuantities[id] || 0);
+      const next = Math.max(0, cur + delta);
+      userQuantities[id] = next;
+      
+      ['well', 'septic', 'drain', 'storm'].forEach(p => {
+        const el = document.getElementById(`inp_${p}_${id}`);
+        if (el) el.value = next;
+      });
+    }
+
+    function setQtyManual(id, raw) {
+      const v = parseFloat(raw);
+      const next = (!isNaN(v) && v >= 0) ? v : 0;
+      userQuantities[id] = next;
+      ['well', 'septic', 'drain', 'storm'].forEach(p => {
+        const el = document.getElementById(`inp_${p}_${id}`);
+        if (el) el.value = next;
+      });
+    }
+
+    async function sendOrder() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = DICT[lang] || DICT.ru;
+
+      const phone = document.getElementById('contactPhone').value.trim();
+      if (!phone || phone.length < 6) {
+        if (tg) { tg.showAlert(t.errPhone); } else { alert(t.errPhone); }
+        document.getElementById('contactPhone').focus();
+        return;
+      }
+
+      const logisticsType = document.getElementById('logisticsType').value;
+      let deliveryDetails = "";
+
+      if (logisticsType === 'pickup') {
+        deliveryDetails = document.getElementById('pickupDateTime').value.trim() || "Самовывоз со склада";
+      } else {
+        const addr = document.getElementById('deliveryAddress').value.trim();
+        if (!addr) {
+          if (tg) { tg.showAlert(t.errDelivery); } else { alert(t.errDelivery); }
+          document.getElementById('deliveryAddress').focus();
+          return;
+        }
+        const dTime = document.getElementById('deliveryTime').value.trim() || "В течение дня";
+        deliveryDetails = `Адрес: ${addr} | Время: ${dTime}`;
+      }
+
+      const activeExtras = {};
+      for (let k in userQuantities) {
+        if (userQuantities[k] > 0) activeExtras[k] = userQuantities[k];
+      }
+
+      let payload = {
+        mode: activeTab,
+        lang: lang,
+        phone: phone,
+        delivery_type: logisticsType === 'delivery' ? 'Доставка на объект' : 'Самовывоз со склада',
+        delivery_info: deliveryDetails,
+        extras: activeExtras,
+        user_id: tg?.initDataUnsafe?.user?.id || 0,
+        username: tg?.initDataUnsafe?.user?.username || "",
+        first_name: tg?.initDataUnsafe?.user?.first_name || "Монтажник"
+      };
+
+      if (activeTab === 'well') {
+        const hCount = parseInt(document.getElementById('houses').value) || 1;
+        const distances = [];
+        for (let i = 1; i <= hCount; i++) {
+          distances.push(parseFloat(document.getElementById('dist_' + i)?.value || 15));
+        }
+        payload.depth = parseFloat(document.getElementById('depth').value) || 40;
+        payload.yield_flow = parseFloat(document.getElementById('yield').value) || 2.5;
+        payload.houses = hCount;
+        payload.distances = distances;
+        payload.equip_type = document.getElementById('wellEquipType').value;
+        payload.chosen_kesson = document.getElementById('kessonSelect').value;
+        payload.chosen_tank = document.getElementById('hydrotankSelect').value;
+      } else if (activeTab === 'septic') {
+        payload.users = parseInt(document.getElementById('septicUsers').value) || 5;
+        payload.discharge = document.getElementById('septicDischarge').value;
+        payload.distance = parseFloat(document.getElementById('septicDistance').value) || 10;
+        payload.chosen_septic = document.getElementById('septicModelSelect').value;
+      } else if (activeTab === 'drainage') {
+        payload.drain_type = document.getElementById('drainTypeSelect').value;
+        payload.drain_length = parseFloat(document.getElementById('drainLength').value) || 50;
+        payload.drain_wells = parseInt(document.getElementById('drainWells').value) || 3;
+      } else if (activeTab === 'storm') {
+        payload.storm_inlets = parseInt(document.getElementById('stormInlets').value) || 4;
+        payload.storm_length = parseFloat(document.getElementById('stormLength').value) || 30;
+        payload.storm_wells = parseInt(document.getElementById('stormWells').value) || 2;
+        payload.storm_discharge = document.getElementById('stormDischarge').value;
+      }
+
+      const btn = document.getElementById('btnSubmit');
+      btn.innerText = t.sending;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/miniapp_order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          if (tg) {
+            tg.showAlert(t.successMsg);
+            tg.close();
+          } else {
+            alert(t.successMsg);
+          }
+        } else {
+          alert("Ошибка отправки заказа.");
+          btn.disabled = false;
+          btn.innerText = t.btnSubmit;
+        }
+      } catch (err) {
+        alert("Сбой соединения: " + err);
+        btn.disabled = false;
+        btn.innerText = t.btnSubmit;
+      }
+    }
+
+    onLanguageChanged();
+  </script>
+</body>
+</html>
