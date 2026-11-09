@@ -409,6 +409,9 @@
   </div>
 
   <button class="btn-submit" id="btnSubmit" onclick="sendOrder()">🚀 Отправить заказ на склад</button>
+  <button class="btn-submit" style="background: #334155; margin-top: -4px; margin-bottom: 20px;" id="btnOpenHistoryMain" onclick="openOrderHistory()">
+    📜 Ваши заказы (история и статусы)
+  </button>
 
   <!-- КРАСИВОЕ ТАБЛО С ЗАКАЗОМ (ЧЕК ДЛЯ КЛИЕНТА) -->
   <div id="receipt-modal" class="receipt-screen" style="border: 1.5px solid #3b82f6; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
@@ -1259,21 +1262,42 @@
       let html = '';
       orders.forEach((ord, idx) => {
         const isWorks = ord.is_works || (ord.mode === 'works');
-        const badgeColor = isWorks ? '#d97706' : '#2563eb';
         const typeLabel = isWorks ? '🔨 Монтажные работы' : '📦 Оборудование и материалы';
         const totalFormatted = (ord.total || 0).toLocaleString('ru-RU', {minimumFractionDigits: 2});
+
+        // Определяем статус и цвет бейджа
+        let statusText = 'В сборке';
+        let statusBg = '#2563eb'; // синий
+        const st = (ord.status || 'active').toLowerCase();
+        
+        if (st === 'cancelled') {
+          statusText = 'Отменен';
+          statusBg = '#dc2626'; // красный
+        } else if (st === 'paid') {
+          statusText = 'Оплачен';
+          statusBg = '#16a34a'; // зеленый
+        } else if (st === 'completed') {
+          statusText = isWorks ? 'Согласован' : 'Собран';
+          statusBg = '#22c55e'; // ярко-зеленый
+        } else {
+          statusText = isWorks ? 'На согласовании' : 'В сборке';
+          statusBg = isWorks ? '#d97706' : '#2563eb'; // оранжевый для работ, синий для материалов
+        }
 
         html += `
         <div style="background:#17212b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <span style="font-weight:700; color:#fff; font-size:14px;">Заказ #${ord.order_id}</span>
-            <span style="background:${badgeColor}; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:12px;">${typeLabel}</span>
+            <span style="background:${statusBg}; color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px;">${statusText}</span>
           </div>
-          <div style="font-size:12px; color:#94a3b8; margin-bottom:4px;">
-            <b>Получение:</b> ${ord.delivery_type || ord.delivery_info || '-'}
+          <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;">
+            <b>Тип:</b> ${typeLabel}
           </div>
-          <div style="font-size:13px; font-weight:700; color:#4ade80;">
-            Сумма: ${totalFormatted} ₽
+          <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;">
+            <b>Адрес/Получение:</b> ${ord.delivery_type || ''} (${ord.delivery_info || '-'})
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:700;">
+            <span style="color:#4ade80;">Сумма: ${totalFormatted} ₽</span>
           </div>
         </div>`;
       });
