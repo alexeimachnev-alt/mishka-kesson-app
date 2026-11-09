@@ -7,70 +7,121 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
-      --bg: #18191d;
-      --card-bg: #24262b;
-      --card-border: #32353c;
-      --text: #ffffff;
-      --text-muted: #9aa0a6;
+      --bg: #17212b;
+      --card: #232e3c;
+      --text: #f5f5f5;
+      --hint: #7f8c99;
+      --btn: #2ea6ff;
+      --btn-hover: #1e96ef;
+      --btn-text: #ffffff;
+      --border: rgba(255, 255, 255, 0.12);
       --accent: #2e8b57;
       --accent-hover: #247346;
-      --blue: #2b7de9;
-      --radius: 12px;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding-bottom: 90px; }
-    header { padding: 16px; text-align: center; background: #202227; border-bottom: 1px solid var(--card-border); position: sticky; top: 0; z-index: 100; }
-    header h1 { font-size: 18px; font-weight: 700; }
-    .tabs { display: flex; background: #202227; padding: 6px; gap: 6px; border-bottom: 1px solid var(--card-border); }
-    .tab-btn { flex: 1; padding: 10px 4px; border: none; background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; text-align: center; }
-    .tab-btn.active { background: var(--card-bg); color: #fff; border: 1px solid var(--card-border); }
-    .content { padding: 16px; display: none; }
-    .content.active { display: block; }
-    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-    .card-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #71b1ff; }
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
-    select, input { width: 100%; padding: 12px; background: #1a1b1f; border: 1px solid var(--card-border); border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
-    select:focus, input:focus { border-color: var(--blue); }
-    .spec-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    .spec-table th, .spec-table td { padding: 8px; text-align: left; border-bottom: 1px solid #30333a; }
-    .spec-table th { color: var(--text-muted); font-size: 11px; text-transform: uppercase; }
+    body {
+      margin: 0; padding: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: 80px;
+    }
+    h2 { font-size: 1.15rem; text-align: center; margin: 4px 0 10px; }
+    
+    .tab-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;
+    }
+    .tab-btn {
+      padding: 10px 4px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-weight: 700; font-size: 0.82rem;
+      cursor: pointer; text-align: center; user-select: none;
+    }
+    .tab-btn.active {
+      background: var(--btn) !important; color: var(--btn-text) !important; border-color: var(--btn) !important;
+    }
+
+    .card {
+      background: var(--card); border-radius: 12px; padding: 12px 14px;
+      margin-bottom: 10px; border: 1px solid var(--border);
+    }
+    .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; color: #71b1ff; }
+    label { display: block; font-weight: 600; font-size: 0.82rem; margin-bottom: 5px; color: var(--text); }
+    input, select {
+      width: 100%; box-sizing: border-box; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 9px; font-size: 0.95rem;
+      background: var(--bg); color: var(--text); outline: none; margin-bottom: 8px;
+    }
+    input:focus, select:focus { border-color: var(--btn); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    
+    .spec-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+    .spec-table th, .spec-table td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+    .spec-table th { color: var(--hint); font-size: 11px; text-transform: uppercase; }
     .spec-table td.num { text-align: right; }
-    .total-box { margin-top: 16px; padding: 14px; background: #1c2720; border: 1px solid #2e593d; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 700; color: #4ade80; }
-    .btn-submit { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 16px; }
-    .btn-submit:hover { background: var(--accent-hover); }
-    .receipt-screen { display: none; background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--card-border); margin: 16px; text-align: left; }
-    .receipt-badge { background: #1e3a2b; color: #4ade80; padding: 6px 12px; border-radius: 20px; font-size: 13px; display: inline-block; margin-bottom: 8px; }
+
+    .total-box {
+      margin-top: 14px; padding: 12px 14px; background: #163323; border: 1px solid #2e7a4b;
+      border-radius: 10px; display: flex; justify-content: space-between; align-items: center;
+      font-size: 1.05rem; font-weight: 700; color: #4ade80;
+    }
+    
+    .btn-submit {
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      background: var(--btn); color: var(--btn-text); font-size: 1.05rem;
+      font-weight: 700; margin: 12px 0 20px; cursor: pointer; transition: 0.2s;
+    }
+    .btn-submit:hover { background: var(--btn-hover); }
+
+    .btn-maps {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 12px; background: #24354a; color: #71b1ff;
+      border: 1px solid #365070; border-radius: 10px; font-size: 0.9rem;
+      font-weight: 600; text-decoration: none; margin-top: 8px;
+    }
+    .highlight-card { border: 1.5px solid var(--btn) !important; }
+
+    .receipt-screen {
+      display: none; background: var(--card); border-radius: 12px; padding: 20px 16px;
+      border: 1px solid var(--border); text-align: left; margin-bottom: 20px;
+    }
+    .receipt-badge { background: #1c3d28; color: #4ade80; padding: 6px 12px; border-radius: 20px; font-size: 12px; display: inline-block; font-weight: 700; margin-bottom: 8px; }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>🛠 СКЛАД «МИШКА» 📦</h1>
-  </header>
+  <h2 id="uiTitle">📦 Склад оборудования «МИШКА»</h2>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('kesson')">Кессоны</button>
-    <button class="tab-btn" onclick="switchTab('septic')">Септики</button>
-    <button class="tab-btn" onclick="switchTab('livnevka')">Ливневка</button>
-    <button class="tab-btn" onclick="switchTab('drainage')">Дренаж</button>
+  <div class="tab-grid">
+    <div class="tab-btn active" id="btnTabWell" onclick="selectTab('well')">💧 Скважина / Кессон</div>
+    <div class="tab-btn" id="btnTabSeptic" onclick="selectTab('septic')">☣️ Септик / Слив</div>
+    <div class="tab-btn" id="btnTabDrain" onclick="selectTab('drainage')">🌾 Дренаж участка</div>
+    <div class="tab-btn" id="btnTabStorm" onclick="selectTab('storm')">🌧 Ливнёвка в земле</div>
   </div>
 
-  <div id="tab-kesson" class="content active">
-    <div class="card">
-      <div class="card-title">1. Выбор обустройства</div>
-      <div class="form-group">
-        <label>Тип обустройства:</label>
-        <select id="equip_type" onchange="calcKesson()">
-          <option value="kesson_vfd">Кессон с Частотным Преобразователем (ЧП)</option>
-          <option value="kesson_ga">Кессон со стандартным гидробаком и реле давления</option>
-          <option value="adapter">Обустройство через скважинный адаптер TIM</option>
-        </select>
-      </div>
+  <div class="card">
+    <label id="lblLang">🌐 Язык интерфейса</label>
+    <select id="langSelect" onchange="onLanguageChanged()">
+      <option value="ru" selected>🇷🇺 Русский</option>
+      <option value="tj">🇹🇯 Тоҷикӣ</option>
+      <option value="uz">🇺🇿 Oʻzbekcha</option>
+      <option value="hy">🇦🇲 Հայերեն</option>
+      <option value="ky">🇰🇬 Кыргызча</option>
+    </select>
+  </div>
 
-      <div class="form-group" id="kesson_select_group">
-        <label>Модель кессона «МИШКА»:</label>
-        <select id="chosen_kesson" onchange="calcKesson()">
+  <!-- РАЗДЕЛ 1: СКВАЖИНА И КЕССОН -->
+  <div id="secWell">
+    <div class="card">
+      <div class="card-title" id="tEquip">1. Вариант обустройства скважины</div>
+      <label id="lblEquipType">Тип системы:</label>
+      <select id="equip_type" onchange="calcWell()">
+        <option value="kesson_vfd" id="optVfd">Кессон с Частотным Преобразователем (ЧП)</option>
+        <option value="kesson_ga" id="optGa">Кессон со стандартным гидробаком и реле</option>
+        <option value="adapter" id="optAdapter">Обустройство через скважинный адаптер TIM</option>
+      </select>
+
+      <div id="kesson_model_box">
+        <label id="lblKessonModel">Модель кессона «МИШКА»:</label>
+        <select id="chosen_kesson" onchange="calcWell()">
           <option value="kesson_m1" selected>Кессон «Мишка 1» (Ø1050х2000) — 41 170 ₽</option>
           <option value="kesson_m2">Кессон «Мишка 2» (Ø1300х2000) — 52 000 ₽</option>
           <option value="kesson_m3">Кессон «Мишка 3» (Ø1600х2000) — 65 000 ₽</option>
@@ -79,9 +130,9 @@
         </select>
       </div>
 
-      <div class="form-group" id="tank_select_group" style="display: none;">
-        <label>Объем гидроаккумулятора BELAMOS:</label>
-        <select id="chosen_tank" onchange="calcKesson()">
+      <div id="tank_box" style="display: none;">
+        <label id="lblTankModel">Объем гидроаккумулятора BELAMOS:</label>
+        <select id="chosen_tank" onchange="calcWell()">
           <option value="tank_50">50 л — 5 420.00 ₽</option>
           <option value="tank_80">80 л — 7 150.00 ₽</option>
           <option value="tank_100" selected>100 л (100VT) — 8 747.70 ₽</option>
@@ -93,114 +144,437 @@
     </div>
 
     <div class="card">
-      <div class="card-title">2. Параметры участка</div>
-      <div class="form-group">
-        <label>Глубина скважины / опуск насоса (м):</label>
-        <input type="number" id="depth_m" value="40" min="5" max="150" oninput="calcKesson()">
-      </div>
-      <div class="form-group">
-        <label>Расстояние до дома / длина трассы (м):</label>
-        <input type="number" id="dist_m" value="15" min="1" max="200" oninput="calcKesson()">
+      <div class="card-title" id="tParams">2. Параметры скважины и участка</div>
+      <div class="grid-2">
+        <div>
+          <label id="lblDepth">Глубина скважины (м):</label>
+          <input type="number" id="depth" value="40" min="5" max="150" oninput="calcWell()">
+        </div>
+        <div>
+          <label id="lblDist">Расстояние до дома (м):</label>
+          <input type="number" id="dist_1" value="15" min="1" max="200" oninput="calcWell()">
+        </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">3. Спецификация оборудования</div>
+      <div class="card-title" id="tSpec">3. Спецификация оборудования со склада</div>
       <div id="spec-list"></div>
       <div class="total-box">
-        <span>ИТОГО К ОПЛАТЕ:</span>
+        <span id="lblTotalText">ИТОГО К ОПЛАТЕ:</span>
         <span id="kesson-total">0 ₽</span>
       </div>
     </div>
+  </div>
 
+  <!-- РАЗДЕЛ 2: СЕПТИК -->
+  <div id="secSeptic" style="display: none;">
     <div class="card">
-      <div class="card-title">4. Оформление заказа</div>
-      <div class="form-group">
-        <label>ФИО / Менеджер:</label>
-        <input type="text" id="client_name" placeholder="Например: Федор (Королев)">
-      </div>
-      <div class="form-group">
-        <label>Телефон:</label>
-        <input type="tel" id="client_phone" placeholder="+7 (___) ___-__-__">
-      </div>
-      <div class="form-group">
-        <label>Комментарий к наряду:</label>
-        <input type="text" id="client_comment" placeholder="Доставка, самовывоз, примечания...">
-      </div>
-      <button class="btn-submit" onclick="submitOrder()">ОФОРМИТЬ ЗАКАЗ НА СКЛАД</button>
+      <div class="card-title" id="tSeptic">Канализация и септики «МИШКА-Био»</div>
+      <label id="lblSepticModel">Модель септика:</label>
+      <select id="septicModelSelect">
+        <option value="Септик МИШКА-Био 5" selected>МИШКА-Био 5 (до 5 чел.) — 105 000 ₽</option>
+        <option value="Септик МИШКА-Био 3">МИШКА-Био 3 (до 3 чел.) — 85 000 ₽</option>
+        <option value="Септик МИШКА-Био 8">МИШКА-Био 8 (до 8 чел.) — 138 000 ₽</option>
+      </select>
+      <label id="lblDischarge" style="margin-top:6px;">Сброс воды:</label>
+      <select id="septicDischarge">
+        <option value="gravity" id="optDisGrav">Самотечный (дренаж)</option>
+        <option value="forced" id="optDisForce">Принудительный (насос)</option>
+      </select>
+      <label id="lblPipeDist" style="margin-top:6px;">Длина трассы канализации (м):</label>
+      <input type="number" id="septicDistance" value="10">
     </div>
   </div>
 
-  <div id="tab-septic" class="content">
-    <div class="card"><div class="card-title">Септики «МИШКА-Био»</div><p style="color:var(--text-muted); font-size:14px;">Раздел станций очистки.</p></div>
-  </div>
-  <div id="tab-livnevka" class="content">
-    <div class="card"><div class="card-title">Ливневая канализация</div><p style="color:var(--text-muted); font-size:14px;">Раздел ливневки.</p></div>
-  </div>
-  <div id="tab-drainage" class="content">
-    <div class="card"><div class="card-title">Дренаж участка</div><p style="color:var(--text-muted); font-size:14px;">Раздел дренажных систем.</p></div>
+  <!-- РАЗДЕЛ 3: ДРЕНАЖ -->
+  <div id="secDrain" style="display: none;">
+    <div class="card">
+      <div class="card-title" id="tDrain">Дренаж участка</div>
+      <label id="lblDrainType">Тип системы:</label>
+      <select id="drainTypeSelect">
+        <option value="softrock" id="optDrainSoft" selected>Блоки «Софтрок» / Лайтдрок</option>
+        <option value="classic" id="optDrainClass">Классический (труба в щебне)</option>
+      </select>
+      <div class="grid-2" style="margin-top:6px;">
+        <div>
+          <label id="lblDrainLen">Длина (м):</label>
+          <input type="number" id="drainLength" value="50">
+        </div>
+        <div>
+          <label id="lblDrainWells">Колодцев (шт):</label>
+          <input type="number" id="drainWells" value="3">
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- ЧЕК ДЛЯ КЛИЕНТА ПОСЛЕ ОФОРМЛЕНИЯ -->
+  <!-- РАЗДЕЛ 4: ЛИВНЁВКА -->
+  <div id="secStorm" style="display: none;">
+    <div class="card">
+      <div class="card-title" id="tStorm">Подземная ливневая канализация</div>
+      <div class="grid-2">
+        <div>
+          <label id="lblInlets">Дождеприёмников (шт):</label>
+          <input type="number" id="stormInlets" value="4">
+        </div>
+        <div>
+          <label id="lblStormLen">Длина трубы (м):</label>
+          <input type="number" id="stormLength" value="30">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ЛОГИСТИКА: САМОВЫВОЗ ИЛИ ДОСТАВКА + ЯНДЕКС КАРТЫ -->
+  <div class="card highlight-card">
+    <div class="card-title" id="tLogistics">🚚 Получение заказа</div>
+    <label id="lblLogType">Способ получения:</label>
+    <select id="logisticsType" onchange="toggleLogisticsFields()">
+      <option value="pickup" id="optPickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
+      <option value="delivery" id="optDelivery">🚛 Доставка на объект заказчика</option>
+    </select>
+
+    <div id="pickupBox">
+      <label id="lblPickupTime">Дата и время приезда на склад:</label>
+      <input type="text" id="pickupDateTime" placeholder="Сегодня к 15:30 или завтра утром">
+      <a class="btn-maps" id="btnNavMaps" href="https://yandex.ru/navi?text=56.047416,37.538633&si=vuyt53qweyhyb7h2vyjb16pg04" target="_blank">
+        📍 Открыть склад в Яндекс Навигаторе
+      </a>
+    </div>
+
+    <div id="deliveryBox" style="display: none;">
+      <label id="lblDeliveryAddress">Точный адрес доставки (МО / район / дом):</label>
+      <input type="text" id="deliveryAddress" placeholder="МО, Дмитровский р-н, д. Подосинки...">
+      <label id="lblDeliveryTime">Желаемое время доставки:</label>
+      <input type="text" id="deliveryTime" placeholder="Завтра с 10:00 до 14:00">
+    </div>
+  </div>
+
+  <!-- ДАННЫЕ КЛИЕНТА -->
+  <div class="card highlight-card">
+    <div class="card-title" id="tContact">📞 Контактные данные</div>
+    <label id="lblContactName">Имя клиента / монтажника:</label>
+    <input type="text" id="contactName" placeholder="Например: Федор (Королев)">
+    <label id="lblContactPhone">Телефон для связи:</label>
+    <input type="tel" id="contactPhone" placeholder="+7 (___) ___-__-__">
+  </div>
+
+  <button class="btn-submit" id="btnSubmit" onclick="sendOrder()">🚀 Отправить заказ на склад</button>
+
+  <!-- ЭКРАН ПОДТВЕРЖДЕНИЯ (ЧЕК КЛИЕНТУ) -->
   <div id="receipt-modal" class="receipt-screen">
-    <div style="text-align: center; margin-bottom: 16px;">
-      <div class="receipt-badge">✅ Заказ успешно оформлен!</div>
-      <h2 id="receipt-id" style="font-size: 20px; color: #fff;">Заказ #...</h2>
-      <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Наряд передан на сборку менеджерам склада.</p>
+    <div style="text-align: center; margin-bottom: 14px;">
+      <div class="receipt-badge" id="badgeSuccess">✅ Заказ успешно оформлен!</div>
+      <h3 id="receipt-id" style="font-size: 18px; margin: 6px 0;">Заказ #...</h3>
+      <p style="color: var(--hint); font-size: 13px;" id="receiptSub">Наряд передан менеджерам склада «МИШКА».</p>
     </div>
-    <div id="receipt-details" style="font-size: 14px; margin-bottom: 16px;"></div>
-    <div class="total-box" style="margin-bottom: 16px;">
-      <span>Сумма к оплате:</span>
+    <div id="receipt-details" style="font-size: 13px; margin-bottom: 14px;"></div>
+    <div class="total-box" style="margin-bottom: 14px;">
+      <span id="lblReceiptTotal">Сумма заказа:</span>
       <span id="receipt-total" style="color: #4ade80;">0 ₽</span>
     </div>
-    <button class="btn-submit" style="background: var(--blue);" onclick="resetOrder()">СОЗДАТЬ НОВЫЙ РАСЧЕТ</button>
+    <button class="btn-submit" style="background: var(--btn);" id="btnNewCalc" onclick="resetOrder()">СОЗДАТЬ НОВЫЙ РАСЧЕТ</button>
   </div>
 
   <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.expand(); tg.ready(); }
+
+    let activeTab = 'well';
     let currentItems = [];
     let currentTotal = 0;
-    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-    if (tg) { tg.expand(); }
 
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-      document.getElementById('receipt-modal').style.display = 'none';
-      if (tab === 'kesson') {
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
-        document.getElementById('tab-kesson').classList.add('active');
-        calcKesson();
-      } else if (tab === 'septic') {
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
-        document.getElementById('tab-septic').classList.add('active');
-      } else if (tab === 'livnevka') {
-        document.querySelectorAll('.tab-btn')[2].classList.add('active');
-        document.getElementById('tab-livnevka').classList.add('active');
-      } else if (tab === 'drainage') {
-        document.querySelectorAll('.tab-btn')[3].classList.add('active');
-        document.getElementById('tab-drainage').classList.add('active');
+    const DICT = {
+      ru: {
+        title: "📦 Склад оборудования «МИШКА»",
+        tabWell: "💧 Скважина / Кессон",
+        tabSeptic: "☣️ Септик / Слив",
+        tabDrain: "🌾 Дренаж участка",
+        tabStorm: "🌧 Ливнёвка в земле",
+        lblLang: "🌐 Язык интерфейса",
+        tEquip: "1. Вариант обустройства скважины",
+        lblEquipType: "Тип системы:",
+        optVfd: "Кессон с Частотным Преобразователем (ЧП)",
+        optGa: "Кессон со стандартным гидробаком и реле",
+        optAdapter: "Обустройство через скважинный адаптер TIM",
+        lblKessonModel: "Модель кессона «МИШКА»:",
+        lblTankModel: "Объем гидроаккумулятора BELAMOS:",
+        tParams: "2. Параметры скважины и участка",
+        lblDepth: "Глубина скважины (м):",
+        lblDist: "Расстояние до дома (м):",
+        tSpec: "3. Спецификация оборудования со склада",
+        lblTotalText: "ИТОГО К ОПЛАТЕ:",
+        tLogistics: "🚚 Получение заказа",
+        lblLogType: "Способ получения:",
+        optPickup: "📦 Самовывоз со склада (п. Некрасовский)",
+        optDelivery: "🚛 Доставка на объект заказчика",
+        lblPickupTime: "Дата и время приезда на склад:",
+        btnNavMaps: "📍 Открыть склад в Яндекс Навигаторе",
+        lblDeliveryAddress: "Точный адрес доставки (МО / район / дом):",
+        lblDeliveryTime: "Желаемое время доставки:",
+        tContact: "📞 Контактные данные",
+        lblContactName: "Имя клиента / монтажника:",
+        lblContactPhone: "Телефон для связи:",
+        btnSubmit: "🚀 Отправить заказ на склад",
+        errPhone: "⚠️ Укажите контактный телефон!",
+        errDelivery: "⚠️ Укажите точный адрес доставки!",
+        badgeSuccess: "✅ Заказ успешно оформлен!",
+        receiptSub: "Наряд передан менеджерам склада «МИШКА».",
+        lblReceiptTotal: "Сумма заказа:",
+        btnNewCalc: "СОЗДАТЬ НОВЫЙ РАСЧЕТ",
+        sending: "⏳ Отправка на склад..."
+      },
+      tj: {
+        title: "📦 Анбори таҷҳизоти «МИШКА»",
+        tabWell: "💧 Чоҳ / Кессон",
+        tabSeptic: "☣️ Септик / Слив",
+        tabDrain: "🌾 Дренажи замин",
+        tabStorm: "🌧 Оброҳаи зеризаминӣ",
+        lblLang: "🌐 Забони барнома",
+        tEquip: "1. Намуди таҷҳизоти чоҳ",
+        lblEquipType: "Система:",
+        optVfd: "Кессон бо табдилдиҳандаи басомад (ЧП)",
+        optGa: "Кессон бо гидробак ва реле",
+        optAdapter: "Таҷҳизот тавассути адаптери TIM",
+        lblKessonModel: "Намуди кессони «МИШКА»:",
+        lblTankModel: "Ҳаҷми гидроаккумулятор BELAMOS:",
+        tParams: "2. Параметрҳои чоҳ ва замин",
+        lblDepth: "Чуқурии чоҳ (м):",
+        lblDist: "Масофа то хона (м):",
+        tSpec: "3. Рӯйхати таҷҳизот аз анбор",
+        lblTotalText: "ҲАМАГӢ БАРОИ ПАРДОХТ:",
+        tLogistics: "🚚 Тарзи гирифтани мол",
+        lblLogType: "Тарзи гирифтан:",
+        optPickup: "📦 Худам аз анбор мегирам (Некрасовский)",
+        optDelivery: "🚛 Бурдан ба суроғаи манзил",
+        lblPickupTime: "Сана ва вақти омадан ба анбор:",
+        btnNavMaps: "📍 Кушодани харита (Яндекс Навигатор)",
+        lblDeliveryAddress: "Суроғаи расонидан:",
+        lblDeliveryTime: "Вақти расонидан:",
+        tContact: "📞 Маълумоти тамос",
+        lblContactName: "Номи мизоҷ / усто:",
+        lblContactPhone: "Рақами телефон:",
+        btnSubmit: "🚀 Фармоишро ба анбор фиристед",
+        errPhone: "⚠️ Рақами телефонро нависед!",
+        errDelivery: "⚠️ Суроғаи расониданро нависед!",
+        badgeSuccess: "✅ Фармоиш қабул шуд!",
+        receiptSub: "Фармоиш ба анбори «МИШКА» супорида шуд.",
+        lblReceiptTotal: "Маблағи пардохт:",
+        btnNewCalc: "ҲИСОБИ НАВ",
+        sending: "⏳ Фиристодан..."
+      },
+      uz: {
+        title: "📦 «MISHKA» uskunalar ombori",
+        tabWell: "💧 Quduq / Kesson",
+        tabSeptic: "☣️ Septik / Kanalizatsiya",
+        tabDrain: "🌾 Drenaj tizimi",
+        tabStorm: "🌧 Yomg'ir tizimi",
+        lblLang: "🌐 Dastur tili",
+        tEquip: "1. Quduq tizimi turi",
+        lblEquipType: "Tizim turi:",
+        optVfd: "Kesson chastota boshqaruvi bilan (VFD)",
+        optGa: "Kesson gidroakkumulyator va rele bilan",
+        optAdapter: "TIM adapteri orqali quduq",
+        lblKessonModel: "«MISHKA» kesson modeli:",
+        lblTankModel: "BELAMOS gidroakkumulyator hajmi:",
+        tParams: "2. Quduq va hudud parametrlari",
+        lblDepth: "Quduq chuqurligi (m):",
+        lblDist: "Uygacha masofa (m):",
+        tSpec: "3. Uskunalar ro'yxati ombordan",
+        lblTotalText: "TO'LOV UCHUN JAMI:",
+        tLogistics: "🚚 Buyurtmani olish",
+        lblLogType: "Olish usuli:",
+        optPickup: "📦 Ombordan olib ketish (Nekrasovskiy)",
+        optDelivery: "🚛 Obyektga yetkazib berish",
+        lblPickupTime: "Omborga kelish vaqti:",
+        btnNavMaps: "📍 Yandex Navigatorda ochish",
+        lblDeliveryAddress: "Yetkazib berish manzili:",
+        lblDeliveryTime: "Yetkazish vaqti:",
+        tContact: "📞 Aloqa ma'lumotlari",
+        lblContactName: "Mijoz / usta ismi:",
+        lblContactPhone: "Telefon raqami:",
+        btnSubmit: "🚀 Buyurtmani omborga yuborish",
+        errPhone: "⚠️ Telefon raqamini kiriting!",
+        errDelivery: "⚠️ Yetkazish manzilini kiriting!",
+        badgeSuccess: "✅ Buyurtma qabul qilindi!",
+        receiptSub: "Buyurtma ombor boshqaruviga topshirildi.",
+        lblReceiptTotal: "Buyurtma summasi:",
+        btnNewCalc: "YANGI HISOBLASH",
+        sending: "⏳ Yuborilmoqda..."
+      },
+      hy: {
+        title: "📦 «ՄԻՇԿԱ» սարքավորումների պահեստ",
+        tabWell: "💧 Հորատանցք / Կեսոն",
+        tabSeptic: "☣️ Սեպտիկ / Կոյուղի",
+        tabDrain: "🌾 Դրենաժային համակարգ",
+        tabStorm: "🌧 Անձրևաջրերի համակարգ",
+        lblLang: "🌐 Լեզու",
+        tEquip: "1. Հորատանցքի տեսակ",
+        lblEquipType: "Համակարգի տեսակ:",
+        optVfd: "Կեսոն հաճախականության կարգավորիչով",
+        optGa: "Կեսոն ստանդարտ հիդրոբակով և ռելեով",
+        optAdapter: "TIM ադապտերով համակարգ",
+        lblKessonModel: "«ՄԻՇԿԱ» կեսոնի մոդել:",
+        lblTankModel: "BELAMOS հիդրոակումուլյատորի ծավալ:",
+        tParams: "2. Պարամետրեր",
+        lblDepth: "Հորատանցքի խորություն (մ):",
+        lblDist: "Հեռավորություն մինչև տուն (մ):",
+        tSpec: "3. Ապրանքացուցակ պահեստից",
+        lblTotalText: "ԸՆԴԱՄԵՆԸ ՎՃԱՐՄԱՆ:",
+        tLogistics: "🚚 Ստացման եղանակ",
+        lblLogType: "Ստացման ձև:",
+        optPickup: "📦 Ինքնուրույն պահեստից (Նեկրասովսկի)",
+        optDelivery: "🚛 Առաքում դեպի օբյեկտ",
+        lblPickupTime: "Պահեստ գալու ժամ:",
+        btnNavMaps: "📍 Բացել Yandex Navigator-ում",
+        lblDeliveryAddress: "Առաքման հասցե:",
+        lblDeliveryTime: "Առաքման ժամ:",
+        tContact: "📞 Կոնտակտներ",
+        lblContactName: "Անուն:",
+        lblContactPhone: "Հեռախոսահամար:",
+        btnSubmit: "🚀 Ուղարկել պատվերը պահեստ",
+        errPhone: "⚠️ Նշեք Ձեր հեռախոսահամարը:",
+        errDelivery: "⚠️ Նշեք առաքման հասցեն:",
+        badgeSuccess: "✅ Պատվերն ընդունված է:",
+        receiptSub: "Պատվերը փոխանցված է պահեստ:",
+        lblReceiptTotal: "Գումար:",
+        btnNewCalc: "ՆՈՐ ՀԱՇՎԱՐԿ",
+        sending: "⏳ Ուղարկում..."
+      },
+      ky: {
+        title: "📦 «МИШКА» кампасы",
+        tabWell: "💧 Скважина / Кессон",
+        tabSeptic: "☣️ Септик / Канализация",
+        tabDrain: "🌾 Жер дренажы",
+        tabStorm: "🌧 Ливнёвка түтүгү",
+        lblLang: "🌐 Тилди тандоо",
+        tEquip: "1. Скважинаны жабдуу түрү",
+        lblEquipType: "Система түрү:",
+        optVfd: "Кессон жыштык өзгөрткүчү менен (ЧП)",
+        optGa: "Кессон гидробак жана реле менен",
+        optAdapter: "TIM адаптери аркылуу",
+        lblKessonModel: "«МИШКА» кессон модели:",
+        lblTankModel: "BELAMOS гидробак көлөмү:",
+        tParams: "2. Скважина параметрлери",
+        lblDepth: "Скважина тереңдиги (м):",
+        lblDist: "Үйгө чейинки аралык (м):",
+        tSpec: "3. Кампа жабдууларынын тизмеси",
+        lblTotalText: "ТӨЛӨМ ҮЧҮН ЖАЛПЫ:",
+        tLogistics: "🚚 Заказды алуу",
+        lblLogType: "Алуу ыкмасы:",
+        optPickup: "📦 Кампадан өзү алып кетүү (Некрасовский)",
+        optDelivery: "🚛 Объектке жеткирүү",
+        lblPickupTime: "Кампага келүү убактысы:",
+        btnNavMaps: "📍 Яндекс Навигатордон ачуу",
+        lblDeliveryAddress: "Жеткирүү дареги:",
+        lblDeliveryTime: "Жеткирүү убактысы:",
+        tContact: "📞 Байланыш маалыматтары",
+        lblContactName: "Кардардын аты:",
+        lblContactPhone: "Телефон номери:",
+        btnSubmit: "🚀 Заказды кампага жөнөтүү",
+        errPhone: "⚠️ Телефон номериңизди жазыңыз!",
+        errDelivery: "⚠️ Жеткирүү дарегин жазыңыз!",
+        badgeSuccess: "✅ Заказ кабыл алынды!",
+        receiptSub: "Заказ «МИШКА» кампасына өткөрүлдү.",
+        lblReceiptTotal: "Заказ суммасы:",
+        btnNewCalc: "ЖАҢЫ ЭСЕПТӨӨ",
+        sending: "⏳ Жөнөтүлүүдө..."
       }
+    };
+
+    function selectTab(mode) {
+      activeTab = mode;
+      const tabMap = {
+        well: { btn: 'btnTabWell', sec: 'secWell' },
+        septic: { btn: 'btnTabSeptic', sec: 'secSeptic' },
+        drainage: { btn: 'btnTabDrain', sec: 'secDrain' },
+        storm: { btn: 'btnTabStorm', sec: 'secStorm' }
+      };
+
+      for (let k in tabMap) {
+        const b = document.getElementById(tabMap[k].btn);
+        const s = document.getElementById(tabMap[k].sec);
+        if (b) b.classList.toggle('active', k === mode);
+        if (s) s.style.display = (k === mode) ? 'block' : 'none';
+      }
+      document.getElementById('receipt-modal').style.display = 'none';
+      if (mode === 'well') calcWell();
     }
 
-    async function calcKesson() {
+    function toggleLogisticsFields() {
+      const isDelivery = document.getElementById('logisticsType').value === 'delivery';
+      document.getElementById('pickupBox').style.display = isDelivery ? 'none' : 'block';
+      document.getElementById('deliveryBox').style.display = isDelivery ? 'block' : 'none';
+    }
+
+    function onLanguageChanged() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = DICT[lang] || DICT.ru;
+
+      const setT = (id, text) => {
+        const el = document.getElementById(id);
+        if (el && text) el.innerText = text;
+      };
+
+      setT('uiTitle', t.title);
+      setT('btnTabWell', t.tabWell);
+      setT('btnTabSeptic', t.tabSeptic);
+      setT('btnTabDrain', t.tabDrain);
+      setT('btnTabStorm', t.tabStorm);
+      setT('lblLang', t.lblLang);
+      setT('tEquip', t.tEquip);
+      setT('lblEquipType', t.lblEquipType);
+      setT('optVfd', t.optVfd);
+      setT('optGa', t.optGa);
+      setT('optAdapter', t.optAdapter);
+      setT('lblKessonModel', t.lblKessonModel);
+      setT('lblTankModel', t.lblTankModel);
+      setT('tParams', t.tParams);
+      setT('lblDepth', t.lblDepth);
+      setT('lblDist', t.lblDist);
+      setT('tSpec', t.tSpec);
+      setT('lblTotalText', t.lblTotalText);
+      setT('tLogistics', t.tLogistics);
+      setT('lblLogType', t.lblLogType);
+      setT('optPickup', t.optPickup);
+      setT('optDelivery', t.optDelivery);
+      setT('lblPickupTime', t.lblPickupTime);
+      setT('btnNavMaps', t.btnNavMaps);
+      setT('lblDeliveryAddress', t.lblDeliveryAddress);
+      setT('lblDeliveryTime', t.lblDeliveryTime);
+      setT('tContact', t.tContact);
+      setT('lblContactName', t.lblContactName);
+      setT('lblContactPhone', t.lblContactPhone);
+      setT('btnSubmit', t.btnSubmit);
+      setT('badgeSuccess', t.badgeSuccess);
+      setT('receiptSub', t.receiptSub);
+      setT('lblReceiptTotal', t.lblReceiptTotal);
+      setT('btnNewCalc', t.btnNewCalc);
+
+      calcWell();
+    }
+
+    async function calcWell() {
       const equip_type = document.getElementById('equip_type').value;
       const chosen_kesson = document.getElementById('chosen_kesson').value;
-      const depth = document.getElementById('depth_m').value || 40;
-      const dist = document.getElementById('dist_m').value || 15;
+      const depth = document.getElementById('depth').value || 40;
+      const dist = document.getElementById('dist_1').value || 15;
       const tank = document.getElementById('chosen_tank').value;
 
-      document.getElementById('kesson_select_group').style.display = (equip_type === 'adapter') ? 'none' : 'block';
-      document.getElementById('tank_select_group').style.display = (equip_type === 'kesson_ga' || equip_type === 'adapter') ? 'block' : 'none';
+      document.getElementById('kesson_model_box').style.display = (equip_type === 'adapter') ? 'none' : 'block';
+      document.getElementById('tank_box').style.display = (equip_type === 'kesson_ga' || equip_type === 'adapter') ? 'block' : 'none';
 
       try {
         const res = await fetch('/api/calc_well', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
+            mode: 'well',
             equip_type: equip_type,
             chosen_kesson: chosen_kesson,
-            depth: depth,
-            distance: dist,
+            depth: parseFloat(depth),
+            distance: parseFloat(dist),
             distances: [parseFloat(dist)],
             chosen_tank: tank
           })
@@ -216,77 +590,130 @@
 
     function renderSpec(items, total) {
       let html = '<table class="spec-table"><thead><tr><th>Наименование</th><th>Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead><tbody>';
-      items.forEach((item) => {
-        const itemSum = item.qty * item.price;
+      items.forEach(it => {
+        const itemSum = it.qty * it.price;
         html += `<tr>
-          <td>${item.name}</td>
-          <td>${item.qty} ${item.unit || 'шт'}</td>
-          <td class="num">${item.price.toFixed(2)}</td>
+          <td>${it.name}</td>
+          <td>${it.qty} ${it.unit || 'шт'}</td>
+          <td class="num">${it.price.toFixed(2)}</td>
           <td class="num">${itemSum.toFixed(2)}</td>
         </tr>`;
       });
       html += '</tbody></table>';
       document.getElementById('spec-list').innerHTML = html;
-      document.getElementById('kesson-total').innerText = total.toLocaleString('ru-RU') + ' ₽';
+      document.getElementById('kesson-total').innerText = total.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
     }
 
-    async function submitOrder() {
-      const name = document.getElementById('client_name').value.trim();
-      const phone = document.getElementById('client_phone').value.trim();
-      const comment = document.getElementById('client_comment').value.trim();
+    async function sendOrder() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = DICT[lang] || DICT.ru;
 
-      if (!name) {
-        alert('Пожалуйста, укажите имя клиента или менеджера.');
+      const phone = document.getElementById('contactPhone').value.trim();
+      if (!phone || phone.length < 6) {
+        alert(t.errPhone);
+        document.getElementById('contactPhone').focus();
         return;
       }
 
-      const orderData = {
+      const name = document.getElementById('contactName').value.trim() || 'Монтажник';
+      const logisticsType = document.getElementById('logisticsType').value;
+      let deliveryDetails = '';
+
+      if (logisticsType === 'pickup') {
+        deliveryDetails = document.getElementById('pickupDateTime').value.trim() || 'Самовывоз со склада';
+      } else {
+        const addr = document.getElementById('deliveryAddress').value.trim();
+        if (!addr) {
+          alert(t.errDelivery);
+          document.getElementById('deliveryAddress').focus();
+          return;
+        }
+        const dTime = document.getElementById('deliveryTime').value.trim() || 'В течение дня';
+        deliveryDetails = `Адрес: ${addr} | Время: ${dTime}`;
+      }
+
+      const payload = {
+        mode: activeTab,
+        lang: lang,
         client_name: name,
-        client_phone: phone,
-        comment: comment,
-        type: document.getElementById('equip_type').options[document.getElementById('equip_type').selectedIndex].text,
-        items: currentItems,
-        total: currentTotal,
-        user_id: tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null
+        worker_name: name,
+        phone: phone,
+        delivery_type: logisticsType === 'delivery' ? 'Доставка на объект' : 'Самовывоз со склада',
+        delivery_info: deliveryDetails,
+        user_id: tg?.initDataUnsafe?.user?.id || 0,
+        worker_tag: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : '',
+        equip_type: document.getElementById('equip_type').value,
+        chosen_kesson: document.getElementById('chosen_kesson').value,
+        chosen_tank: document.getElementById('chosen_tank').value,
+        depth: parseFloat(document.getElementById('depth').value || 40),
+        distance: parseFloat(document.getElementById('dist_1').value || 15),
+        distances: [parseFloat(document.getElementById('dist_1').value || 15)],
+        items: currentItems
       };
+
+      if (activeTab === 'septic') {
+        payload.chosen_septic = document.getElementById('septicModelSelect').value;
+        payload.discharge = document.getElementById('septicDischarge').value;
+        payload.distance = parseFloat(document.getElementById('septicDistance').value || 10);
+      } else if (activeTab === 'drainage') {
+        payload.drain_type = document.getElementById('drainTypeSelect').value;
+        payload.drain_length = parseFloat(document.getElementById('drainLength').value || 50);
+        payload.drain_wells = parseInt(document.getElementById('drainWells').value || 3);
+      } else if (activeTab === 'storm') {
+        payload.storm_inlets = parseInt(document.getElementById('stormInlets').value || 4);
+        payload.storm_length = parseFloat(document.getElementById('stormLength').value || 30);
+      }
+
+      const btn = document.getElementById('btnSubmit');
+      btn.innerText = t.sending;
+      btn.disabled = true;
 
       try {
         const res = await fetch('/api/miniapp_order', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(orderData)
+          body: JSON.stringify(payload)
         });
         const resp = await res.json();
         if (resp.status === 'ok') {
-          document.getElementById('tab-kesson').classList.remove('active');
+          document.getElementById('secWell').style.display = 'none';
+          document.getElementById('secSeptic').style.display = 'none';
+          document.getElementById('secDrain').style.display = 'none';
+          document.getElementById('secStorm').style.display = 'none';
+          
           const receipt = document.getElementById('receipt-modal');
           receipt.style.display = 'block';
           document.getElementById('receipt-id').innerText = 'Заказ #' + resp.order_id;
-          document.getElementById('receipt-total').innerText = currentTotal.toLocaleString('ru-RU') + ' ₽';
-          
-          let detHtml = `<p><b>Заказчик:</b> ${name} (${phone || 'телефон не указан'})</p>`;
-          if (comment) detHtml += `<p><b>Примечание:</b> ${comment}</p>`;
-          detHtml += '<div style="margin-top:12px; max-height:240px; overflow-y:auto; border:1px solid #333; padding:8px; border-radius:6px;">';
-          currentItems.forEach((x, i) => {
-            detHtml += `<div style="padding:4px 0; border-bottom:1px solid #2d2d2d; font-size:12px;">${i+1}. ${x.name} — <b>${x.qty} ${x.unit}</b> (${(x.qty*x.price).toFixed(2)} ₽)</div>`;
+          document.getElementById('receipt-total').innerText = (resp.total || currentTotal).toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+
+          let detHtml = `<p><b>Заказчик:</b> ${name} (${phone})</p>`;
+          detHtml += `<p><b>Способ:</b> ${payload.delivery_type}</p>`;
+          if (deliveryDetails && deliveryDetails !== '-') {
+            detHtml += `<p><b>Детали логистики:</b> ${deliveryDetails}</p>`;
+          }
+          detHtml += '<div style="margin-top:10px; max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:6px;">';
+          (resp.items || currentItems).forEach((x, i) => {
+            detHtml += `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px;">${i+1}. ${x.name} — <b>${x.qty} ${x.unit}</b> (${(x.qty*x.price).toFixed(2)} ₽)</div>`;
           });
           detHtml += '</div>';
           document.getElementById('receipt-details').innerHTML = detHtml;
         } else {
-          alert('Ошибка оформления: ' + (resp.message || 'попробуйте позже'));
+          alert('Ошибка оформления заказа: ' + (resp.error || 'попробуйте позже'));
         }
-      } catch (e) {
-        alert('Сетевая ошибка при отправке заказа: ' + e);
+      } catch (err) {
+        alert('Сбой сети при отправке: ' + err);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = t.btnSubmit;
       }
     }
 
     function resetOrder() {
       document.getElementById('receipt-modal').style.display = 'none';
-      document.getElementById('tab-kesson').classList.add('active');
-      calcKesson();
+      selectTab('well');
     }
 
-    calcKesson();
+    calcWell();
   </script>
 </body>
 </html>
