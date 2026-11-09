@@ -1,281 +1,76 @@
-import os
+# -*- coding: utf-8 -*-
+"""
+Единые константы и справочник цен склада «МИШКА»
+Сметы согласованы от 09.11.2026.
+"""
 
-# Прайс-лист склада «МИШКА» (руб.)
 PRICES = {
-    "pnd32": 130,
-    "pnd25": 95,
-    "cable": 220,
-    "rope": 90,
-    "insul": 60,
-    "heat_cable": 350,
-    "ball_valve": 1250,
-    "fitting_32_1": 420,
-    "elbow_32": 480,
-    "unipak": 650,
-    "check_valve": 1450,
-    "nipple": 380,
-    "rope_clips": 120,
-    "rope_thimble": 90,
-    "carabiner": 250,
-    "cable_sleeve": 950,
-    "cable_ties": 5,
-    "well_head": 4200,
-    "wall_seal": 850,
-    "pressure_switch": 2800,
-    "manometer": 650,
-    "five_way": 1650,
-    "filter_bb": 4500,
-    "garden_tap": 1100,
+    # --- КЕССОНЫ И АДАПТЕР ---
+    "kesson_m1": 41170.00,  # Кессон Мишка 1 (муфта 125/133) 1050x2000
+    "kesson_m2": 52000.00,  # Резервные/стандартные размеры линейки
+    "kesson_m3": 65000.00,
+    "kesson_m4": 82000.00,
+    "kesson_long": 58000.00,
+    "adapter_tim_1": 3627.31,  # Адаптер скважинный 1" TIM со сливным клапаном
+    "cover_adapter": 3351.60,  # Крышка скважины Джилекс КС 110-133
+    "well_head_osp": 1916.39,  # Оголовок для скважины Джилекс ОСП 110-133/32
 
-    # Оборудование для вариантов скважины
-    "vfd_controller": 24500,
-    "tank_small_vfd": 3800,
-    "well_adapter_1": 4900,
-    "cover_adapter": 3200,
+    # --- АВТОМАТИКА, БАКИ, ПРИБОРЫ ---
+    "vfd_fil10": 7708.80,      # Частотный преобразователь FIL-10 2.2KW 220V
+    "tank_8bw": 1832.00,       # Гидроаккумулятор BELAMOS 8BW синий (подвесной)
+    "tank_50": 5420.00,
+    "tank_80": 7150.00,
+    "tank_100": 8747.70,      # Гидроаккумулятор 100VT BELAMOS
+    "tank_150": 13900.00,
+    "tank_200": 18200.00,
+    "tank_300": 26500.00,
+    "pressure_switch": 782.40, # Реле давления AQUARIO PS-5-2
+    "manometer": 181.31,       # Манометр радиальный 0-10 бар D53мм 1/4"
 
-    "kesson_m1": 39650,
-    "kesson_m2": 50700,
-    "kesson_m3": 76500,
-    "kesson_m4": 156000,
-    "kesson_long": 65000,
-    "pump_60": 26500,
-    "pump_85": 32000,
-    "pump_110": 39500,
-    "pump_120": 48000,
-    
-    # Гидроаккумуляторы (ГА)
-    "tank_50": 6800,
-    "tank_80": 9800,
-    "tank_100": 12500,
-    "tank_150": 17500,
-    "tank_200": 24000,
-    "tank_300": 34000,
+    # --- ТРУБЫ И КАБЕЛЬ (цена за 1 метр) ---
+    "pipe_ppr_32": 151.42,     # Труба полипропиленовая 32х5,4мм PN20 (белая)
+    "pipe_pnd_32": 78.00,      # Труба ПНД 32х3,0 SDR 11 (PN 16) синяя
+    "pipe_pnd_20": 42.54,      # Труба ПНД 20х2,0 SDR 11 (PN 16) синяя
+    "pipe_pnd_25": 48.46,      # Труба ПНД 25х2,0 мм SDR 13,6 (PN 10) синяя
+    "cable_pvs_3x2_5": 84.89,  # Кабель ПВС 3х2,5, белый, гибкий
+    "rope_3mm_304": 19.20,     # Трос нержавеющая сталь 7х7 AISI 304, 3мм
 
-    "septic_bio3": 85000,
-    "septic_bio5": 105000,
-    "septic_bio8": 138000,
-    "septic_bio10": 165000,
-    "septic_tank2": 62000,
-    "septic_tank3": 82000,
-    "drain_pump": 8500,
-    "drain_hose": 250,
-    "pipe110": 480,
-    "insul110": 140,
-    "elbow110_45": 280,
-    "tee110": 490,
-    "bacteria": 1200,
-    "cable_heat_septic": 380,
+    # --- КРАНЫ И КЛАПАНЫ ---
+    "valve_ppr_32": 180.93,    # Кран шаровой PP-R VALFEX OPTIMA 32мм
+    "valve_watering_1_2": 436.13, # Кран шаровый 1/2" с носиком под шланг
+    "valve_brass_1": 874.43,   # Кран шаровой Вн/Нр (бабочка) 1"
+    "check_valve_1": 750.00,   # Обратный клапан с металлическим седлом 1" Millennium
 
-    "drain_pipe_classic": 280,
-    "drain_softrock": 750,
-    "geotextile_roll": 4500,
-    "well_drain_315": 3800,
-    "well_drain_coupling": 350,
-    "well_cone": 1800,
-    "softrock_coupling": 420,
+    # --- ФИТИНГИ ПОЛИПРОПИЛЕН (PP-R) ---
+    "ppr_union_32_1": 648.03,            # Муфта разъемная PP-R Millennium 32-1" ВР (американка)
+    "ppr_comb_coupling_32_1_hp": 99.88,  # Муфта комб. PP-R Millennium 32-1" HP
+    "ppr_elbow_90_32": 48.33,            # Отвод 90 PP-R Millennium 32мм
+    "ppr_elbow_45_32": 38.20,            # Отвод 45 PP-R Millennium 32мм
+    "ppr_tee_32": 74.70,                 # Тройник PP-R Millennium 32мм
+    "ppr_plug_32": 37.50,                # Заглушка PP-R Millennium 32мм
+    "ppr_coupling_32": 29.83,            # Муфта PP-R Millennium 32мм
+    "ppr_comb_elbow_32_1_2_bp": 169.35,  # Отвод комб. ВР 90 PP-R 32-1/2"
+    "ppr_comb_elbow_32_1_2_hp": 274.83,  # Отвод комб. НР 90 PP-R 32-1/2"
+    "ppr_trans_tee_32_1_2_bp": 174.15,   # Тройник перех. комб. PP-R 32x1/2"x32 ВР
+    "ppr_trans_tee_32_1_bp": 190.46,     # Тройник перех. комб. PP-R 32x1"x32 ВР
+    "ppr_trans_tee_32_1_hp": 305.00,     # Тройник перех. комб. PP-R 32x1"x32 HP
 
-    "storm_inlet_box": 1950,
-    "storm_pipe110": 480,
-    "storm_well_315": 3800,
-    "sand_trap": 2400,
-    "leaf_grate": 350,
-    "storm_back_valve": 2900
-}
+    # --- ФИТИНГИ КОМПРЕССИОННЫЕ ПНД (Unidelta) ---
+    "pnd_coupling_32_1_hp": 263.84, # Муфта ПНД 32х1" HP Unidelta
+    "pnd_elbow_32_1_hp": 319.60,    # Угол ПНД 32x1" HP Unidelta
+    "pnd_coupling_32_32": 472.60,   # Муфта ПНД 32x32 Unidelta
+    "pnd_reduct_32_20": 435.20,     # Муфта ПНД редукц. 32х20 Unidelta
 
-EXTRA_ITEMS = {
-    "pnd32": {"unit": "м", "price": PRICES["pnd32"]},
-    "pnd25": {"unit": "м", "price": PRICES["pnd25"]},
-    "insul": {"unit": "м", "price": PRICES["insul"]},
-    "heat_cable": {"unit": "м", "price": PRICES["heat_cable"]},
-    "ball_valve": {"unit": "шт.", "price": PRICES["ball_valve"]},
-    "fitting_32_1": {"unit": "шт.", "price": PRICES["fitting_32_1"]},
-    "elbow_32": {"unit": "шт.", "price": PRICES["elbow_32"]},
-    "unipak": {"unit": "шт.", "price": PRICES["unipak"]},
-    "pipe110": {"unit": "м", "price": PRICES["pipe110"]},
-    "insul110": {"unit": "м", "price": PRICES["insul110"]},
-    "elbow110_45": {"unit": "шт.", "price": PRICES["elbow110_45"]},
-    "tee110": {"unit": "шт.", "price": PRICES["tee110"]},
-    "bacteria": {"unit": "шт.", "price": PRICES["bacteria"]},
-    "drain_pipe": {"unit": "м", "price": PRICES["drain_pipe_classic"]},
-    "geotextile": {"unit": "рул.", "price": PRICES["geotextile_roll"]},
-    "well_cone": {"unit": "шт.", "price": PRICES["well_cone"]},
-    "sand_trap": {"unit": "шт.", "price": PRICES["sand_trap"]},
-    "leaf_grate": {"unit": "шт.", "price": PRICES["leaf_grate"]}
-}
-
-ITEM_TRANSLATIONS = {
-    "pnd32": {"ru": "Труба ПНД 32 SDR11", "tj": "Қубури ПНД 32 SDR11", "uz": "PND 32 trubasi SDR11", "hy": "Խողովակ ՊՆԴ 32 SDR11", "ky": "ПНД 32 түтүгү SDR11"},
-    "pnd25": {"ru": "Труба ПНД 25 (полив)", "tj": "Қубури ПНД 25 (обёрӣ)", "uz": "PND 25 trubasi (sug'orish)", "hy": "Խողովակ ՊՆԴ 25 (ոռոգում)", "ky": "ПНД 25 түтүгү (сугаруу)"},
-    "insul": {"ru": "Утеплитель Энергофлекс 32", "tj": "Гармидиҳандаи Энергофлекс 32", "uz": "Energofleks izolyatsiyasi 32", "hy": "Ջերմամեկուսիչ Էներգոֆլեքս 32", "ky": "Энергофлекс жылуулагычы 32"},
-    "heat_cable": {"ru": "Кабель греющий саморег.", "tj": "Кабели гармкунанда", "uz": "Isitish kabeli", "hy": "Տաքացնող մալուխ", "ky": "Жылытуучу кабель"},
-    "ball_valve": {"ru": 'Кран 1" с американкой', "tj": 'Крани 1" бо американка', "uz": 'Kran 1" amerikanka bilan', "hy": 'Ծորակ 1" ամերիկանկայով', "ky": 'Кран 1" американка менен'},
-    "fitting_32_1": {"ru": 'Муфта ПНД 32х1" НР', "tj": 'Муфтаи ПНД 32х1" БО', "uz": 'Mufta PND 32x1" TQ', "hy": 'Կցորդիչ ՊՆԴ 32х1" ԱՊ', "ky": 'Муфта ПНД 32х1" СТ'},
-    "elbow_32": {"ru": "Уголок ПНД 32х32 (90°)", "tj": "Кунҷак ПНД 32х32 (90°)", "uz": "Tirsak PND 32x32 (90°)", "hy": "Անկյունակ ՊՆԴ 32х32 (90°)", "ky": "Бурчтук ПНД 32х32 (90°)"},
-    "unipak": {"ru": "Лён + паста Unipak", "tj": "Зиғирпоя (лён) + хамираи Unipak", "uz": "Zig'ir tolasi + Unipak pasta", "hy": "Վուշաթել + մածուկ Unipak", "ky": "Зыгыр буласы + Unipak пастасы"},
-    "pipe110": {"ru": "Труба рыжая 110х3.2 наружная", "tj": "Қубури норинҷӣ 110 беруна", "uz": "Zarg'aldoq quvur 110 tashqi", "hy": "Նարնջագույն խողովակ 110", "ky": "Кызгылт түтүк 110 тышкы"},
-    "insul110": {"ru": "Утеплитель для трубы 110", "tj": "Гармидиҳанда барои қубури 110", "uz": "110 quvur uchun izolyatsiya", "hy": "Ջերմամեկուսիչ 110", "ky": "110 түтүк жылуулагычы"},
-    "elbow110_45": {"ru": "Отвод 110х45° рыжий", "tj": "Кунҷак 110х45° норинҷӣ", "uz": "Tirsak 110x45° zarg'aldoq", "hy": "Անկյունակ 110х45°", "ky": "Бурчтук 110х45°"},
-    "tee110": {"ru": "Тройник 110х110х87° рыжий", "tj": "Тройник 110х110х87°", "uz": "Troynik 110x110x87°", "hy": "Եռաբաշխիչ 110х110х87°", "ky": "Тройник 110х110х87°"},
-    "bacteria": {"ru": "Бактерии для септика (старт)", "tj": "Бактерия барои септик", "uz": "Septik uchun bakteriyalar", "hy": "Բակտերիաներ սեպտիկի համար", "ky": "Септик бактериялары"},
-    "drain_pipe": {"ru": "Труба дренажная 110 с перфорацией", "tj": "Қубури дренажӣ 110", "uz": "Drenaj quvuri 110", "hy": "Դրենաժային խողովակ 110", "ky": "Дренаж түтүгү 110"},
-    "geotextile": {"ru": "Геотекстиль иглопробивной (рулон)", "tj": "Геотекстил (рулон)", "uz": "Geotekstil (rulon)", "hy": "Գեոտեքստիլ (ռուլոն)", "ky": "Геотекстиль (рулон)"},
-    "well_cone": {"ru": "Конус-переходник для колодца 315", "tj": "Гузаришгоҳ барои чоҳи 315", "uz": "315 quduq adapteri", "hy": "315 հորի կոն", "ky": "315 кудук конусу"},
-    "sand_trap": {"ru": "Пескоуловитель пластиковый 110", "tj": "Қумгирак 110", "uz": "Qum tutgich 110", "hy": "Ավազորսիչ 110", "ky": "Кум туткуч 110"},
-    "leaf_grate": {"ru": "Листвоуловитель для дождеприёмника", "tj": "Барггирак барои бороноб", "uz": "Barg tutqich panjara", "hy": "Տերևորսիչ ցանց", "ky": "Жалбырак тоскуч"}
-}
-
-ALL_CATALOG_ITEMS = [
-    {"code": "kesson_m1", "name": "Кессон «МИШКА-1» (Ø1050)", "price": PRICES["kesson_m1"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "kesson_m2", "name": "Кессон «МИШКА-2» (Ø1300)", "price": PRICES["kesson_m2"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "kesson_m3", "name": "Кессон «МИШКА-3» (Ø1600)", "price": PRICES["kesson_m3"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "kesson_m4", "name": "Кессон «МИШКА-4» (Ø2100)", "price": PRICES["kesson_m4"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "kesson_long", "name": "Кессон «МИШКА LONG» (H=2500)", "price": PRICES["kesson_long"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "vfd_controller", "name": "Частотный преобразователь с датчиком", "price": PRICES["vfd_controller"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "well_adapter_1", "name": 'Адаптер скважинный 1" (бронза)', "price": PRICES["well_adapter_1"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "cover_adapter", "name": "Крышка скважинная под адаптер", "price": PRICES["cover_adapter"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "pump_60", "name": "Насос скважинный (до 65 м)", "price": PRICES["pump_60"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "pump_85", "name": "Насос скважинный (до 90 м)", "price": PRICES["pump_85"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "pump_110", "name": "Насос усиленный (до 115 м)", "price": PRICES["pump_110"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "tank_50", "name": "Гидроаккумулятор 50 л", "price": PRICES["tank_50"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "tank_80", "name": "Гидроаккумулятор 80 л", "price": PRICES["tank_80"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "tank_100", "name": "Гидроаккумулятор 100 л", "price": PRICES["tank_100"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "tank_150", "name": "Гидроаккумулятор 150 л", "price": PRICES["tank_150"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "tank_200", "name": "Гидроаккумулятор 200 л", "price": PRICES["tank_200"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "tank_300", "name": "Гидроаккумулятор 300 л", "price": PRICES["tank_300"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "tank_small_vfd", "name": "Гидроаккумулятор буферный 5–8 л для ПЧ", "price": PRICES["tank_small_vfd"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "septic_bio3", "name": "Станция «МИШКА-Био 3»", "price": PRICES["septic_bio3"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "septic_bio5", "name": "Станция «МИШКА-Био 5»", "price": PRICES["septic_bio5"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "septic_bio8", "name": "Станция «МИШКА-Био 8»", "price": PRICES["septic_bio8"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "septic_tank2", "name": "Накопитель МИШКА 2.0 м³", "price": PRICES["septic_tank2"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "drain_softrock", "name": "Блоки «Софтрок/Лайтдрок» 110 (L=3м)", "price": PRICES["drain_softrock"], "unit": "м", "unit_key": "unit_m"},
-    {"code": "drain_pipe", "name": "Труба дренажная 110 с перфорацией", "price": PRICES["drain_pipe_classic"], "unit": "м", "unit_key": "unit_m"},
-    {"code": "well_drain_315", "name": "Колодец смотровой d315 + люк + дно", "price": PRICES["well_drain_315"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "storm_inlet_box", "name": "Дождеприёмник 300х300 с решёткой", "price": PRICES["storm_inlet_box"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "pnd32", "name": "Труба ПНД PE-100 SDR11 Ø32 мм", "price": PRICES["pnd32"], "unit": "м", "unit_key": "unit_m"},
-    {"code": "pnd25", "name": "Труба ПНД 25 (полив)", "price": PRICES["pnd25"], "unit": "м", "unit_key": "unit_m"},
-    {"code": "pipe110", "name": "Труба рыжая 110х3.2 наружная", "price": PRICES["pipe110"], "unit": "м", "unit_key": "unit_m"},
-    {"code": "insul", "name": "Утеплитель Энергофлекс 32", "price": PRICES["insul"], "unit": "м", "unit_key": "unit_m"},
-    {"code": "insul110", "name": "Утеплитель для трубы 110", "price": PRICES["insul110"], "unit": "м", "unit_key": "unit_m"},
-    {"code": "heat_cable", "name": "Кабель греющий саморег.", "price": PRICES["heat_cable"], "unit": "м", "unit_key": "unit_m"},
-    {"code": "ball_valve", "name": 'Кран 1" с американкой', "price": PRICES["ball_valve"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "fitting_32_1", "name": 'Муфта ПНД 32х1" НР', "price": PRICES["fitting_32_1"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "elbow_32", "name": "Уголок ПНД 32х32 (90°)", "price": PRICES["elbow_32"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "elbow110_45", "name": "Отвод 110х45° рыжий", "price": PRICES["elbow110_45"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "tee110", "name": "Тройник 110х110х87° рыжий", "price": PRICES["tee110"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "bacteria", "name": "Бактерии для септика (старт)", "price": PRICES["bacteria"], "unit": "шт.", "unit_key": "unit_pcs"},
-    {"code": "geotextile", "name": "Геотекстиль иглопробивной (рулон)", "price": PRICES["geotextile_roll"], "unit": "рул.", "unit_key": "unit_roll"},
-    {"code": "sand_trap", "name": "Пескоуловитель пластиковый 110", "price": PRICES["sand_trap"], "unit": "шт.", "unit_key": "unit_pcs"}
-]
-
-MESSAGES = {
-    "ru": {
-        "order_title": "🧾 <b>НОВЫЙ ЗАКАЗ #{order_id} «МИШКА»</b>",
-        "client": "👷 <b>Заказчик:</b> {name} ({tag})",
-        "phone": "📞 <b>Телефон:</b> {phone}",
-        "pickup_type": "📦 <b>Самовывоз со склада</b>",
-        "delivery_type": "🚛 <b>ДОСТАВКА НА ОБЪЕКТ</b>",
-        "addr_label": "📍 <b>Адрес доставки:</b> <code>{addr}</code>",
-        "time_label": "🕒 <b>Время:</b> <i>{time}</i>",
-        "spec_title": "📦 <b>СПЕЦИФИКАЦИЯ:</b>",
-        "total": "💰 <b>ИТОГО К ОПЛАТЕ: {sum} ₽</b>",
-        "accepted": "✅ <b>Ваш заказ принят складом! Номер: #{order_id}</b>\n\n{body}\n\n⏳ <i>Мы оповестим вас здесь, как только заказ будет собран!</i>",
-        "collected_title": "🎉 <b>ВАШ ЗАКАЗ #{order_id} ПОЛНОСТЬЮ СОБРАН!</b>",
-        "collected_body": "📦 Все комплектующие проверены и готовы к выдаче на складе «МИШКА».\n💰 Сумма к оплате: <b>{sum} ₽</b>\n🚚 Способ: <b>{delivery}</b>\n\nЖдём вас на складе!",
-        "paid_title": "✅ <b>ЗАКАЗ #{order_id} ОПЛАЧЕН И ВЫДАН!</b>",
-        "paid_body": "💰 Оплата успешно проведена: <b>{method}</b>\nСумма: <b>{sum} ₽</b>\n\nБлагодарим за сотрудничество с заводом «МИШКА»!",
-        "btn_nav_sklad": "📍 Маршрут к складу (Яндекс)",
-        "btn_repeat": "🔄 Повторить этот заказ",
-        "unit_m": "м",
-        "unit_pcs": "шт.",
-        "unit_set": "компл.",
-        "unit_roll": "рул."
-    },
-    "tj": {
-        "order_title": "🧾 <b>ФАРМОИШИ НАВ #{order_id} «МИШКА»</b>",
-        "client": "👷 <b>Мизоҷ:</b> {name} ({tag})",
-        "phone": "📞 <b>Телефон:</b> {phone}",
-        "pickup_type": "📦 <b>Худам аз анбор мегирам</b>",
-        "delivery_type": "🚛 <b>БУРДАН БА СУРОҒАИ МАНЗИЛ</b>",
-        "addr_label": "📍 <b>Суроғаи расонидан:</b> <code>{addr}</code>",
-        "time_label": "🕒 <b>Вақт:</b> <i>{time}</i>",
-        "spec_title": "📦 <b>РӮЙХАТИ ТАҶҲИЗОТ:</b>",
-        "total": "💰 <b>ҲАМАГӢ БАРОИ ПАРДОХТ: {sum} ₽</b>",
-        "accepted": "✅ <b>Фармоиши шумо қабул шуд! Рақам: #{order_id}</b>\n\n{body}\n\n⏳ <i>Ҳамин ки бор дар анбор омода шуд, мо ба шумо хабар медиҳем!</i>",
-        "collected_title": "🎉 <b>ФАРМОИШИ ШУМО #{order_id} ПУРРА ОМОДА ШУД!</b>",
-        "collected_body": "📦 Ҳамаи таҷҳизот санҷида шуда, дар анбори «МИШКА» омода аст.\n💰 Маблағи пардохт: <b>{sum} ₽</b>\n🚚 Тарзи гирифтан: <b>{delivery}</b>\n\nШуморо дар анбор интизорем!",
-        "paid_title": "✅ <b>ФАРМОИШ #{order_id} СУПОРИДА ШУД!</b>",
-        "paid_body": "💰 Пардохт қабул шуд: <b>{method}</b>\nМаблағ: <b>{sum} ₽</b>\n\nТашаккур барои ҳамкорӣ бо корхонаи «МИШКА»!",
-        "btn_nav_sklad": "📍 Харитаи роҳ ба анбор (Яндекс)",
-        "btn_repeat": "🔄 Ин фармоишро такрор кардан",
-        "unit_m": "м",
-        "unit_pcs": "дона",
-        "unit_set": "маҷм.",
-        "unit_roll": "рулон"
-    },
-    "uz": {
-        "order_title": "🧾 <b>YANGI BUYURTMA #{order_id} «MISHKA»</b>",
-        "client": "👷 <b>Buyurtmachi:</b> {name} ({tag})",
-        "phone": "📞 <b>Telefon:</b> {phone}",
-        "pickup_type": "📦 <b>Ombordan olib ketish</b>",
-        "delivery_type": "🚛 <b>OBYEKTGA YETKAZIB BERISH</b>",
-        "addr_label": "📍 <b>Yetkazish manzili:</b> <code>{addr}</code>",
-        "time_label": "🕒 <b>Vaqti:</b> <i>{time}</i>",
-        "spec_title": "📦 <b>MAHSULOTLAR RO'YXATI:</b>",
-        "total": "💰 <b>TO'LOV UCHUN JAMI: {sum} ₽</b>",
-        "accepted": "✅ <b>Buyurtmangiz qabul qilindi! Raqam: #{order_id}</b>\n\n{body}\n\n⏳ <i>Buyurtma omborda tayyor bo'lishi bilan bu yerda xabar beramiz!</i>",
-        "collected_title": "🎉 <b>BUYURTMANGIZ #{order_id} TO'LIQ TAYYOR BO'LDI!</b>",
-        "collected_body": "📦 Barcha uskunalar tekshirildi va «MISHKA» omborida tayyor.\n💰 To'lov summasi: <b>{sum} ₽</b>\n🚚 Qabul qilish: <b>{delivery}</b>\n\nSizni omborda kutamiz!",
-        "paid_title": "✅ <b>BUYURTMA #{order_id} TO'LANDI VA TOPSHIRILDI!</b>",
-        "paid_body": "💰 To'lov qabul qilindi: <b>{method}</b>\nSumma: <b>{sum} ₽</b>\n\n«MISHKA» zavodi bilan hamkorlik uchun rahmat!",
-        "btn_nav_sklad": "📍 Omborga yo'nalish (Yandeks)",
-        "btn_repeat": "🔄 Ushbu buyurtmani takrorlash",
-        "unit_m": "m",
-        "unit_pcs": "dona",
-        "unit_set": "to'plam",
-        "unit_roll": "rulon"
-    },
-    "hy": {
-        "order_title": "🧾 <b>ՆՈՐ ՊԱՏՎԵՐ #{order_id} «ՄԻՇԿԱ»</b>",
-        "client": "👷 <b>Հաճախորդ:</b> {name} ({tag})",
-        "phone": "📞 <b>Հեռախոս:</b> {phone}",
-        "pickup_type": "📦 <b>Ինքնուրույն պահեստից</b>",
-        "delivery_type": "🚛 <b>ԱՌԱՔՈՒՄ ԴԵՊԻ ՕԲՅԵԿՏ</b>",
-        "addr_label": "📍 <b>Առաքման հասցե:</b> <code>{addr}</code>",
-        "time_label": "🕒 <b>Ժամ:</b> <i>{time}</i>",
-        "spec_title": "📦 <b>ԱՊՐԱՆՔԱՑՈՒՑԱԿ:</b>",
-        "total": "💰 <b>ԸՆԴԱՄԵՆԸ ՎՃԱՐՄԱՆ: {sum} ₽</b>",
-        "accepted": "✅ <b>Ձեր պատվերն ընդունված է: Համար: #{order_id}</b>\n\n{body}\n\n⏳ <i>Մենք կտեղեկացնենք Ձեզ, երբ պատվերը պատրաստ լինի:</i>",
-        "collected_title": "🎉 <b>ՁԵՐ ՊԱՏՎԵՐԸ #{order_id} ԱՄԲՈՂՋՈՒԹՅԱՄԲ ՀԱՎԱՔՎԱԾ Է:</b>",
-        "collected_body": "📦 Բոլոր ապրանքները ստուգված են և պատրաստ են «ՄԻՇԿԱ» պահեստում:\n💰 Գումար: <b>{sum} ₽</b>\n🚚 Ստացում: <b>{delivery}</b>\n\nՍպասում ենք Ձեզ պահեստում:",
-        "paid_title": "✅ <b>ՊԱՏՎԵՐ #{order_id} ՎՃԱՐՎԱԾ Է:</b>",
-        "paid_body": "💰 Վճարման եղանակ: <b>{method}</b>\nԳումար: <b>{sum} ₽</b>\n\nՇնորհակալություն «ՄԻՇԿԱ» գործարանի հետ համագործակցության համար:",
-        "btn_nav_sklad": "📍 Ճանապարհ դեպի պահեստ (Yandex)",
-        "btn_repeat": "🔄 Կրկնել այս պատվերը",
-        "unit_m": "մ",
-        "unit_pcs": "հատ",
-        "unit_set": "հավաք.",
-        "unit_roll": "ռուլոն"
-    },
-    "ky": {
-        "order_title": "🧾 <b>ЖАҢЫ ЗАКАЗ #{order_id} «МИШКА»</b>",
-        "client": "👷 <b>Кардар:</b> {name} ({tag})",
-        "phone": "📞 <b>Телефон:</b> {phone}",
-        "pickup_type": "📦 <b>Кампадан өзү алып кетүү</b>",
-        "delivery_type": "🚛 <b>ОБЪЕКТКЕ ЖЕТКИРҮҮ</b>",
-        "addr_label": "📍 <b>Жеткирүү дареги:</b> <code>{addr}</code>",
-        "time_label": "🕒 <b>Убактысы:</b> <i>{time}</i>",
-        "spec_title": "📦 <b>СПЕЦИФИКАЦИЯ:</b>",
-        "total": "💰 <b>ТӨЛӨМ ҮЧҮН ЖАЛПЫ: {sum} ₽</b>",
-        "accepted": "✅ <b>Заказыңыз кабыл алынды! Номери: #{order_id}</b>\n\n{body}\n\n⏳ <i>Кампада жүк топтолору менен сизге кабар беребиз!</i>",
-        "collected_title": "🎉 <b>СИЗДИН ЗАКАЗ #{order_id} ТОЛУГУ МЕНЕН ТОПТОЛДУ!</b>",
-        "collected_body": "📦 Бардык жабдуулар текшерилди жана «МИШКА» кампасында даяр.\n💰 Төлөм суммасы: <b>{sum} ₽</b>\n🚚 Алуу түрү: <b>{delivery}</b>\n\nКампада сизди күтөбүз!",
-        "paid_title": "✅ <b>ЗАКАЗ #{order_id} ТӨЛӨНДҮ ЖАНА БЕРИЛДИ!</b>",
-        "paid_body": "💰 Төлөм түрү: <b>{method}</b>\nСумма: <b>{sum} ₽</b>\n\n«МИШКА» заводу менен кызматташканыңыз үчүн рахмат!",
-        "btn_nav_sklad": "📍 Кампага баруучу жол (Яндекс)",
-        "btn_repeat": "🔄 Бул заказды кайталоо",
-        "unit_m": "м",
-        "unit_pcs": "даана",
-        "unit_set": "компл.",
-        "unit_roll": "рулон"
-    }
+    # --- ПОДВОДКИ, ЛАТУНЬ И МЕЛОЧЕВКА ---
+    "hose_giant_1_80cm": 761.93,     # Подводка для воды угловая 1" 80см г/г ГИГАНТ
+    "hose_straight_1_2_60cm": 160.00,# Подводка для воды прямая 1/2" 60см г/г
+    "brass_tee_1_bbb": 640.17,       # Тройник ВВВ 1" латунь Millenium
+    "brass_tee_1_2_bbb": 192.42,     # Тройник ВВВ 1/2" латунь
+    "brass_nipple_1": 196.76,        # Ниппель НН 1" латунь
+    "brass_nipple_1_2": 70.88,       # Ниппель НН 1/2" латунь
+    "brass_nipple_1_2_1_4": 70.88,   # Ниппель перех. НН 1/2"x1/4" латунь
+    "brass_nipple_1_2_3_8": 66.54,   # Ниппель перех. НН 1/2"x3/8" латунь
+    "brass_bushing_1_2_1_4": 75.23,  # Футорка НВ 1/2"x1/4" латунь
+    "cable_clamp_4mm": 40.80,        # Зажим для троса AISI 316 4мм
+    "plug_16a": 64.42,               # Вилка электрическая прямая 16A 250B
 }
