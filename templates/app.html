@@ -119,7 +119,18 @@
       <div id="distanceContainer" style="margin-top: 8px;"></div>
     </div>
 
-    <div class="card">
+    <!-- ТИП ОБУСТРОЙСТВА СКВАЖИНЫ -->
+    <div class="card highlight-card">
+      <label id="lblWellEquipType">Тип обустройства скважины</label>
+      <select id="wellEquipType" onchange="toggleWellEquipFields()">
+        <option value="kesson_vfd" id="optEquipVfd" selected>⚡ Обустройство кессона через частотный преобразователь</option>
+        <option value="kesson_ga" id="optEquipGa">📦 Обустройство кессона стандартный ГА</option>
+        <option value="adapter" id="optEquipAdapter">🔩 Обустройство через скважинный адаптер</option>
+      </select>
+    </div>
+
+    <!-- ВЫБОР КЕССОНА (скрыт при адаптере) -->
+    <div class="card" id="boxKessonSelect">
       <label id="lblKesson">Выбор кессона</label>
       <select id="kessonSelect">
         <option value="auto" id="optKessonAuto">🤝 На выбор продавца (автоподбор)</option>
@@ -128,6 +139,16 @@
         <option value="Мишка 3 (Ø1600)">Мишка 3 (Ø1600 мм)</option>
         <option value="Мишка 4 (Ø2100)">Мишка 4 (Ø2100 мм)</option>
         <option value="Мишка LONG (H=2500)">Мишка LONG (H=2500 мм)</option>
+      </select>
+    </div>
+
+    <!-- ВЫБОР ГИДРОБАКА (только для стандартного ГА) -->
+    <div class="card" id="boxHydrotankSelect" style="display: none;">
+      <label id="lblHydrotank">Выбор гидроаккумулятора (ГА)</label>
+      <select id="hydrotankSelect">
+        <option value="auto" id="optHydroAuto">🤝 Автоподбор по числу домов</option>
+        <option value="tank_80">Гидроаккумулятор 80–100 л</option>
+        <option value="tank_150">Гидроаккумулятор 150–200 л</option>
       </select>
     </div>
 
@@ -249,7 +270,7 @@
     </div>
   </div>
 
-  <!-- ЛОГИСТИКА: САМОВЫВОЗ ИЛИ ДОСТАВКА -->
+  <!-- ЛОГИСТИКА -->
   <div class="card highlight-card">
     <label id="lblLogistics">🚚 Способ получения заказа</label>
     <select id="logisticsType" onchange="toggleLogisticsFields()">
@@ -297,6 +318,12 @@
         lblHouses: "Количество домов",
         distSingle: "Расстояние до дома (м)",
         distMulti: "Дом №{i}: расстояние (м)",
+        lblWellEquipType: "Тип обустройства скважины",
+        optEquipVfd: "⚡ Обустройство кессона через частотный преобразователь",
+        optEquipGa: "📦 Обустройство кессона стандартный ГА",
+        optEquipAdapter: "🔩 Обустройство через скважинный адаптер",
+        lblHydrotank: "Выбор гидроаккумулятора (ГА)",
+        optHydroAuto: "🤝 Автоподбор по числу домов",
         lblKesson: "Выбор кессона",
         kessonAuto: "🤝 На выбор продавца (автоподбор)",
         lblExtrasWell: "Расходники к скважине",
@@ -371,6 +398,12 @@
         lblHouses: "Шумораи хонаҳо",
         distSingle: "Масофа то хона (бо метр)",
         distMulti: "Хонаи №{i}: масофа (бо метр)",
+        lblWellEquipType: "Тарзи таҷҳизонидани чоҳ",
+        optEquipVfd: "⚡ Бо воситаи басомадсоз (частотник)",
+        optEquipGa: "📦 Кессон бо гидробаки стандартӣ",
+        optEquipAdapter: "🔩 Тавассути адаптери чоҳ",
+        lblHydrotank: "Интихоби гидроаккумулятор",
+        optHydroAuto: "🤝 Интихоби автоматӣ",
         lblKesson: "Интихоби кессон",
         kessonAuto: "🤝 Ба ихтиёри фурӯшанда (автоматӣ)",
         lblExtrasWell: "Маводи иловагӣ барои чоҳ",
@@ -445,6 +478,12 @@
         lblHouses: "Uylar soni",
         distSingle: "Uygacha masofa (metrda)",
         distMulti: "{i}-uy: masofa (metrda)",
+        lblWellEquipType: "Quduqni jihozlash turi",
+        optEquipVfd: "⚡ Chastota o'zgartirgich orqali",
+        optEquipGa: "📦 Standart gidrobakli kesson",
+        optEquipAdapter: "🔩 Quduq adapteri orqali",
+        lblHydrotank: "Gidroakkumulyator tanlash",
+        optHydroAuto: "🤝 Avtomatik tanlov",
         lblKesson: "Kesson tanlash",
         kessonAuto: "🤝 Sotuvchi tanloviga (avtomatik)",
         lblExtrasWell: "Quduq uchun qo'shimchalar",
@@ -519,6 +558,12 @@
         lblHouses: "Տների քանակը",
         distSingle: "Հեռավորությունը մինչև տուն (մ)",
         distMulti: "Տուն №{i}: հեռավորություն (մ)",
+        lblWellEquipType: "Հորատանցքի կահավորման տեսակը",
+        optEquipVfd: "⚡ Հաճախականության կարգավորիչով",
+        optEquipGa: "📦 Ստանդարտ հիդրոբակով կեսոն",
+        optEquipAdapter: "🔩 Հորատանցքի ադապտերով",
+        lblHydrotank: "Հիդրոակումուլյատորի ընտրություն",
+        optHydroAuto: "🤝 Ավտոմատ ընտրություն",
         lblKesson: "Կեսոնի ընտրություն",
         kessonAuto: "🤝 Վաճառողի ընտրությամբ (ավտոմատ)",
         lblExtrasWell: "Հորատանցքի նյութեր",
@@ -593,6 +638,12 @@
         lblHouses: "Үйлөрдүн саны",
         distSingle: "Үйгө чейинки аралык (метр)",
         distMulti: "№{i}-үй: аралык (метр)",
+        lblWellEquipType: "Скважинаны жабдуу түрү",
+        optEquipVfd: "⚡ Частотник аркылуу жабдуу",
+        optEquipGa: "📦 Стандарттуу гидробактуу кессон",
+        optEquipAdapter: "🔩 Скважина адаптери аркылуу",
+        lblHydrotank: "Гидроаккумулятор тандоо",
+        optHydroAuto: "🤝 Автоматтык тандоо",
         lblKesson: "Кессон тандоо",
         kessonAuto: "🤝 Сатуучунун тандоосуна (автоматтык)",
         lblExtrasWell: "Скважина материалдары",
@@ -713,6 +764,19 @@
       document.getElementById('deliveryBox').style.display = isDelivery ? 'block' : 'none';
     }
 
+    function toggleWellEquipFields() {
+      const equipType = document.getElementById('wellEquipType').value;
+      const boxKesson = document.getElementById('boxKessonSelect');
+      const boxHydro = document.getElementById('boxHydrotankSelect');
+
+      if (boxKesson) {
+        boxKesson.style.display = (equipType === 'adapter') ? 'none' : 'block';
+      }
+      if (boxHydro) {
+        boxHydro.style.display = (equipType === 'kesson_ga') ? 'block' : 'none';
+      }
+    }
+
     function onLanguageChanged() {
       const lang = document.getElementById('langSelect').value || 'ru';
       const t = DICT[lang] || DICT.ru;
@@ -733,6 +797,12 @@
       safeSetText('lblDepth', t.lblDepth);
       safeSetText('lblYield', t.lblYield);
       safeSetText('lblHouses', t.lblHouses);
+      safeSetText('lblWellEquipType', t.lblWellEquipType);
+      safeSetText('optEquipVfd', t.optEquipVfd);
+      safeSetText('optEquipGa', t.optEquipGa);
+      safeSetText('optEquipAdapter', t.optEquipAdapter);
+      safeSetText('lblHydrotank', t.lblHydrotank);
+      safeSetText('optHydroAuto', t.optHydroAuto);
       safeSetText('lblKesson', t.lblKesson);
       safeSetText('optKessonAuto', t.kessonAuto);
       safeSetText('lblExtrasWell', t.lblExtrasWell);
@@ -784,6 +854,7 @@
 
       renderDistances();
       renderAllItems();
+      toggleWellEquipFields();
     }
 
     function renderDistances() {
@@ -922,7 +993,9 @@
         payload.yield_flow = parseFloat(document.getElementById('yield').value) || 2.5;
         payload.houses = hCount;
         payload.distances = distances;
+        payload.equip_type = document.getElementById('wellEquipType').value;
         payload.chosen_kesson = document.getElementById('kessonSelect').value;
+        payload.chosen_tank = document.getElementById('hydrotankSelect').value;
       } else if (activeTab === 'septic') {
         payload.users = parseInt(document.getElementById('septicUsers').value) || 5;
         payload.discharge = document.getElementById('septicDischarge').value;
