@@ -56,7 +56,9 @@ def handle_miniapp_order():
             "yield_flow": data.get("yield_flow", 2.5),
             "houses": data.get("houses", 1),
             "distances": data.get("distances", [15]),
+            "equip_type": data.get("equip_type", "kesson_vfd"),
             "chosen_kesson": data.get("chosen_kesson", "auto"),
+            "chosen_tank": data.get("chosen_tank", "auto"),
             "users": data.get("users", 5),
             "discharge": data.get("discharge", "gravity"),
             "distance": data.get("distance", 10),
@@ -70,7 +72,6 @@ def handle_miniapp_order():
             "storm_discharge": data.get("storm_discharge", "ditch")
         }
 
-        # Вызов build_order_payload формирует заказ и асинхронно пишет его в Таблицу (1 раз)
         order_id, admin_text, client_text, total_sum = build_order_payload(session_data)
         kb_admin = make_warehouse_keyboard(order_id)
 
@@ -106,7 +107,6 @@ def handle_miniapp_order():
 def handle_callbacks(call):
     data = call.data
 
-    # Чек-лист сборщика
     if data.startswith("chk_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -127,7 +127,6 @@ def handle_callbacks(call):
         st = "взят со склада ✅" if order["collected"][item_idx] else "снят с отметки ❌"
         bot.answer_callback_query(call.id, f"{order['items'][item_idx]['name']}: {st}")
 
-    # Завершение сборки: запись сборщика (Колонка K) и подсветка зеленым
     elif data.startswith("fin_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -166,7 +165,6 @@ def handle_callbacks(call):
             except Exception as e:
                 print(f"[ERR NOTIFY CLIENT] {client_id}: {e}")
 
-    # Меню выбора способа оплаты
     elif data.startswith("paymenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -192,7 +190,6 @@ def handle_callbacks(call):
             reply_markup=kb_pay
         )
 
-    # Фиксация способа оплаты: запись типа оплаты (Колонка L)
     elif data.startswith("setpay_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -243,7 +240,6 @@ def handle_callbacks(call):
             except Exception as e:
                 print(f"[ERR CLIENT PAID NOTIFY] {e}")
 
-    # Запрос причины отмены заказа
     elif data.startswith("cancel_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -260,7 +256,6 @@ def handle_callbacks(call):
         )
         bot.register_next_step_handler(msg, process_cancel_reason, order_id, call.message.message_id)
 
-    # Меню редактирования
     elif data.startswith("editmenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -285,7 +280,6 @@ def handle_callbacks(call):
             reply_markup=kb_edit
         )
 
-    # Выбор позиции каталога
     elif data.startswith("addmenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -302,7 +296,6 @@ def handle_callbacks(call):
 
         bot.send_message(call.message.chat.id, "📦 <b>Выберите позицию для добавления в заказ:</b>", parse_mode="HTML", reply_markup=kb_add)
 
-    # Ввод количества
     elif data.startswith("pickitem_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -324,7 +317,6 @@ def handle_callbacks(call):
         )
         bot.register_next_step_handler(msg, process_add_item_qty, order_id, item_idx)
 
-    # Меню удаления
     elif data.startswith("delmenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -340,7 +332,6 @@ def handle_callbacks(call):
 
         bot.send_message(call.message.chat.id, f"❌ <b>Нажмите на позицию, которую требуется убрать из заказа #{order_id}:</b>", parse_mode="HTML", reply_markup=kb_del)
 
-    # Удаление позиции
     elif data.startswith("delitem_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -368,7 +359,6 @@ def handle_callbacks(call):
             except Exception:
                 pass
 
-    # Возврат к заказу
     elif data.startswith("backorder_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -379,7 +369,6 @@ def handle_callbacks(call):
         kb = make_warehouse_keyboard(order_id)
         bot.send_message(call.message.chat.id, admin_text, parse_mode="HTML", reply_markup=kb)
 
-    # Повтор заказа
     elif data.startswith("repeat_"):
         old_order_id = data.split("_")[1]
         old_order = ACTIVE_ORDERS.get(old_order_id)
