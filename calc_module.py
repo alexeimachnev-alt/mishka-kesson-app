@@ -41,6 +41,12 @@ PRICES = {
     "filter_bb": 4500,
     "garden_tap": 1100,
 
+    # Оборудование для вариантов скважины
+    "vfd_controller": 24500,
+    "tank_small_vfd": 3800,
+    "well_adapter_1": 4900,
+    "cover_adapter": 3200,
+
     "kesson_m1": 39650,
     "kesson_m2": 50700,
     "kesson_m3": 76500,
@@ -133,11 +139,15 @@ ALL_CATALOG_ITEMS = [
     {"code": "kesson_m3", "name": "Кессон «МИШКА-3» (Ø1600)", "price": PRICES["kesson_m3"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "kesson_m4", "name": "Кессон «МИШКА-4» (Ø2100)", "price": PRICES["kesson_m4"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "kesson_long", "name": "Кессон «МИШКА LONG» (H=2500)", "price": PRICES["kesson_long"], "unit": "шт.", "unit_key": "unit_pcs"},
+    {"code": "vfd_controller", "name": "Частотный преобразователь с датчиком", "price": PRICES["vfd_controller"], "unit": "шт.", "unit_key": "unit_pcs"},
+    {"code": "well_adapter_1", "name": "Адаптер скважинный 1\" (бронза)", "price": PRICES["well_adapter_1"], "unit": "шт.", "unit_key": "unit_pcs"},
+    {"code": "cover_adapter", "name": "Крышка скважинная под адаптер", "price": PRICES["cover_adapter"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "pump_60", "name": "Насос скважинный (до 65 м)", "price": PRICES["pump_60"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "pump_85", "name": "Насос скважинный (до 90 м)", "price": PRICES["pump_85"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "pump_110", "name": "Насос усиленный (до 115 м)", "price": PRICES["pump_110"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "tank_80", "name": "Гидроаккумулятор 80-100 л", "price": PRICES["tank_80"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "tank_150", "name": "Гидроаккумулятор 150-200 л", "price": PRICES["tank_150"], "unit": "шт.", "unit_key": "unit_pcs"},
+    {"code": "tank_small_vfd", "name": "Гидроаккумулятор буферный 5–8 л для ПЧ", "price": PRICES["tank_small_vfd"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "septic_bio3", "name": "Станция «МИШКА-Био 3»", "price": PRICES["septic_bio3"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "septic_bio5", "name": "Станция «МИШКА-Био 5»", "price": PRICES["septic_bio5"], "unit": "шт.", "unit_key": "unit_pcs"},
     {"code": "septic_bio8", "name": "Станция «МИШКА-Био 8»", "price": PRICES["septic_bio8"], "unit": "шт.", "unit_key": "unit_pcs"},
@@ -276,7 +286,6 @@ MESSAGES = {
 }
 
 def get_admin_name(user_id) -> str:
-    """Определяет сотрудника склада по Telegram ID."""
     try:
         uid = int(str(user_id).strip())
     except (ValueError, TypeError):
@@ -326,7 +335,6 @@ def _send_to_sheet_now(payload: dict):
         print(f"[SHEET SYNC ERR] {e}")
 
 def sync_to_google_sheet(order_id: str, data: dict, total_sum: int, items_list: list = None):
-    """Первичное добавление строки в Google Sheets строго по порядку A..L."""
     clean_id = str(order_id).strip()
     if clean_id in REGISTERED_SHEET_ORDERS:
         return
@@ -352,7 +360,6 @@ def sync_to_google_sheet(order_id: str, data: dict, total_sum: int, items_list: 
     threading.Thread(target=_send_to_sheet_now, args=(payload,), daemon=True).start()
 
 def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", manager: str = "", payment_method: str = "-", **kwargs):
-    """Обновление статуса, причины (J), сборщика (K) и типа оплаты (L)."""
     order = ACTIVE_ORDERS.get(order_id, {})
     assembler_val = kwargs.get("assembler") or manager or order.get("collected_by", "")
     payment_val = kwargs.get("payment_type") or payment_method or order.get("payment_method", "")
@@ -381,6 +388,8 @@ def get_items_for_order(data: dict):
         houses = data.get("houses", 1)
         distances = data.get("distances", [15])
         selected_kesson = data.get("chosen_kesson", "auto")
+        equip_type = data.get("equip_type", "kesson_vfd")
+        chosen_tank = data.get("chosen_tank", "auto")
 
         total_dist = sum(distances)
         max_dist = max(distances)
@@ -397,30 +406,13 @@ def get_items_for_order(data: dict):
         else:
             pump_name, pump_p = "Насос высоконапорный (120+ м)", PRICES["pump_120"]
 
-        if "Мишка 1" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-1» (Ø1050)", PRICES["kesson_m1"]
-        elif "Мишка 2" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-2» (Ø1300)", PRICES["kesson_m2"]
-        elif "Мишка 3" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-3» (Ø1600)", PRICES["kesson_m3"]
-        elif "Мишка 4" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА-4» (Ø2100)", PRICES["kesson_m4"]
-        elif "LONG" in selected_kesson:
-            k_name, k_p = "Кессон «МИШКА LONG» (H=2500)", PRICES["kesson_long"]
-        else:
-            k_name, k_p = ("Кессон «МИШКА-2» (1000х2000)", PRICES["kesson_m2"]) if houses == 1 else (f"Кессон «МИШКА-3» ({houses} вывода)", PRICES["kesson_m3"])
-
-        tank_name, tank_p = ("Гидроаккумулятор 80-100 л", PRICES["tank_80"]) if houses == 1 else ("Гидроаккумулятор 150-200 л", PRICES["tank_150"])
-
         pnd_m = int((pump_depth * 1.05) + (total_dist * 1.05) + (houses * 4))
         cable_m = int((pump_depth + 5) * 1.1)
         rope_m = int(pump_depth + 6)
         insul_m = int(total_dist + (houses * 2))
 
+        # Базовая часть для всех скважин
         items = [
-            {"name": k_name, "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": k_p},
-            {"name": "Оголовок скважинный 125-133/32", "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["well_head"]},
-            {"name": "Гермоввод ПНД 32 в кессон", "qty": houses + 1, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["wall_seal"]},
             {"name": pump_name, "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": pump_p},
             {"name": "Трос нерж. А2 (Ø4 мм)", "qty": rope_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["rope"]},
             {"name": "Зажимы троса + коуши + карабин", "qty": 1, "unit": "компл.", "unit_key": "unit_set", "price": 950},
@@ -429,11 +421,56 @@ def get_items_for_order(data: dict):
             {"name": "Кабель водопогружной КВВ-П 3х2.5", "qty": cable_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["cable"]},
             {"name": "Муфта термоусадочная клеевая", "qty": 1, "unit": "компл.", "unit_key": "unit_set", "price": PRICES["cable_sleeve"]},
             {"name": "Утеплитель для ПНД 32", "qty": insul_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["insul"]},
-            {"name": tank_name, "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": tank_p},
-            {"name": "Автоматика: реле + манометр + штуцер", "qty": 1, "unit": "компл.", "unit_key": "unit_set", "price": 5100},
             {"name": "Краны шаровые 1\" с американкой", "qty": houses * 2, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["ball_valve"]},
             {"name": "Греющий кабель саморег. для ввода", "qty": houses * 3, "unit": "м", "unit_key": "unit_m", "price": PRICES["heat_cable"]}
         ]
+
+        # ВАРИАНТ 3: Обустройство через скважинный адаптер (без кессона)
+        if equip_type == "adapter":
+            items.extend([
+                {"name": "Адаптер скважинный 1\" (бронза)", "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["well_adapter_1"]},
+                {"name": "Крышка скважинная под адаптер d125-133", "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["cover_adapter"]},
+                {"name": "Гидроаккумулятор 80-100 л (в дом)", "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["tank_80"]},
+                {"name": "Автоматика: реле + манометр + штуцер", "qty": 1, "unit": "компл.", "unit_key": "unit_set", "price": 5100}
+            ])
+        else:
+            # Обустройство с кессоном
+            if "Мишка 1" in selected_kesson:
+                k_name, k_p = "Кессон «МИШКА-1» (Ø1050)", PRICES["kesson_m1"]
+            elif "Мишка 2" in selected_kesson:
+                k_name, k_p = "Кессон «МИШКА-2» (Ø1300)", PRICES["kesson_m2"]
+            elif "Мишка 3" in selected_kesson:
+                k_name, k_p = "Кессон «МИШКА-3» (Ø1600)", PRICES["kesson_m3"]
+            elif "Мишка 4" in selected_kesson:
+                k_name, k_p = "Кессон «МИШКА-4» (Ø2100)", PRICES["kesson_m4"]
+            elif "LONG" in selected_kesson:
+                k_name, k_p = "Кессон «МИШКА LONG» (H=2500)", PRICES["kesson_long"]
+            else:
+                k_name, k_p = ("Кессон «МИШКА-2» (1000х2000)", PRICES["kesson_m2"]) if houses == 1 else (f"Кессон «МИШКА-3» ({houses} вывода)", PRICES["kesson_m3"])
+
+            items.extend([
+                {"name": k_name, "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": k_p},
+                {"name": "Оголовок скважинный 125-133/32", "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["well_head"]},
+                {"name": "Гермоввод ПНД 32 в кессон", "qty": houses + 1, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["wall_seal"]}
+            ])
+
+            # ВАРИАНТ 1: Частотный преобразователь (ПЧ)
+            if equip_type == "kesson_vfd":
+                items.extend([
+                    {"name": "Частотный преобразователь с датчиком давления", "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["vfd_controller"]},
+                    {"name": "Гидроаккумулятор буферный 5–8 л для ПЧ", "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": PRICES["tank_small_vfd"]}
+                ])
+            # ВАРИАНТ 2: Стандартный гидроаккумулятор (ГА) с выбором объема
+            else:
+                if chosen_tank == "tank_150" or (chosen_tank == "auto" and houses > 1):
+                    tank_name, tank_p = "Гидроаккумулятор 150-200 л", PRICES["tank_150"]
+                else:
+                    tank_name, tank_p = "Гидроаккумулятор 80-100 л", PRICES["tank_80"]
+
+                items.extend([
+                    {"name": tank_name, "qty": 1, "unit": "шт.", "unit_key": "unit_pcs", "price": tank_p},
+                    {"name": "Автоматика: реле + манометр + штуцер", "qty": 1, "unit": "компл.", "unit_key": "unit_set", "price": 5100}
+                ])
 
     elif mode == "septic":
         dist = data.get("distance", 10)
