@@ -287,7 +287,9 @@ def sync_to_google_sheet(order_id: str, data: dict, total_sum: float, items_list
         return
     REGISTERED_SHEET_ORDERS.add(clean_id)
 
-    full_client_info = data.get("client_name") or data.get("worker_name", "Заказчик")
+    client_name = data.get("client_name") or data.get("worker_name", "Заказчик")
+    company = data.get("company", "").strip()
+    full_client_info = f"{client_name} [{company}]" if company else client_name
     tag = data.get("worker_tag", "")
     if tag:
         full_client_info += f" ({tag})"
@@ -519,7 +521,9 @@ def render_order_texts(order_id: str, data: dict, items: list, total_sum: float,
     delivery_info = data.get("delivery_info", "-")
     is_delivery = "Доставка" in delivery_type
     phone = data.get("phone") or data.get("client_phone") or "Не указан"
-    worker_name = data.get("client_name") or data.get("worker_name", "Монтажник")
+    raw_name = data.get("client_name") or data.get("worker_name", "Монтажник")
+    company = data.get("company", "").strip()
+    worker_name = f"{raw_name} [Организация: {company}]" if company else raw_name
     tag = data.get("worker_tag", "")
 
     if is_delivery:
