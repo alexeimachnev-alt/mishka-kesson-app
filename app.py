@@ -52,6 +52,40 @@ def api_calculate():
     total = sum(x["price"] * x["qty"] for x in items)
     return jsonify({"items": items, "total": round(total, 2), "status": "success"})
 
+
+@app.route("/api/user_orders", methods=["GET", "POST"])
+def get_user_orders():
+    """Возвращает историю заказов пользователя по user_id или номеру телефона"""
+    try:
+        user_id = request.args.get("user_id") or (request.json or {}).get("user_id")
+        phone = request.args.get("phone") or (request.json or {}).get("phone")
+        
+        results = []
+        for oid, order in ACTIVE_ORDERS.items():
+            match = False
+            if user_id and str(order.get("client_id")) == str(user_id):
+                match = True
+            elif phone and phone in str(order.get("phone")):
+                match = True
+            
+            if match:
+                results.append({
+                    "order_id": oid,
+                    "date": order.get("created_at", "Сегодня"),
+                    "total": order.get("total_sum", 0),
+                    "status": order.get("status", "active"),
+                    "is_works": order.get("is_works", False),
+                    "delivery_type": order.get("delivery_type", ""),
+                    "delivery_info": order.get("delivery_info", ""),
+                    "items": order.get("items", [])
+                })
+        
+        # Сортируем от новых к старым
+        results.reverse()
+        return jsonify({"status": "ok", "orders": results}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/api/miniapp_order", methods=["POST"])
 def handle_miniapp_order():
     try:
@@ -126,6 +160,43 @@ def handle_callbacks(call):
         bot.answer_callback_query(call.id, f"{order['items'][item_idx]['name']}: {st}")
 
     # 2. Завершение сборки: уведомление клиенту + статус в Google Sheets
+    # 1.1. Согласование заказа на монтажные работы
+    elif data.startswith("agree_"):
+        order_id = data.split("_")[1]
+        order = ACTIVE_ORDERS.get(order_id)
+        if not order:
+            bot.answer_callback_query(call.id, "Заказ не найден")
+            return
+
+        manager_name = get_admin_name(call.from_user.id)
+        order["status"] = "completed"
+        order["agreed_by"] = manager_name
+        order["collected_by"] = manager_name
+
+        new_kb = make_warehouse_keyboard(order_id)
+        try:
+            bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=new_kb)
+        except Exception:
+            pass
+
+        update_sheet_status(order_id, "Согласован", assembler=manager_name, manager=manager_name)
+        bot.answer_callback_query(call.id, f"Заказ #{order_id} согласован: {manager_name} 🤝")
+
+        client_id = order.get("client_id")
+        if client_id:
+            try:
+                lang = order.get("lang", "ru")
+                t_client = MESSAGES.get(lang, MESSAGES["ru"])
+                sum_formatted = f"{order['total_sum']:,.2f} ₽"
+                clean_addr = order.get("delivery_info", "-")
+                agree_title = t_client.get("agree_title", f"🤝 <b>ВАШ ЗАКАЗ НА РАБОТЫ #{order_id} СОГЛАСОВАН!</b>").format(order_id=order_id)
+                agree_body = t_client.get("agree_body", "👷 Бригада назначена. Менеджер свяжется для подтверждения даты выезда.\n💰 Сумма: <b>{sum} ₽</b>\n📍 Адрес: <b>{addr}</b>").format(sum=sum_formatted, addr=clean_addr)
+                
+                alert_text = f"{agree_title}\n━━━━━━━━━━━━━━━━━━━━\n{agree_body}"
+                bot.send_message(client_id, alert_text, parse_mode="HTML")
+            except Exception as e:
+                print(f"[ERR NOTIFY CLIENT AGREE] {client_id}: {e}")
+
     elif data.startswith("fin_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)

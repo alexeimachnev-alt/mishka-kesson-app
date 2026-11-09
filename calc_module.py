@@ -202,6 +202,8 @@ MESSAGES = {
         "spec_title": "📦 <b>СПЕЦИФИКАЦИЯ ОБОРУДОВАНИЯ:</b>",
         "total": "💰 <b>ИТОГО К ОПЛАТЕ: {sum} ₽</b>",
         "accepted": "✅ <b>Ваш заказ принят складом! Номер: #{order_id}</b>\n\n{body}\n\n⏳ <i>Мы оповестим вас здесь, как только менеджер укомплектует заказ!</i>",
+        "agree_title": "🤝 <b>ВАШ ЗАКАЗ НА РАБОТЫ #{order_id} СОГЛАСОВАН!</b>",
+        "agree_body": "👷 Бригада монтажников назначена. Менеджер свяжется с вами для подтверждения даты выезда.\n💰 Сумма к оплате: <b>{sum} ₽</b>\n📍 Адрес объекта: <b>{addr}</b>",
         "collected_title": "🎉 <b>ВАШ ЗАКАЗ #{order_id} ПОЛНОСТЬЮ СОБРАН!</b>",
         "collected_body": "📦 Все комплектующие проверены и готовы к выдаче на складе «МИШКА».\n💰 Сумма к оплате: <b>{sum} ₽</b>\n🚚 Способ получения: <b>{delivery}</b>\n\nЖдём вас на складе!",
         "paid_title": "✅ <b>ЗАКАЗ #{order_id} ОПЛАЧЕН И ВЫДАН!</b>",
@@ -672,6 +674,7 @@ def build_order_payload(data: dict):
         "delivery_type": delivery_type,
         "delivery_info": delivery_info,
         "is_delivery": is_delivery,
+        "is_works": is_works,
         "lang": lang,
         "raw_data": data,
         "items": items,
@@ -690,12 +693,15 @@ def make_warehouse_keyboard(order_id: str):
         return None
 
     kb = types.InlineKeyboardMarkup(row_width=1)
+    is_works = bool(order.get("is_works"))
 
-    if order.get("is_delivery"):
+    if order.get("is_delivery") or is_works:
         addr = order.get("delivery_info", "")
         if addr and addr != "-":
-            nav_url = f"https://yandex.ru/navi?text={urllib.parse.quote(addr)}"
-            kb.add(types.InlineKeyboardButton("🚗 Маршрут доставки к клиенту (Яндекс)", url=nav_url))
+            clean_addr = addr.replace("Объект:", "").replace("Адрес:", "").split("|")[0].strip()
+            nav_url = f"https://yandex.ru/navi?text={urllib.parse.quote(clean_addr)}"
+            nav_title = "🚗 Маршрут к объекту (Яндекс)" if is_works else "🚗 Маршрут доставки (Яндекс)"
+            kb.add(types.InlineKeyboardButton(nav_title, url=nav_url))
 
     if order.get("status") == "cancelled":
         reason = order.get("cancel_reason", "")
@@ -704,28 +710,36 @@ def make_warehouse_keyboard(order_id: str):
 
     if order.get("status") == "paid":
         method = order.get("payment_method", "Оплачено")
-        kb.add(types.InlineKeyboardButton(f"✅ ОПЛАЧЕН И ВЫДАН ({method})", callback_data="none"))
+        paid_label = f"✅ РАБОТЫ ОПЛАЧЕНЫ ({method})" if is_works else f"✅ ОПЛАЧЕН И ВЫДАН ({method})"
+        kb.add(types.InlineKeyboardButton(paid_label, callback_data="none"))
         return kb
 
     if order.get("status") == "completed":
-        kb.add(types.InlineKeyboardButton("🎉 ЗАКАЗ СОБРАН НА СКЛАДЕ", callback_data="none"))
-        kb.add(types.InlineKeyboardButton("💳 ОПЛАТИТЬ И ВЫДАТЬ ТОВАР", callback_data=f"paymenu_{order_id}"))
+        status_label = "🤝 ЗАКАЗ СОГЛАСОВАН С КЛИЕНТОМ" if is_works else "🎉 ЗАКАЗ СОБРАН НА СКЛАДЕ"
+        pay_btn_label = "💳 ПРИНЯТЬ ОПЛАТУ ЗА РАБОТЫ" if is_works else "💳 ОПЛАТИТЬ И ВЫДАТЬ ТОВАР"
+        kb.add(types.InlineKeyboardButton(status_label, callback_data="none"))
+        kb.add(types.InlineKeyboardButton(pay_btn_label, callback_data=f"paymenu_{order_id}"))
         kb.row(
             types.InlineKeyboardButton("❌ Отменить заказ", callback_data=f"cancel_{order_id}"),
-            types.InlineKeyboardButton("✏️ Изменить комплектацию", callback_data=f"editmenu_{order_id}")
+            types.InlineKeyboardButton("✏️ Изменить перечень", callback_data=f"editmenu_{order_id}")
         )
         return kb
 
-    for idx, (item, is_done) in enumerate(zip(order["items"], order["collected"])):
-        mark = "🟢" if is_done else "⬜"
-        qty_str = f"{item['qty']:g}" if isinstance(item['qty'], float) else str(item['qty'])
-        short_name = (item['name'][:22] + "..") if len(item['name']) > 22 else item['name']
-        btn_text = f"{mark} {idx+1}. {short_name} ({qty_str} {item.get('unit','шт')})"
-        kb.add(types.InlineKeyboardButton(btn_text, callback_data=f"chk_{order_id}_{idx}"))
+    # ЕСЛИ ЭТО ТОЛЬКО РАБОТЫ: НЕ генерируем кнопки чек-листа склада! Сразу кнопка "Согласовать заказ"
+    if is_works:
+        kb.add(types.InlineKeyboardButton("🤝 СОГЛАСОВАТЬ ЗАКАЗ", callback_data=f"agree_{order_id}"))
+    else:
+        # Для материалов: интерактивный чек-лист склада
+        for idx, (item, is_done) in enumerate(zip(order["items"], order["collected"])):
+            mark = "🟢" if is_done else "⬜"
+            qty_str = f"{item['qty']:g}" if isinstance(item['qty'], float) else str(item['qty'])
+            short_name = (item['name'][:22] + "..") if len(item['name']) > 22 else item['name']
+            btn_text = f"{mark} {idx+1}. {short_name} ({qty_str} {item.get('unit','шт')})"
+            kb.add(types.InlineKeyboardButton(btn_text, callback_data=f"chk_{order_id}_{idx}"))
 
-    all_done = all(order["collected"])
-    finish_icon = "🚀" if all_done else "📦"
-    kb.add(types.InlineKeyboardButton(f"{finish_icon} ЗАКАЗ ПОЛНОСТЬЮ СОБРАН", callback_data=f"fin_{order_id}"))
+        all_done = all(order["collected"])
+        finish_icon = "🚀" if all_done else "📦"
+        kb.add(types.InlineKeyboardButton(f"{finish_icon} ЗАКАЗ ПОЛНОСТЬЮ СОБРАН", callback_data=f"fin_{order_id}"))
 
     kb.row(
         types.InlineKeyboardButton("❌ Отменить", callback_data=f"cancel_{order_id}"),

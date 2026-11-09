@@ -362,28 +362,36 @@
     </div>
   </div>
 
-  <!-- ЛОГИСТИКА: САМОВЫВОЗ ИЛИ ДОСТАВКА + ЯНДЕКС КАРТЫ -->
-  <div class="card highlight-card">
+  <!-- ЛОГИСТИКА: ДЛЯ МАТЕРИАЛОВ (СКЛАД/ДОСТАВКА) ИЛИ ДЛЯ РАБОТ (ТОЛЬКО АДРЕС ОБЪЕКТА) -->
+  <div class="card highlight-card" id="cardLogistics">
     <div class="card-title" id="tLogistics">🚚 Получение заказа</div>
-    <label id="lblLogType">Способ получения:</label>
-    <select id="logisticsType" onchange="toggleLogisticsFields()">
-      <option value="pickup" id="optPickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
-      <option value="delivery" id="optDelivery">🚛 Доставка на объект заказчика</option>
-    </select>
+    
+    <!-- Варианты для материалов: склад или доставка -->
+    <div id="materialsLogisticsWrapper">
+      <label id="lblLogType">Способ получения:</label>
+      <select id="logisticsType" onchange="toggleLogisticsFields()">
+        <option value="pickup" id="optPickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
+        <option value="delivery" id="optDelivery">🚛 Доставка на объект заказчика</option>
+      </select>
 
-    <div id="pickupBox">
-      <label id="lblPickupTime">Дата и время приезда на склад:</label>
-      <input type="text" id="pickupDateTime" placeholder="Сегодня к 15:30 или завтра утром">
-      <a class="btn-maps" id="btnNavMaps" href="https://yandex.ru/navi?text=56.047416,37.538633&si=vuyt53qweyhyb7h2vyjb16pg04" target="_blank">
-        📍 Открыть склад в Яндекс Навигаторе
-      </a>
+      <div id="pickupBox">
+        <label id="lblPickupTime">Дата и время приезда на склад:</label>
+        <input type="text" id="pickupDateTime" placeholder="Сегодня к 15:30 или завтра утром">
+        <a class="btn-maps" id="btnNavMaps" href="https://yandex.ru/navi?text=56.047416,37.538633&si=vuyt53qweyhyb7h2vyjb16pg04" target="_blank">
+          📍 Открыть склад в Яндекс Навигаторе
+        </a>
+      </div>
     </div>
 
+    <!-- Блок адреса: в материалах при доставке, а в РАБОТАХ - ВСЕГДА (без поля склада!) -->
     <div id="deliveryBox" style="display: none;">
-      <label id="lblDeliveryAddress">Точный адрес доставки (МО / район / дом):</label>
-      <input type="text" id="deliveryAddress" placeholder="МО, Дмитровский р-н, д. Подосинки...">
-      <label id="lblDeliveryTime">Желаемое время доставки:</label>
+      <label id="lblDeliveryAddress">Точный адрес проведения работ / доставки:</label>
+      <input type="text" id="deliveryAddress" placeholder="МО, Дмитровский р-н, д. Подосинки, уч. 12...">
+      <label id="lblDeliveryTime">Желаемая дата и время выезда бригады:</label>
       <input type="text" id="deliveryTime" placeholder="Завтра с 10:00 до 14:00">
+      <div id="worksDistanceHint" style="display:none; font-size:0.75rem; color:#94a3b8; margin-top:2px;">
+        * Выезд бригады до 150 км от базы (туда и обратно) входит в стоимость, далее 15 ₽/км.
+      </div>
     </div>
   </div>
 
@@ -400,19 +408,50 @@
 
   <button class="btn-submit" id="btnSubmit" onclick="sendOrder()">🚀 Отправить заказ на склад</button>
 
-  <!-- ЭКРАН ПОДТВЕРЖДЕНИЯ (ЧЕК КЛИЕНТУ) -->
-  <div id="receipt-modal" class="receipt-screen">
+  <!-- КРАСИВОЕ ТАБЛО С ЗАКАЗОМ (ЧЕК ДЛЯ КЛИЕНТА) -->
+  <div id="receipt-modal" class="receipt-screen" style="border: 1.5px solid #3b82f6; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
     <div style="text-align: center; margin-bottom: 14px;">
-      <div class="receipt-badge" id="badgeSuccess">✅ Заказ успешно оформлен!</div>
-      <h3 id="receipt-id" style="font-size: 18px; margin: 6px 0;">Заказ #...</h3>
-      <p style="color: var(--hint); font-size: 13px;" id="receiptSub">Наряд передан менеджерам склада «МИШКА».</p>
+      <div class="receipt-badge" id="badgeSuccess" style="background: #1e3a8a; color: #93c5fd; font-size: 13px; padding: 6px 16px;">
+        🎉 Наряд-заказ успешно зарегистрирован!
+      </div>
+      <h3 id="receipt-id" style="font-size: 22px; font-weight: 800; margin: 8px 0; color: #ffffff;">Заказ #...</h3>
+      <p style="color: #94a3b8; font-size: 13px;" id="receiptSub">
+        Менеджеры завода «МИШКА» уже получили наряд в работу.
+      </p>
     </div>
-    <div id="receipt-details" style="font-size: 13px; margin-bottom: 14px;"></div>
-    <div class="total-box" style="margin-bottom: 14px;">
-      <span id="lblReceiptTotal">Сумма заказа:</span>
-      <span id="receipt-total" style="color: #4ade80;">0 ₽</span>
+
+    <div id="receipt-details" style="font-size: 13px; margin-bottom: 14px; background: #1a222d; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);"></div>
+    
+    <div class="total-box" style="margin-bottom: 16px; background: #132a1e; border-color: #22c55e;">
+      <span id="lblReceiptTotal" style="color: #86efac;">Сумма к оплате:</span>
+      <span id="receipt-total" style="color: #4ade80; font-size: 1.25rem;">0 ₽</span>
     </div>
-    <button class="btn-submit" style="background: var(--btn);" id="btnNewCalc" onclick="resetOrder()">СОЗДАТЬ НОВЫЙ РАСЧЕТ</button>
+
+    <!-- КНОПКИ ДЕЙСТВИЯ: СОБРАТЬ ЕЩЁ ИЛИ ПОСМОТРЕТЬ ВСЕ ЗАКАЗЫ -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+      <button class="btn-submit" style="background: #2563eb; margin: 0; padding: 12px;" id="btnNewCalc" onclick="resetOrder()">
+        ➕ Собрать ещё
+      </button>
+      <button class="btn-submit" style="background: #334155; margin: 0; padding: 12px;" id="btnViewHistory" onclick="openOrderHistory()">
+        📜 Мои заказы
+      </button>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ИСТОРИИ: ВСЕ ЗАКАЗЫ ЗА ВСЁ ВРЕМЯ -->
+  <div id="history-modal" class="receipt-screen" style="display: none; border: 1.5px solid #475569;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+      <h3 style="font-size: 17px; margin: 0; color: #71b1ff;">📜 История всех ваших заказов</h3>
+      <button onclick="closeOrderHistory()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.3rem; cursor: pointer;">✖</button>
+    </div>
+    
+    <div id="history-list-box" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+      <!-- Динамический список заказов -->
+    </div>
+
+    <button class="btn-submit" style="background: #2563eb; margin-top: 14px; margin-bottom: 0;" onclick="closeOrderHistory()">
+      🔙 Вернуться к калькулятору
+    </button>
   </div>
 
   <script>
@@ -1151,6 +1190,97 @@
       }
     }
 
+    
+    // ==================== ИСТОРИЯ ВСЕХ ЗАКАЗОВ ====================
+    function saveOrderToLocalHistory(orderRecord) {
+      try {
+        let history = JSON.parse(localStorage.getItem('mishka_orders_history') || '[]');
+        history.unshift(orderRecord);
+        localStorage.setItem('mishka_orders_history', JSON.stringify(history.slice(0, 50)));
+      } catch(e) {
+        console.error('Ошибка сохранения истории:', e);
+      }
+    }
+
+    async function openOrderHistory() {
+      document.getElementById('receipt-modal').style.display = 'none';
+      document.getElementById('containerMaterials').style.display = 'none';
+      document.getElementById('containerWorks').style.display = 'none';
+      document.getElementById('cardLogistics').style.display = 'none';
+      document.querySelector('.highlight-card:not(#cardLogistics)').style.display = 'none';
+      document.getElementById('btnSubmit').style.display = 'none';
+
+      const historyModal = document.getElementById('history-modal');
+      historyModal.style.display = 'block';
+
+      const listContainer = document.getElementById('history-list-box');
+      listContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:13px;">⏳ Загрузка ваших заказов...</p>';
+
+      const curLang = document.getElementById('langSelect').value || 'ru';
+      let orders = [];
+
+      // 1. Пытаемся получить с сервера
+      const uid = tg?.initDataUnsafe?.user?.id || 0;
+      const phone = document.getElementById('contactPhone').value.trim();
+      try {
+        const res = await fetch(`/api/user_orders?user_id=${uid}&phone=${encodeURIComponent(phone)}`);
+        if (res.ok) {
+          const srvData = await res.json();
+          if (srvData.orders && srvData.orders.length > 0) {
+            orders = srvData.orders;
+          }
+        }
+      } catch(err) {
+        console.log('Сервер заказов недоступен, читаем из памяти устройства...');
+      }
+
+      // 2. Если на сервере пусто или ошибка, берем из локальной памяти устройства
+      if (orders.length === 0) {
+        try {
+          orders = JSON.parse(localStorage.getItem('mishka_orders_history') || '[]');
+        } catch(e) {
+          orders = [];
+        }
+      }
+
+      if (orders.length === 0) {
+        listContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:13px; padding:20px 0;">У вас пока нет оформленных заказов.<br>Соберите свою первую смету!</p>';
+        return;
+      }
+
+      let html = '';
+      orders.forEach((ord, idx) => {
+        const isWorks = ord.is_works || (ord.mode === 'works');
+        const badgeColor = isWorks ? '#d97706' : '#2563eb';
+        const typeLabel = isWorks ? '🔨 Монтажные работы' : '📦 Оборудование и материалы';
+        const totalFormatted = (ord.total || 0).toLocaleString('ru-RU', {minimumFractionDigits: 2});
+
+        html += `
+        <div style="background:#17212b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-weight:700; color:#fff; font-size:14px;">Заказ #${ord.order_id}</span>
+            <span style="background:${badgeColor}; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:12px;">${typeLabel}</span>
+          </div>
+          <div style="font-size:12px; color:#94a3b8; margin-bottom:4px;">
+            <b>Получение:</b> ${ord.delivery_type || ord.delivery_info || '-'}
+          </div>
+          <div style="font-size:13px; font-weight:700; color:#4ade80;">
+            Сумма: ${totalFormatted} ₽
+          </div>
+        </div>`;
+      });
+
+      listContainer.innerHTML = html;
+    }
+
+    function closeOrderHistory() {
+      document.getElementById('history-modal').style.display = 'none';
+      document.getElementById('cardLogistics').style.display = 'block';
+      document.querySelector('.highlight-card:not(#cardLogistics)').style.display = 'block';
+      document.getElementById('btnSubmit').style.display = 'block';
+      switchOrderMode(currentOrderMode);
+    }
+
     function resetOrder() {
       document.getElementById('receipt-modal').style.display = 'none';
       selectTab('well');
@@ -1161,19 +1291,30 @@
       currentOrderMode = mode;
       document.getElementById('btnModeMaterials').classList.toggle('active', mode === 'materials');
       document.getElementById('btnModeWorks').classList.toggle('active', mode === 'works');
+      document.getElementById('receipt-modal').style.display = 'none';
+      document.getElementById('history-modal').style.display = 'none';
 
       if (mode === 'materials') {
         document.getElementById('containerMaterials').style.display = 'block';
         document.getElementById('containerWorks').style.display = 'none';
-        document.getElementById('pickupBox').style.display = document.getElementById('logisticsType').value === 'pickup' ? 'block' : 'none';
-        document.getElementById('deliveryBox').style.display = document.getElementById('logisticsType').value === 'delivery' ? 'block' : 'none';
+        document.getElementById('materialsLogisticsWrapper').style.display = 'block';
+        document.getElementById('tLogistics').innerText = '🚚 Получение заказа';
+        document.getElementById('lblDeliveryAddress').innerText = 'Точный адрес доставки (МО / район / дом):';
+        document.getElementById('lblDeliveryTime').innerText = 'Желаемое время доставки:';
+        document.getElementById('worksDistanceHint').style.display = 'none';
+        toggleLogisticsFields();
         calcWell();
       } else {
         document.getElementById('containerMaterials').style.display = 'none';
         document.getElementById('containerWorks').style.display = 'block';
-        // В режиме работ всегда требуется адрес объекта
-        document.getElementById('pickupBox').style.display = 'none';
+        // Убираем поле склад/самовывоз/яндекс навигатор на склад
+        document.getElementById('materialsLogisticsWrapper').style.display = 'none';
+        // Оставляем только адрес объекта проведения работ и время выезда бригады
         document.getElementById('deliveryBox').style.display = 'block';
+        document.getElementById('tLogistics').innerText = '📍 Адрес проведения монтажных работ';
+        document.getElementById('lblDeliveryAddress').innerText = 'Точный адрес проведения работ (МО / район / дом):';
+        document.getElementById('lblDeliveryTime').innerText = 'Желаемая дата и время выезда бригады:';
+        document.getElementById('worksDistanceHint').style.display = 'block';
         renderWorksList();
       }
     }
