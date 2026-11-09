@@ -1,39 +1,40 @@
 # -*- coding: utf-8 -*-
-from constants import PRICES
+from constants import PRICES, KESSON_MODELS, TANK_CATALOG
 
 def get_well_items(data):
     """
     Расчет обустройства скважины строго по утвержденным сметам от 09.11.2026:
-    1. Базовый комплект обустройства (ЧП / ГА / Адаптер)
-    2. Опуск насоса в скважину (рассчитывается от глубины depth)
-    3. Трасса воды и кабеля в дом (рассчитывается от расстояния distance)
+    Динамически учитывает:
+    - выбранную модель кессона (Мишка 1, 2, 3, 4, Long)
+    - выбранный объем гидроаккумулятора (50, 80, 100, 150, 200, 300 л)
+    - опуск насоса (от глубины depth)
+    - трассу воды и кабеля (от расстояния distance)
     """
     depth = float(data.get("depth", 40))
     distances = data.get("distances", [15])
     distance = float(distances[0]) if distances else float(data.get("distance", 15))
-    selected_kesson = data.get("chosen_kesson", "auto")
+    
+    selected_kesson_key = data.get("chosen_kesson", "kesson_m1")
     equip_type = data.get("equip_type", "kesson_vfd")
-    chosen_tank = str(data.get("chosen_tank", "tank_100"))
+    chosen_tank_key = str(data.get("chosen_tank", "tank_100"))
 
-    tank_catalog = {
-        "tank_50": ("Гидроаккумулятор 50VT BELAMOS", PRICES.get("tank_50", 5420.00)),
-        "tank_80": ("Гидроаккумулятор 80VT BELAMOS", PRICES.get("tank_80", 7150.00)),
-        "tank_100": ("Гидроаккумулятор 100VT BELAMOS", PRICES.get("tank_100", 8747.70)),
-        "tank_150": ("Гидроаккумулятор 150VT BELAMOS", PRICES.get("tank_150", 13900.00)),
-        "tank_200": ("Гидроаккумулятор 200VT BELAMOS", PRICES.get("tank_200", 18200.00)),
-        "tank_300": ("Гидроаккумулятор 300VT BELAMOS", PRICES.get("tank_300", 26500.00)),
-    }
+    # Определение кессона
+    kesson_obj = KESSON_MODELS.get(selected_kesson_key, KESSON_MODELS["kesson_m1"])
+    # Определение гидроаккумулятора
+    tank_obj = TANK_CATALOG.get(chosen_tank_key, TANK_CATALOG["tank_100"])
 
     items = []
 
-    # 1. БАЗОВЫЙ КОМПЛЕКТ ОБУСТРОЙСТВА
+    # =========================================================================
+    # 1. БАЗОВЫЙ НАБОР ОБУСТРОЙСТВА
+    # =========================================================================
     if equip_type == "adapter":
-        t_name, t_price = tank_catalog.get(chosen_tank, tank_catalog["tank_100"])
+        # Смета: Набор Адаптер 1.pdf
         items.extend([
             {"name": "Адаптер скважинный со сливным клапаном 1' TIM", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["adapter_tim_1"]},
             {"name": "Крышка скважины Джилекс КС 110-133", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["cover_adapter"]},
             {"name": "Муфта ПНД 32x1' HP Unidelta", "qty": 4, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_1_hp"]},
-            {"name": f"{t_name} (в дом)", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": t_price},
+            {"name": f"{tank_obj['name']} (в дом)", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": tank_obj["price"]},
             {"name": "Реле давления AQUARIO PS-5-2 (вращ. гайка) Акварио", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pressure_switch"]},
             {"name": "Манометр радиальный 0-10 бар D53мм 1/4", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["manometer"]},
             {"name": "Подводка для воды угловая 1' 80см г/г ГИГАНТ", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["hose_giant_1_80cm"]},
@@ -47,15 +48,9 @@ def get_well_items(data):
         ])
 
     elif equip_type == "kesson_vfd":
-        k_name = "Кессон Мишка 1 (муфта 125/133) 1050x2000"
-        k_price = PRICES["kesson_m1"]
-        if "Мишка 2" in selected_kesson:
-            k_name, k_price = "Кессон Мишка 2 (муфта 125/133) 1300x2000", PRICES["kesson_m2"]
-        elif "Мишка 3" in selected_kesson:
-            k_name, k_price = "Кессон Мишка 3 (муфта 125/133) 1600x2000", PRICES["kesson_m3"]
-
+        # Смета: Набор_кессона_мишка_1_с_частотный_приоброзователь.pdf
         items.extend([
-            {"name": k_name, "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": k_price},
+            {"name": kesson_obj["name"], "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": kesson_obj["price"]},
             {"name": "Труба полипропиленовая 32х5,4мм PN20 (цвет белый)", "qty": 4, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_ppr_32"]},
             {"name": "Отвод 90 PP-R Millennium 32мм (цвет белый)", "qty": 4, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["ppr_elbow_90_32"]},
             {"name": "Отвод 45 PP-R Millennium 32мм (цвет белый)", "qty": 4, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["ppr_elbow_45_32"]},
@@ -77,19 +72,11 @@ def get_well_items(data):
         ])
 
     else:
-        k_name = "Кессон Мишка 1 (муфта 125/133) 1050x2000"
-        k_price = PRICES["kesson_m1"]
-        if "Мишка 2" in selected_kesson:
-            k_name, k_price = "Кессон Мишка 2 (муфта 125/133) 1300x2000", PRICES["kesson_m2"]
-        elif "Мишка 3" in selected_kesson:
-            k_name, k_price = "Кессон Мишка 3 (муфта 125/133) 1600x2000", PRICES["kesson_m3"]
-
-        t_name, t_price = tank_catalog.get(chosen_tank, tank_catalog["tank_100"])
-
+        # Смета: набор_Кессон_мишка_1_обвяска_на_гидробаке_и_РДМ_.pdf
         items.extend([
-            {"name": k_name, "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": k_price},
+            {"name": kesson_obj["name"], "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": kesson_obj["price"]},
             {"name": "Труба полипропиленовая 32х5,4мм PN20 (цвет белый)", "qty": 4, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_ppr_32"]},
-            {"name": t_name, "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": t_price},
+            {"name": tank_obj["name"], "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": tank_obj["price"]},
             {"name": "Отвод 90 PP-R Millennium 32мм (цвет белый)", "qty": 4, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["ppr_elbow_90_32"]},
             {"name": "Отвод 45 PP-R Millennium 32мм (цвет белый)", "qty": 4, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["ppr_elbow_45_32"]},
             {"name": "Заглушка PP-R Millennium 32мм (цвет белый)", "qty": 3, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["ppr_plug_32"]},
@@ -113,7 +100,9 @@ def get_well_items(data):
             {"name": "Ниппель НН 1/2' (латунь)", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["brass_nipple_1_2"]},
         ])
 
+    # =========================================================================
     # 2. ОПУСК НАСОСА В СКВАЖИНУ (от глубины depth)
+    # =========================================================================
     if equip_type != "adapter":
         items.extend([
             {"name": "Обратный клапан с металлическим седлом 1' г/ш Millennium", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["check_valve_1"]},
@@ -135,7 +124,9 @@ def get_well_items(data):
         {"name": "Труба ПНД 32х3,0 SDR 11 (PN 16) бух. 250м (синяя)", "qty": pump_h, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_pnd_32"]},
     ])
 
+    # =========================================================================
     # 3. ТРАССА В ДОМ (от расстояния distance)
+    # =========================================================================
     dist_m = int(distance)
     items.extend([
         {"name": "Муфта ПНД 32x32 Unidelta", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_32"]},
