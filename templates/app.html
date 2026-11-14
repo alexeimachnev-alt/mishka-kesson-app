@@ -508,98 +508,104 @@
       const isVFD = (equip_type === 'kesson_vfd');
       const isAdapter = (equip_type === 'adapter');
       
-      let targetItems = [];
+      if (forceReset || !isUserEdited) {
+          let targetItems = [];
 
-      if (!isAdapter) {
-          targetItems.push({ item_key: kessonKey, name: kessonName, price: kessonPrice, qty: 1, unit: 'шт' });
-      }
-
-      if (pumpKey !== 'none' && PUMP_CATALOG[pumpKey]) {
-          targetItems.push({ item_key: pumpKey, name: PUMP_CATALOG[pumpKey].name, price: PUMP_CATALOG[pumpKey].price, qty: 1, unit: 'шт' });
-      }
-      
-      if (equip_type === 'kesson_ga' || isAdapter) {
-          if (tankKey !== 'none' && TANK_CATALOG[tankKey]) {
-             targetItems.push({ item_key: tankKey, name: TANK_CATALOG[tankKey].name, price: TANK_CATALOG[tankKey].price, qty: 1, unit: 'шт' });
-          }
-      }
-
-      if (isAdapter) {
-          targetItems.push({ item_key: 'adapter_tim_1', name: 'Адаптер скважинный с сливным клапаном 1" ТИМ', price: 3627.31, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'pnd_coupling_32_1_hp', name: 'Муфта ПНД 32x1" HP Unidelta', price: 263.84, qty: 4, unit: 'шт' });
-          targetItems.push({ item_key: 'cover_adapter', name: 'Крышка скважины Джилекс КС 110-133', price: 3351.60, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
-          targetItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7х7 AISI 304, 3мм', price: 19.20, qty: depth > 0 ? depth : 1, unit: 'м' });
-          targetItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: depth > 0 ? depth : 1, unit: 'м' });
-          targetItems.push({ item_key: 'pipe_pnd_25', name: 'Труба ПНД 25х2,0 мм SDR 13,6 (PN 10) (синяя)', price: 48.46, qty: dist > 0 ? dist : 1, unit: 'м' });
-          targetItems.push({ item_key: 'hose_giant_1_80cm', name: 'Подводка для воды угловая 1" 80см г/г ГИГАНТ', price: 761.93, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'pressure_switch', name: 'Реле давления AQUARIO PS-5-2 (вращ. гайка) Акварио', price: 782.40, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'manometer', name: 'Манометр радиальный 0-10 бар Ø53мм', price: 181.31, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'brass_tee_1_bbb', name: 'Тройник для труб с внутренней резьбой ВВВ 1" латунь Millenium', price: 640.17, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'valve_brass_1', name: 'Кран шаровой Вн/Нр (бабочка) 1"', price: 874.43, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'brass_nipple_1', name: 'Ниппель НН 1" (латунь)', price: 196.76, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'brass_nipple_1_2', name: 'Ниппель НН 1/2" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'brass_tee_1_2_bbb', name: 'Тройник ВВВ 1/2" (латунь)', price: 192.42, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
-      } else {
-          targetItems.push({ item_key: 'pipe_ppr_32', name: 'Труба полипропиленовая 32х5,4мм PN20 (цвет белый)', price: 151.42, qty: 4, unit: 'м' });
-          targetItems.push({ item_key: 'ppr_elbow_90_32', name: 'Отвод 90* PP-R Millennium 32мм (цвет белый)', price: 48.33, qty: 4, unit: 'шт' });
-          targetItems.push({ item_key: 'ppr_elbow_45_32', name: 'Отвод 45* PP-R Millennium 32мм (цвет белый)', price: 38.20, qty: 4, unit: 'шт' });
-          targetItems.push({ item_key: 'ppr_plug_32', name: 'Заглушка PP-R Millennium 32мм (цвет белый)', price: 37.50, qty: 3, unit: 'шт' });
-          targetItems.push({ item_key: 'valve_ppr_32', name: 'Кран шаровой PP-R VALFEX OPTIMA 32мм (цвет белый)', price: 180.93, qty: 4, unit: 'шт' });
-          targetItems.push({ item_key: 'valve_watering_1_2', name: 'Кран шаровый VALFEX 1/2" водоразборный, ручка рычаг, с носиком под шланг', price: 436.13, qty: 1, unit: 'шт' });
-
-          if (isVFD) {
-              targetItems.push({ item_key: 'ppr_trans_tee_32_1_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 190.46, qty: 1, unit: 'шт' });
-          } else {
-              targetItems.push({ item_key: 'ppr_trans_tee_32_1_hp', name: 'Тройник переходной комб. с наружной резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 305.00, qty: 1, unit: 'шт' });
+          if (!isAdapter) {
+              targetItems.push({ item_key: kessonKey, name: kessonName, price: kessonPrice, qty: 1, unit: 'шт' });
           }
 
-          targetItems.push({ item_key: 'ppr_tee_32', name: 'Тройник PP-R Millennium 32мм (цвет белый)', price: 74.70, qty: 3, unit: 'шт' });
-          targetItems.push({ item_key: 'ppr_coupling_32', name: 'Муфта PP-R Millennium 32мм (цвет белый)', price: 29.83, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'ppr_comb_elbow_32_1_2_bp', name: 'Отвод комб. с внутренней резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 169.35, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'ppr_comb_elbow_32_1_2_hp', name: 'Отвод комб. с наружной резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 274.83, qty: 1, unit: 'шт' });
+          if (pumpKey !== 'none' && PUMP_CATALOG[pumpKey]) {
+              targetItems.push({ item_key: pumpKey, name: PUMP_CATALOG[pumpKey].name, price: PUMP_CATALOG[pumpKey].price, qty: 1, unit: 'шт' });
+          }
+          
+          if (equip_type === 'kesson_ga' || isAdapter) {
+              if (tankKey !== 'none' && TANK_CATALOG[tankKey]) {
+                 targetItems.push({ item_key: tankKey, name: TANK_CATALOG[tankKey].name, price: TANK_CATALOG[tankKey].price, qty: 1, unit: 'шт' });
+              }
+          }
 
-          if (isVFD) {
-              targetItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
-              targetItems.push({ item_key: 'ppr_trans_tee_32_1_2_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1/2"x32 (цвет белый)', price: 174.15, qty: 1, unit: 'шт' });
-          } else {
+          if (isAdapter) {
+              targetItems.push({ item_key: 'adapter_tim_1', name: 'Адаптер скважинный с сливным клапаном 1" ТИМ', price: 3627.31, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'pnd_coupling_32_1_hp', name: 'Муфта ПНД 32x1" HP Unidelta', price: 263.84, qty: 4, unit: 'шт' });
+              targetItems.push({ item_key: 'cover_adapter', name: 'Крышка скважины Джилекс КС 110-133', price: 3351.60, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
+              targetItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7х7 AISI 304, 3мм', price: 19.20, qty: depth > 0 ? depth : 1, unit: 'м' });
+              targetItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: depth > 0 ? depth : 1, unit: 'м' });
+              targetItems.push({ item_key: 'pipe_pnd_25', name: 'Труба ПНД 25х2,0 мм SDR 13,6 (PN 10) (синяя)', price: 48.46, qty: dist > 0 ? dist : 1, unit: 'м' });
               targetItems.push({ item_key: 'hose_giant_1_80cm', name: 'Подводка для воды угловая 1" 80см г/г ГИГАНТ', price: 761.93, qty: 1, unit: 'шт' });
-              targetItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
-              targetItems.push({ item_key: 'pressure_switch', name: 'Реле давления AQUARIO PS-5-2', price: 782.40, qty: 1, unit: 'шт' });
-              targetItems.push({ item_key: 'manometer', name: 'Манометр радиальный 0-10 бар D53мм 1/4', price: 181.31, qty: 1, unit: 'шт' });
-              targetItems.push({ item_key: 'brass_tee_1_2_bbb', name: 'Тройник ВВВ 1/2" (латунь)', price: 192.42, qty: 1, unit: 'шт' });
-              targetItems.push({ item_key: 'brass_nipple_1_2_3_8', name: 'Ниппель переходной НН 1/2"x3/8" (латунь)', price: 66.54, qty: 1, unit: 'шт' });
-              targetItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
-              targetItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'pressure_switch', name: 'Реле давления AQUARIO PS-5-2 (вращ. гайка) Акварио', price: 782.40, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'manometer', name: 'Манометр радиальный 0-10 бар Ø53мм', price: 181.31, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'brass_tee_1_bbb', name: 'Тройник для труб с внутренней резьбой ВВВ 1" латунь Millenium', price: 640.17, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'valve_brass_1', name: 'Кран шаровой Вн/Нр (бабочка) 1"', price: 874.43, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'brass_nipple_1', name: 'Ниппель НН 1" (латунь)', price: 196.76, qty: 1, unit: 'шт' });
               targetItems.push({ item_key: 'brass_nipple_1_2', name: 'Ниппель НН 1/2" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'brass_tee_1_2_bbb', name: 'Тройник ВВВ 1/2" (латунь)', price: 192.42, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+          } else {
+              targetItems.push({ item_key: 'pipe_ppr_32', name: 'Труба полипропиленовая 32х5,4мм PN20 (цвет белый)', price: 151.42, qty: 4, unit: 'м' });
+              targetItems.push({ item_key: 'ppr_elbow_90_32', name: 'Отвод 90* PP-R Millennium 32мм (цвет белый)', price: 48.33, qty: 4, unit: 'шт' });
+              targetItems.push({ item_key: 'ppr_elbow_45_32', name: 'Отвод 45* PP-R Millennium 32мм (цвет белый)', price: 38.20, qty: 4, unit: 'шт' });
+              targetItems.push({ item_key: 'ppr_plug_32', name: 'Заглушка PP-R Millennium 32мм (цвет белый)', price: 37.50, qty: 3, unit: 'шт' });
+              targetItems.push({ item_key: 'valve_ppr_32', name: 'Кран шаровой PP-R VALFEX OPTIMA 32мм (цвет белый)', price: 180.93, qty: 4, unit: 'шт' });
+              targetItems.push({ item_key: 'valve_watering_1_2', name: 'Кран шаровый VALFEX 1/2" водоразборный, ручка рычаг, с носиком под шланг', price: 436.13, qty: 1, unit: 'шт' });
+
+              if (isVFD) {
+                  targetItems.push({ item_key: 'ppr_trans_tee_32_1_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 190.46, qty: 1, unit: 'шт' });
+              } else {
+                  targetItems.push({ item_key: 'ppr_trans_tee_32_1_hp', name: 'Тройник переходной комб. с наружной резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 305.00, qty: 1, unit: 'шт' });
+              }
+
+              targetItems.push({ item_key: 'ppr_tee_32', name: 'Тройник PP-R Millennium 32мм (цвет белый)', price: 74.70, qty: 3, unit: 'шт' });
+              targetItems.push({ item_key: 'ppr_coupling_32', name: 'Муфта PP-R Millennium 32мм (цвет белый)', price: 29.83, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'ppr_comb_elbow_32_1_2_bp', name: 'Отвод комб. с внутренней резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 169.35, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'ppr_comb_elbow_32_1_2_hp', name: 'Отвод комб. с наружной резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 274.83, qty: 1, unit: 'шт' });
+
+              if (isVFD) {
+                  targetItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
+                  targetItems.push({ item_key: 'ppr_trans_tee_32_1_2_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1/2"x32 (цвет белый)', price: 174.15, qty: 1, unit: 'шт' });
+              } else {
+                  targetItems.push({ item_key: 'hose_giant_1_80cm', name: 'Подводка для воды угловая 1" 80см г/г ГИГАНТ', price: 761.93, qty: 1, unit: 'шт' });
+                  targetItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
+                  targetItems.push({ item_key: 'pressure_switch', name: 'Реле давления AQUARIO PS-5-2', price: 782.40, qty: 1, unit: 'шт' });
+                  targetItems.push({ item_key: 'manometer', name: 'Манометр радиальный 0-10 бар D53мм 1/4', price: 181.31, qty: 1, unit: 'шт' });
+                  targetItems.push({ item_key: 'brass_tee_1_2_bbb', name: 'Тройник ВВВ 1/2" (латунь)', price: 192.42, qty: 1, unit: 'шт' });
+                  targetItems.push({ item_key: 'brass_nipple_1_2_3_8', name: 'Ниппель переходной НН 1/2"x3/8" (латунь)', price: 66.54, qty: 1, unit: 'шт' });
+                  targetItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+                  targetItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
+                  targetItems.push({ item_key: 'brass_nipple_1_2', name: 'Ниппель НН 1/2" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+              }
+              
+              // Обязательные элементы скважины для наборов Кессона (насосная группа и ввод)
+              targetItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан 1" Millennium с металл. седлом', price: 750.00, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'pnd_coupling_32_1_hp', name: "Муфта ПНД 32х1' HP Unidelta", price: 263.84, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'well_head_osp', name: 'Оголовок для скважины Джилекс ОСП 110-133/32', price: 1916.39, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'pnd_elbow_32_1_hp', name: "Угол ПНД 32x1' HP Unidelta", price: 319.60, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса AISI 316 4мм', price: 40.80, qty: 4, unit: 'шт' });
+              targetItems.push({ item_key: 'plug_16a', name: 'Вилка электрическая прямая 16A 250B', price: 64.42, qty: 1, unit: 'шт' });
+              
+              targetItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 3мм AISI 304', price: 19.20, qty: depth > 0 ? depth : 1, unit: 'м' });
+              let pnd_qty = depth > 0 ? depth : 0;
+              pnd_qty += dist > 0 ? dist : 0;
+              targetItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (синяя)', price: 78.00, qty: pnd_qty > 0 ? pnd_qty : 1, unit: 'м' });
+              
+              targetItems.push({ item_key: 'pnd_coupling_32_32', name: 'Муфта ПНД 32x32 Unidelta', price: 472.60, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'pnd_reduct_32_20', name: 'Муфта ПНД редукц. 32х20 Unidelta', price: 435.20, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'pnd_coupling_32_1_hp_v', name: "Муфта ПНД 32х1' HP Unidelta (ввод)", price: 263.84, qty: 1, unit: 'шт' });
+              targetItems.push({ item_key: 'valve_brass_1_v', name: "Кран шаровой Вн/Нр 1' (ввод)", price: 874.43, qty: 1, unit: 'шт' });
+              
+              targetItems.push({ item_key: 'pipe_pnd_20', name: 'Труба ПНД 20x2,0 SDR 11 (под кабель)', price: 42.54, qty: dist > 0 ? dist : 1, unit: 'м' });
+              targetItems.push({ item_key: 'cable_pvs_3x2_5', name: 'Кабель ПВС 3х2,5 белый гибкий', price: 84.89, qty: dist > 0 ? dist : 1, unit: 'м' });
           }
           
-          targetItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан 1" Millennium с металл. седлом', price: 750.00, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'pnd_coupling_32_1_hp', name: "Муфта ПНД 32х1' HP Unidelta", price: 263.84, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'well_head_osp', name: 'Оголовок для скважины Джилекс ОСП 110-133/32', price: 1916.39, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'pnd_elbow_32_1_hp', name: "Угол ПНД 32x1' HP Unidelta", price: 319.60, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса AISI 316 4мм', price: 40.80, qty: 4, unit: 'шт' });
-          targetItems.push({ item_key: 'plug_16a', name: 'Вилка электрическая прямая 16A 250B', price: 64.42, qty: 1, unit: 'шт' });
-          
-          targetItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 3мм AISI 304', price: 19.20, qty: depth > 0 ? depth : 1, unit: 'м' });
-          let pnd_qty = depth > 0 ? depth : 0;
-          pnd_qty += dist > 0 ? dist : 0;
-          targetItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (синяя)', price: 78.00, qty: pnd_qty > 0 ? pnd_qty : 1, unit: 'м' });
-          
-          targetItems.push({ item_key: 'pnd_coupling_32_32', name: 'Муфта ПНД 32x32 Unidelta', price: 472.60, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'pnd_reduct_32_20', name: 'Муфта ПНД редукц. 32х20 Unidelta', price: 435.20, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'pnd_coupling_32_1_hp_v', name: "Муфта ПНД 32х1' HP Unidelta (ввод)", price: 263.84, qty: 1, unit: 'шт' });
-          targetItems.push({ item_key: 'valve_brass_1_v', name: "Кран шаровой Вн/Нр 1' (ввод)", price: 874.43, qty: 1, unit: 'шт' });
-          
-          targetItems.push({ item_key: 'pipe_pnd_20', name: 'Труба ПНД 20x2,0 SDR 11 (под кабель)', price: 42.54, qty: dist > 0 ? dist : 1, unit: 'м' });
-          targetItems.push({ item_key: 'cable_pvs_3x2_5', name: 'Кабель ПВС 3х2,5 белый гибкий', price: 84.89, qty: dist > 0 ? dist : 1, unit: 'м' });
+          currentItems = targetItems;
       }
       
-      currentItems = targetItems;
+      updateDynamicParams(true);
       recalcAndRender();
+      if (forceReset) isUserEdited = false;
     }
 
     function updateDynamicParams() {
@@ -705,7 +711,11 @@
         const t = DICT[lang] || DICT.ru;
 
         const phone = document.getElementById('contactPhone').value.trim();
-        if (!phone || phone.length < 6) { alert(t.errPhone); document.getElementById('contactPhone').focus(); return; }
+        if (!phone || phone.length < 6) {
+          alert(t.errPhone);
+          document.getElementById('contactPhone').focus();
+          return;
+        }
 
         const name = document.getElementById('contactName').value.trim() || 'Монтажник';
         const contactCompanyEl = document.getElementById('contactCompany');
@@ -728,19 +738,32 @@
         if (currentOrderMode === 'works') {
           deliveryType = 'Выезд монтажной бригады на объект';
           const addr = document.getElementById('deliveryAddress').value.trim();
-          if (!addr) { alert('Пожалуйста, укажите точный адрес объекта для выезда бригады!'); document.getElementById('deliveryAddress').focus(); return; }
+          if (!addr) {
+            alert('Пожалуйста, укажите точный адрес объекта для выезда бригады!');
+            document.getElementById('deliveryAddress').focus();
+            return;
+          }
           const dTime = document.getElementById('deliveryTime').value.trim() || 'В согласованное время';
           deliveryDetails = `Объект: ${addr} | Время: ${dTime}`;
 
           ALL_WORKS.forEach(w => {
             const q = selectedWorks[w.code] || 0;
             if (q > 0) {
-              itemsToOrder.push({ item_key: w.code, name: w.name, qty: q, unit: w.unit, price: w.price });
+              itemsToOrder.push({
+                item_key: w.code,
+                name: w.name,
+                qty: q,
+                unit: w.unit,
+                price: w.price
+              });
               totalAmount += q * w.price;
             }
           });
 
-          if (itemsToOrder.length === 0) { alert('Пожалуйста, выберите хотя бы одну услугу из списка работ!'); return; }
+          if (itemsToOrder.length === 0) {
+            alert('Пожалуйста, выберите хотя бы одну услугу из списка работ!');
+            return;
+          }
 
         } else {
           const logisticsType = document.getElementById('logisticsType').value;
@@ -751,7 +774,11 @@
           } else {
             deliveryType = 'Доставка на объект';
             const addr = document.getElementById('deliveryAddress').value.trim();
-            if (!addr) { alert(t.errDelivery); document.getElementById('deliveryAddress').focus(); return; }
+            if (!addr) {
+              alert(t.errDelivery);
+              document.getElementById('deliveryAddress').focus();
+              return;
+            }
             const dTime = document.getElementById('deliveryTime').value.trim() || 'В течение дня';
             deliveryDetails = `Адрес: ${addr} | Время: ${dTime}`;
           }
@@ -764,7 +791,8 @@
         }
 
         const tgApp = window.Telegram ? window.Telegram.WebApp : null;
-        let tgUserId = 0; let tgUserTag = '';
+        let tgUserId = 0;
+        let tgUserTag = '';
         if (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user) {
             tgUserId = tgApp.initDataUnsafe.user.id || 0;
             tgUserTag = tgApp.initDataUnsafe.user.username ? '@' + tgApp.initDataUnsafe.user.username : '';
@@ -794,7 +822,10 @@
           total: totalAmount
         };
 
-        if (btn) { btn.innerText = t.sending || "Отправка..."; btn.disabled = true; }
+        if (btn) {
+            btn.innerText = t.sending || "Отправка...";
+            btn.disabled = true;
+        }
 
         const res = await fetch('/api/miniapp_order', {
           method: 'POST',
@@ -853,8 +884,13 @@
         }
       } catch (err) {
         alert('Сбой при отправке: ' + err.message);
+        console.error(err);
       } finally {
-        if (btn) { btn.disabled = false; btn.innerText = (DICT[document.getElementById('langSelect').value || 'ru']?.btnSubmit) || "Отправить заказ на склад"; }
+        if (btn) {
+          btn.disabled = false;
+          const lang = document.getElementById('langSelect').value || 'ru';
+          btn.innerText = (DICT[lang] && DICT[lang].btnSubmit) ? DICT[lang].btnSubmit : "Отправить заказ на склад";
+        }
       }
     }
 
@@ -863,7 +899,9 @@
         let history = JSON.parse(localStorage.getItem('mishka_orders_history') || '[]');
         history.unshift(orderRecord);
         localStorage.setItem('mishka_orders_history', JSON.stringify(history.slice(0, 50)));
-      } catch(e) {}
+      } catch(e) {
+        console.error('Ошибка сохранения истории:', e);
+      }
     }
 
     async function openOrderHistory() {
@@ -880,38 +918,65 @@
       const listContainer = document.getElementById('history-list-box');
       listContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:13px;">⏳ Загрузка ваших заказов...</p>';
 
+      const curLang = document.getElementById('langSelect').value || 'ru';
       let orders = [];
+
       const tgApp = window.Telegram ? window.Telegram.WebApp : null;
-      let uid = tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user ? tgApp.initDataUnsafe.user.id : 0;
+      let uid = 0;
+      if (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user) {
+          uid = tgApp.initDataUnsafe.user.id || 0;
+      }
+      
       const phoneEl = document.getElementById('contactPhone');
       const phone = phoneEl ? phoneEl.value.trim() : '';
-
       try {
         const res = await fetch(`/api/user_orders?user_id=${uid}&phone=${encodeURIComponent(phone)}`);
         if (res.ok) {
           const srvData = await res.json();
-          if (srvData.orders && srvData.orders.length > 0) orders = srvData.orders;
+          if (srvData.orders && srvData.orders.length > 0) {
+            orders = srvData.orders;
+          }
         }
-      } catch(err) {}
-
-      if (orders.length === 0) {
-        try { orders = JSON.parse(localStorage.getItem('mishka_orders_history') || '[]'); } catch(e) { orders = []; }
+      } catch(err) {
+        console.log('Сервер заказов недоступен, читаем из памяти устройства...');
       }
 
       if (orders.length === 0) {
-        listContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:13px; padding:20px 0;">У вас пока нет оформленных заказов.</p>';
+        try {
+          orders = JSON.parse(localStorage.getItem('mishka_orders_history') || '[]');
+        } catch(e) {
+          orders = [];
+        }
+      }
+
+      if (orders.length === 0) {
+        listContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:13px; padding:20px 0;">У вас пока нет оформленных заказов.<br>Соберите свою первую смету!</p>';
         return;
       }
 
       let html = '';
-      orders.forEach((ord) => {
-        const typeLabel = ord.is_works || ord.mode === 'works' ? '🔨 Монтажные работы' : '📦 Оборудование и материалы';
+      orders.forEach((ord, idx) => {
+        const isWorks = ord.is_works || (ord.mode === 'works');
+        const typeLabel = isWorks ? '🔨 Монтажные работы' : '📦 Оборудование и материалы';
         const totalFormatted = (ord.total || 0).toLocaleString('ru-RU', {minimumFractionDigits: 2});
-        let statusText = 'В сборке'; let statusBg = '#2563eb'; 
+
+        let statusText = 'В сборке';
+        let statusBg = '#2563eb'; 
         const st = (ord.status || 'active').toLowerCase();
-        if (st === 'cancelled') { statusText = 'Отменен'; statusBg = '#dc2626'; }
-        else if (st === 'paid') { statusText = 'Оплачен'; statusBg = '#16a34a'; }
-        else if (st === 'completed') { statusText = 'Собран/Согласован'; statusBg = '#22c55e'; }
+        
+        if (st === 'cancelled') {
+          statusText = 'Отменен';
+          statusBg = '#dc2626'; 
+        } else if (st === 'paid') {
+          statusText = 'Оплачен';
+          statusBg = '#16a34a'; 
+        } else if (st === 'completed') {
+          statusText = isWorks ? 'Согласован' : 'Собран';
+          statusBg = '#22c55e'; 
+        } else {
+          statusText = isWorks ? 'На согласовании' : 'В сборке';
+          statusBg = isWorks ? '#d97706' : '#2563eb'; 
+        }
 
         html += `
         <div style="background:#17212b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; margin-bottom:8px;">
@@ -919,11 +984,18 @@
             <span style="font-weight:700; color:#fff; font-size:14px;">Заказ #${ord.order_id}</span>
             <span style="background:${statusBg}; color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px;">${statusText}</span>
           </div>
-          <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;"><b>Тип:</b> ${typeLabel}</div>
-          <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;"><b>Адрес:</b> ${ord.delivery_type || ''} (${ord.delivery_info || '-'})</div>
-          <div style="color:#4ade80; font-size:13px; font-weight:700;">Сумма: ${totalFormatted} ₽</div>
+          <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;">
+            <b>Тип:</b> ${typeLabel}
+          </div>
+          <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;">
+            <b>Адрес/Получение:</b> ${ord.delivery_type || ''} (${ord.delivery_info || '-'})
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:700;">
+            <span style="color:#4ade80;">Сумма: ${totalFormatted} ₽</span>
+          </div>
         </div>`;
       });
+
       listContainer.innerHTML = html;
     }
 
@@ -1077,7 +1149,12 @@
       if (el) el.innerText = sum.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
     }
 
+    // === ЗАПУСК ПРИЛОЖЕНИЯ С УЧЕТОМ НАСТРОЕК ===
     applyServicesConfig();
+    
+    if (currentOrderMode === 'works') {
+      renderWorksList();
+    }
   </script>
 </body>
 </html>
