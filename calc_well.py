@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from constants import PRICES, KESSON_MODELS, TANK_CATALOG, PUMP_CATALOG
+from constants import PRICES, KESSON_MODELS, TANK_CATALOG, PUMP_CATALOG, HYDRANT_CATALOG
 
 def get_well_items(data):
     depth = float(data.get("depth", 40))
@@ -10,10 +10,12 @@ def get_well_items(data):
     equip_type = data.get("equip_type", "kesson_vfd")
     chosen_tank_key = str(data.get("chosen_tank", "tank_100vt"))
     chosen_pump_key = str(data.get("chosen_pump", "pump_none"))
+    chosen_hydrant_key = str(data.get("chosen_hydrant", "hydrant_none"))
 
     kesson_obj = KESSON_MODELS.get(selected_kesson_key, KESSON_MODELS["kesson_m1"])
     tank_obj = TANK_CATALOG.get(chosen_tank_key, TANK_CATALOG.get("tank_100vt", {"name": "Гидробак", "price": 0}))
     pump_obj = PUMP_CATALOG.get(chosen_pump_key, PUMP_CATALOG["pump_none"])
+    hydrant_obj = HYDRANT_CATALOG.get(chosen_hydrant_key, HYDRANT_CATALOG["hydrant_none"])
 
     items = []
 
@@ -21,6 +23,12 @@ def get_well_items(data):
         items.append({
             "item_key": chosen_pump_key, "name": pump_obj["name"], "qty": 1, 
             "unit": "шт", "unit_key": "unit_pcs", "price": pump_obj["price"]
+        })
+
+    if hydrant_obj["price"] > 0:
+        items.append({
+            "item_key": chosen_hydrant_key, "name": hydrant_obj["name"], "qty": 1,
+            "unit": "шт", "unit_key": "unit_pcs", "price": hydrant_obj["price"]
         })
 
     if equip_type == "adapter":
@@ -92,7 +100,6 @@ def get_well_items(data):
             {"item_key": "brass_nipple_1_2", "name": "Ниппель НН 1/2' (латунь)", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["brass_nipple_1_2"]},
         ])
 
-    # Опуск насоса
     if equip_type != "adapter":
         items.extend([
             {"item_key": "check_valve_1", "name": "Обратный клапан с металлическим седлом 1' г/ш Millennium", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["check_valve_1"]},
@@ -108,7 +115,6 @@ def get_well_items(data):
             {"item_key": "cable_clamp_4mm", "name": "Зажим для троса, AISI 316 (А4), 4мм", "qty": 4, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["cable_clamp_4mm"]},
         ])
 
-    # Точно те строки, о которых просил пользователь!
     pump_h = int(depth)
     items.extend([
         {"item_key": "rope_3mm_304", "name": "Трос нержавеющая сталь 7x7 AISI 304, 3мм", "qty": pump_h, "unit": "м", "unit_key": "unit_m", "price": PRICES["rope_3mm_304"]},
@@ -121,6 +127,7 @@ def get_well_items(data):
         {"item_key": "pnd_reduct_32_20", "name": "Муфта ПНД редукц. 32х20 Unidelta", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_reduct_32_20"]},
         {"item_key": "pnd_coupling_32_1_hp", "name": "Муфта ПНД 32х1' HP Unidelta", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_1_hp"]},
         {"item_key": "valve_brass_1", "name": "Кран шаровой Вн/Нр (бабочка) 1'", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["valve_brass_1"]},
+        {"item_key": "pipe_pnd_32", "name": "Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)", "qty": dist_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_pnd_32"]},
         {"item_key": "pipe_pnd_20", "name": "Труба ПНД 20x2,0 SDR 11 (PN 16) бух. 500 м (синяя)", "qty": dist_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_pnd_20"]},
         {"item_key": "cable_pvs_3x2_5", "name": "Кабель ПВС 3х2,5, белый, гибкий", "qty": dist_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["cable_pvs_3x2_5"]},
     ])
