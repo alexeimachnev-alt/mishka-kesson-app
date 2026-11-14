@@ -232,6 +232,18 @@
         </select>
       </div>
 
+      <!-- Новые поля: Глубина насоса и Трасса -->
+      <div class="grid-2" style="margin-top:10px;">
+        <div>
+          <label>Глубина насоса (м):</label>
+          <input type="number" id="pump_depth" value="40" min="1" oninput="calcWell()">
+        </div>
+        <div>
+          <label>Трасса до дома (м):</label>
+          <input type="number" id="trench_distance" value="15" min="0" oninput="calcWell()">
+        </div>
+      </div>
+
       <div id="tank_model_box" style="margin-top:10px;">
         <label id="lblTankModel">Гидроаккумулятор:</label>
         <select id="chosen_tank" onchange="calcWell()">
@@ -613,6 +625,9 @@
       }
       isUserEdited = false;
 
+      const depth = parseFloat(document.getElementById('pump_depth')?.value || 40) || 0;
+      const distance = parseFloat(document.getElementById('trench_distance')?.value || 15) || 0;
+
       const equip_type = document.getElementById('equip_type').value;
       const kessonBox = document.getElementById('kesson_model_box');
       
@@ -668,8 +683,12 @@
           currentItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
-          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7x7 AISI 304, 3мм', price: 19.20, qty: 40, unit: 'м' });
-          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: 55, unit: 'м' });
+          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7x7 AISI 304, 3мм', price: 19.20, qty: depth, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: depth + distance, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_20', name: 'Труба ПНД 20x2,0 SDR 11 (под кабель)', price: 42.54, qty: distance, unit: 'м' });
+          currentItems.push({ item_key: 'cable_pvs_3x2_5', name: 'Кабель ПВС 3х2,5 белый гибкий', price: 84.89, qty: distance, unit: 'м' });
+          currentItems.push({ item_key: 'pnd_coupling_32_32', name: 'Муфта ПНД 32x32 Unidelta', price: 472.60, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'pnd_reduct_32_20', name: 'Муфта ПНД редукц. 32х20 Unidelta', price: 435.20, qty: 1, unit: 'шт' });
       } else {
           currentItems.push({ item_key: kessonKey, name: kessonName, price: kessonPrice, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'pipe_ppr_32', name: 'Труба полипропиленовая 32х5,4мм PN20 (цвет белый)', price: 151.42, qty: 4, unit: 'м' });
@@ -717,8 +736,12 @@
           currentItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'well_head_osp', name: 'Оголовок для скважины Джилекс ОСП 110-133/32', price: 1916.39, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
-          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7x7 AISI 304, 3мм', price: 19.20, qty: 40, unit: 'м' });
-          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: 55, unit: 'м' });
+          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7x7 AISI 304, 3мм', price: 19.20, qty: depth, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: depth + distance, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_20', name: 'Труба ПНД 20x2,0 SDR 11 (под кабель)', price: 42.54, qty: distance, unit: 'м' });
+          currentItems.push({ item_key: 'cable_pvs_3x2_5', name: 'Кабель ПВС 3х2,5 белый гибкий', price: 84.89, qty: distance, unit: 'м' });
+          currentItems.push({ item_key: 'pnd_coupling_32_32', name: 'Муфта ПНД 32x32 Unidelta', price: 472.60, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'pnd_reduct_32_20', name: 'Муфта ПНД редукц. 32х20 Unidelta', price: 435.20, qty: 1, unit: 'шт' });
       }
 
       recalcAndRender();
@@ -945,9 +968,9 @@
           chosen_kesson: kessonEl ? kessonEl.value : 'kesson_m1',
           chosen_tank: tankEl ? tankEl.value : 'tank_100vt',
           chosen_pump: pumpEl ? pumpEl.value : 'pump_none',
-          depth: 0,
-          distance: 0,
-          distances: [0],
+          depth: parseFloat(document.getElementById('pump_depth')?.value || 40) || 0,
+          distance: parseFloat(document.getElementById('trench_distance')?.value || 15) || 0,
+          distances: [parseFloat(document.getElementById('trench_distance')?.value || 15) || 0],
           items: itemsToOrder,
           total: totalAmount
         };
