@@ -121,7 +121,6 @@ def get_well_items(data):
         {"item_key": "pnd_reduct_32_20", "name": "Муфта ПНД редукц. 32х20 Unidelta", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_reduct_32_20"]},
         {"item_key": "pnd_coupling_32_1_hp", "name": "Муфта ПНД 32х1' HP Unidelta", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_1_hp"]},
         {"item_key": "valve_brass_1", "name": "Кран шаровой Вн/Нр (бабочка) 1'", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["valve_brass_1"]},
-        {"item_key": "pipe_pnd_32", "name": "Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)", "qty": dist_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_pnd_32"]},
         {"item_key": "pipe_pnd_20", "name": "Труба ПНД 20x2,0 SDR 11 (PN 16) бух. 500 м (синяя)", "qty": dist_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_pnd_20"]},
         {"item_key": "cable_pvs_3x2_5", "name": "Кабель ПВС 3х2,5, белый, гибкий", "qty": dist_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["cable_pvs_3x2_5"]},
     ])
