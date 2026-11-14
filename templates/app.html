@@ -122,7 +122,7 @@
         
         <div id="pump_box" style="margin-top:10px;">
           <label id="lblPumpModel" style="color: #4ade80;">Выбор насоса (для любого набора):</label>
-          <select id="chosen_pump" onchange="calcWell()" style="border-color: #4ade80;">
+          <select id="chosen_pump" onchange="calcWell(true)" style="border-color: #4ade80;">
              <option value="none">Без насоса (не добавлять)</option>
              <!-- WATERSTRY -->
              <option value="pump_w_3_90">Скважинный насос WATERSTRY 3"3ST 3-90 (19 484.72 ₽)</option>
@@ -157,7 +157,7 @@
 
         <div id="kesson_model_box" style="margin-top:10px;">
           <label id="lblKessonModel">Модель кессона «МИШКА»:</label>
-          <select id="chosen_kesson" onchange="calcWell()">
+          <select id="chosen_kesson" onchange="calcWell(true)">
             <option value="kesson_m1" selected>Кессон «Мишка 1» (Ø1050х2000) — 41 170 ₽</option>
             <option value="kesson_m2">Кессон «Мишка 2» (Ø1300х2000) — 52 000 ₽</option>
             <option value="kesson_m3">Кессон «Мишка 3» (Ø1600х2000) — 65 000 ₽</option>
@@ -168,7 +168,7 @@
 
         <div id="tank_box" style="margin-top:10px; display:none;">
           <label id="lblTankModel" style="color: #71b1ff;">Гидроаккумулятор (базовый):</label>
-          <select id="chosen_tank" onchange="calcWell()">
+          <select id="chosen_tank" onchange="calcWell(true)">
              <option value="tank_8bw">8л BELAMOS 8BW синий, подвесной (1 183.20 ₽)</option>
              <option value="tank_50_hit">50л Джилекс Г 50 «ХИТ» гориз. (3 783.00 ₽)</option>
              <option value="tank_50vt">50л BELAMOS 50VT верт. (3 940.80 ₽)</option>
@@ -182,7 +182,7 @@
 
       <div class="card" id="cardParamsWell">
         <div class="card-title">2. Параметры скважины и трассы</div>
-        <div class="grid-2">
+        <div class="grid-2" style="align-items: end;">
           <div>
             <label style="color:#71b1ff;">Глубина загрузки насоса (м):</label>
             <input type="number" id="pump_depth" placeholder="Напр. 30" oninput="updateDynamicParams()">
@@ -192,7 +192,7 @@
             <input type="number" id="route_dist" placeholder="Напр. 15" oninput="updateDynamicParams()">
           </div>
         </div>
-        <div style="margin-top:8px;">
+        <div style="margin-top:8px; width: 50%; padding-right: 4px; box-sizing: border-box;">
           <label>Дебит скважины (м³/ч):</label>
           <input type="text" id="well_debit" placeholder="Напр. 3.5">
         </div>
@@ -530,9 +530,9 @@
           targetItems.push({ item_key: 'cover_adapter', name: 'Крышка скважины Джилекс КС 110-133', price: 3351.60, qty: 1, unit: 'шт' });
           targetItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
           targetItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
-          targetItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7х7 AISI 304, 3мм', price: 19.20, qty: 1, unit: 'м' });
-          targetItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: 1, unit: 'м' });
-          targetItems.push({ item_key: 'pipe_pnd_25', name: 'Труба ПНД 25х2,0 мм SDR 13,6 (PN 10) (синяя)', price: 48.46, qty: 1, unit: 'м' });
+          targetItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7х7 AISI 304, 3мм', price: 19.20, qty: depth > 0 ? depth : 1, unit: 'м' });
+          targetItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: depth > 0 ? depth : 1, unit: 'м' });
+          targetItems.push({ item_key: 'pipe_pnd_25', name: 'Труба ПНД 25х2,0 мм SDR 13,6 (PN 10) (синяя)', price: 48.46, qty: dist > 0 ? dist : 1, unit: 'м' });
           targetItems.push({ item_key: 'hose_giant_1_80cm', name: 'Подводка для воды угловая 1" 80см г/г ГИГАНТ', price: 761.93, qty: 1, unit: 'шт' });
           targetItems.push({ item_key: 'pressure_switch', name: 'Реле давления AQUARIO PS-5-2 (вращ. гайка) Акварио', price: 782.40, qty: 1, unit: 'шт' });
           targetItems.push({ item_key: 'manometer', name: 'Манометр радиальный 0-10 бар Ø53мм', price: 181.31, qty: 1, unit: 'шт' });
@@ -577,7 +577,6 @@
               targetItems.push({ item_key: 'brass_nipple_1_2', name: 'Ниппель НН 1/2" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
           }
           
-          // ВОССТАНОВЛЕНИЕ: Обязательные элементы скважины для наборов Кессона (насосная группа и ввод)
           targetItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан 1" Millennium с металл. седлом', price: 750.00, qty: 1, unit: 'шт' });
           targetItems.push({ item_key: 'pnd_coupling_32_1_hp', name: "Муфта ПНД 32х1' HP Unidelta", price: 263.84, qty: 1, unit: 'шт' });
           targetItems.push({ item_key: 'well_head_osp', name: 'Оголовок для скважины Джилекс ОСП 110-133/32', price: 1916.39, qty: 1, unit: 'шт' });
@@ -585,42 +584,26 @@
           targetItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса AISI 316 4мм', price: 40.80, qty: 4, unit: 'шт' });
           targetItems.push({ item_key: 'plug_16a', name: 'Вилка электрическая прямая 16A 250B', price: 64.42, qty: 1, unit: 'шт' });
           
-          targetItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 3мм AISI 304', price: 19.20, qty: 1, unit: 'м' });
-          targetItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (синяя)', price: 78.00, qty: 1, unit: 'м' });
+          targetItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 3мм AISI 304', price: 19.20, qty: depth > 0 ? depth : 1, unit: 'м' });
+          let pnd_qty = depth > 0 ? depth : 0;
+          pnd_qty += dist > 0 ? dist : 0;
+          targetItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (синяя)', price: 78.00, qty: pnd_qty > 0 ? pnd_qty : 1, unit: 'м' });
           
           targetItems.push({ item_key: 'pnd_coupling_32_32', name: 'Муфта ПНД 32x32 Unidelta', price: 472.60, qty: 1, unit: 'шт' });
           targetItems.push({ item_key: 'pnd_reduct_32_20', name: 'Муфта ПНД редукц. 32х20 Unidelta', price: 435.20, qty: 1, unit: 'шт' });
           targetItems.push({ item_key: 'pnd_coupling_32_1_hp_v', name: "Муфта ПНД 32х1' HP Unidelta (ввод)", price: 263.84, qty: 1, unit: 'шт' });
           targetItems.push({ item_key: 'valve_brass_1_v', name: "Кран шаровой Вн/Нр 1' (ввод)", price: 874.43, qty: 1, unit: 'шт' });
           
-          targetItems.push({ item_key: 'pipe_pnd_20', name: 'Труба ПНД 20x2,0 SDR 11 (под кабель)', price: 42.54, qty: 1, unit: 'м' });
-          targetItems.push({ item_key: 'cable_pvs_3x2_5', name: 'Кабель ПВС 3х2,5 белый гибкий', price: 84.89, qty: 1, unit: 'м' });
+          targetItems.push({ item_key: 'pipe_pnd_20', name: 'Труба ПНД 20x2,0 SDR 11 (под кабель)', price: 42.54, qty: dist > 0 ? dist : 1, unit: 'м' });
+          targetItems.push({ item_key: 'cable_pvs_3x2_5', name: 'Кабель ПВС 3х2,5 белый гибкий', price: 84.89, qty: dist > 0 ? dist : 1, unit: 'м' });
       }
       
       currentItems = targetItems;
       recalcAndRender();
-      updateDynamicParams(true);
     }
 
-    function updateDynamicParams(isFromCalcWell = false) {
-        let depth = parseFloat(document.getElementById('pump_depth').value) || 0;
-        let dist = parseFloat(document.getElementById('route_dist').value) || 0;
-
-        let effectiveDepth = depth > 0 ? depth : 1;
-        let effectiveDist = dist > 0 ? dist : 1;
-
-        currentItems.forEach(item => {
-            if (item.item_key === 'rope_3mm_304') {
-                item.qty = effectiveDepth;
-            } else if (item.item_key === 'pipe_pnd_32') {
-                item.qty = effectiveDepth + effectiveDist;
-            } else if (item.item_key === 'pipe_pnd_25' || item.item_key === 'pipe_pnd_20' || item.item_key === 'cable_pvs_3x2_5') {
-                item.qty = effectiveDist;
-            }
-        });
-
-        if (!isFromCalcWell) isUserEdited = true;
-        recalcAndRender();
+    function updateDynamicParams() {
+        calcWell(true);
     }
 
     function modifyItemQty(idx, delta) {
