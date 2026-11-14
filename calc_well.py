@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from constants import PRICES, KESSON_MODELS, TANK_CATALOG, PUMP_CATALOG, HYDRANT_CATALOG
+from constants import PRICES, KESSON_MODELS, TANK_CATALOG, PUMP_CATALOG
 
 def get_well_items(data):
     depth = float(data.get("depth", 40))
@@ -10,12 +10,10 @@ def get_well_items(data):
     equip_type = data.get("equip_type", "kesson_vfd")
     chosen_tank_key = str(data.get("chosen_tank", "tank_100vt"))
     chosen_pump_key = str(data.get("chosen_pump", "pump_none"))
-    chosen_hydrant_key = str(data.get("chosen_hydrant", "hydrant_none"))
 
     kesson_obj = KESSON_MODELS.get(selected_kesson_key, KESSON_MODELS["kesson_m1"])
     tank_obj = TANK_CATALOG.get(chosen_tank_key, TANK_CATALOG.get("tank_100vt", {"name": "Гидробак", "price": 0}))
     pump_obj = PUMP_CATALOG.get(chosen_pump_key, PUMP_CATALOG["pump_none"])
-    hydrant_obj = HYDRANT_CATALOG.get(chosen_hydrant_key, HYDRANT_CATALOG["hydrant_none"])
 
     items = []
 
@@ -26,11 +24,6 @@ def get_well_items(data):
         })
 
     if equip_type == "adapter":
-        if hydrant_obj["price"] > 0:
-            items.append({
-                "item_key": chosen_hydrant_key, "name": hydrant_obj["name"], "qty": 1, 
-                "unit": "шт", "unit_key": "unit_pcs", "price": hydrant_obj["price"]
-            })
         items.extend([
             {"item_key": "adapter_tim_1", "name": "Адаптер скважинный со сливным клапаном 1' TIM", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["adapter_tim_1"]},
             {"item_key": "cover_adapter", "name": "Крышка скважины Джилекс КС 110-133", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["cover_adapter"]},
