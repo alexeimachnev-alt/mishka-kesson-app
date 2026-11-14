@@ -120,3 +120,9 @@ PUMP_CATALOG = {
     "pump_aquario_100_60m": {"name": "Скважинный насос Aquario ASP1E-100-75 каб.60м", "price": 27251.63},
     "pump_aquario_55_35m": {"name": "Скважинный насос Aquario ASP1E-55-75 каб. 35м", "price": 16321.52},
 }
+
+HYDRANT_CATALOG = {
+    "hydrant_none": {"name": "Без гидранта (не требуется)", "price": 0.00},
+    "hydrant_belamos": {"name": "Гидрант незамерзающий GDR 1' 1900 мм Беламос", "price": 5902.80},
+    "hydrant_tim": {"name": "Кран незамерзающий, 2.2м Гидрант W-HF0122 TIM", "price": 7381.20},
+}
