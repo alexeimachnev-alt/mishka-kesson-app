@@ -17,10 +17,6 @@ PRICES = {
     "cover_adapter": 3351.60,
     "well_head_osp": 1916.39,
 
-    # --- ГИДРАНТЫ И КРАНЫ НЕЗАМЕРЗАЮЩИЕ ---
-    "hydrant_belamos_1900": 5902.80,
-    "hydrant_tim_2200": 7381.20,
-
     # --- АВТОМАТИКА И БАКИ ---
     "vfd_fil10": 7708.80,
     "tank_8bw": 1832.00,
@@ -89,12 +85,6 @@ KESSON_MODELS = {
     "kesson_long": {"name": "Кессон Мишка LONG (муфта 125/133) H=2500", "price": 58000.00},
 }
 
-HYDRANT_CATALOG = {
-    "hydrant_none": {"name": "Без дополнительного гидранта / крана", "price": 0.00},
-    "hydrant_belamos_1900": {"name": "Гидрант незамерзающий GDR 1900 мм Беламос", "price": 5902.80},
-    "hydrant_tim_2200": {"name": "Кран незамерзающий, 2.2м Гидрант W-HF0122 TIM", "price": 7381.20},
-}
-
 TANK_CATALOG = {
     "tank_8bw": {"name": "Гидроаккумулятор 8л BELAMOS 8BW (подвесной)", "price": 1183.20},
     "tank_24": {"name": "Гидроаккумулятор 24л BELAMOS 24СТ2 синий", "price": 1906.80},
@@ -109,12 +99,12 @@ PUMP_CATALOG = {
     "pump_none": {"name": "Без насоса (свой или приобретается отдельно)", "price": 0.00},
     "pump_belamos_tf3_60": {"name": "Скважинный насос Belamos TF3-60 каб. 35м", "price": 11152.80},
     "pump_belamos_tf3_80": {"name": "Скважинный насос Belamos TF3-80 каб. 50м", "price": 14695.20},
-    "pump_waterstry_3_90": {"name": "Скважиннный насос WATERSTRY 3\"3ST 3-90 H=108м", "price": 19484.72},
-    "pump_waterstry_2_50": {"name": "Скважиннный насос WATERSTRY 3\"3ST 2-50 H=64м", "price": 12327.42},
-    "pump_waterstry_2_120": {"name": "Скважиннный насос WATERSTRY 3\"3ST 2-120", "price": 19092.00},
-    "pump_waterstry_2_85": {"name": "Скважиннный насос WATERSTRY 3\"3ST 2-85", "price": 13800.00},
-    "pump_waterstry_1_60": {"name": "Скважиннный насос WATERSTRY 3\"3ST 1-60", "price": 11084.56},
-    "pump_waterstry_2_100": {"name": "Скважиннный насос WATERSTRY 3\"3ST 2-100", "price": 16574.72},
+    "pump_waterstry_3_90": {"name": "Скважиннный насос WATERSTRY 3"3ST 3-90 H=108м", "price": 19484.72},
+    "pump_waterstry_2_50": {"name": "Скважиннный насос WATERSTRY 3"3ST 2-50 H=64м", "price": 12327.42},
+    "pump_waterstry_2_120": {"name": "Скважиннный насос WATERSTRY 3"3ST 2-120", "price": 19092.00},
+    "pump_waterstry_2_85": {"name": "Скважиннный насос WATERSTRY 3"3ST 2-85", "price": 13800.00},
+    "pump_waterstry_1_60": {"name": "Скважиннный насос WATERSTRY 3"3ST 1-60", "price": 11084.56},
+    "pump_waterstry_2_100": {"name": "Скважиннный насос WATERSTRY 3"3ST 2-100", "price": 16574.72},
     "pump_pw_tf3_80": {"name": "Насос скважинный Power Water PW TF3-80 каб.50м", "price": 14292.09},
     "pump_pw_tf3_60": {"name": "Насос скважинный Power Water PW TF3-60 каб.35м", "price": 11806.14},
     "pump_pw_tf3_40": {"name": "Насос скважинный Power Water PW TF3-40 каб.20м", "price": 9427.50},
