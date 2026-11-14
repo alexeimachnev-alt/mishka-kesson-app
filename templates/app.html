@@ -173,10 +173,6 @@
     <label id="lblLang">🌐 Язык интерфейса</label>
     <select id="langSelect" onchange="onLanguageChanged()">
       <option value="ru" selected>🇷🇺 Русский</option>
-      <option value="tj">🇹🇯 Тоҷикӣ</option>
-      <option value="uz">🇺🇿 Oʻzbekcha</option>
-      <option value="hy">🇦🇲 Հայերեն</option>
-      <option value="ky">🇰🇬 Кыргызча</option>
     </select>
   </div>
 
@@ -199,9 +195,9 @@
         <div class="card-title" id="tEquip">1. Вариант обустройства скважины</div>
         <label id="lblEquipType">Тип системы:</label>
         <select id="equip_type" onchange="calcWell()">
-          <option value="kesson_vfd" id="optVfd">Кессон с Частотным Преобразователем (ЧП)</option>
-          <option value="kesson_ga" id="optGa">Кессон с гидробаком</option>
-          <option value="adapter" id="optAdapter">Обустройство через скважинный адаптер TIM</option>
+          <option value="kesson_vfd">Кессон с Частотным Преобразователем (ЧП)</option>
+          <option value="kesson_ga">Кессон с гидробаком</option>
+          <option value="adapter">Обустройство через скважинный адаптер TIM</option>
         </select>
 
         <div id="kesson_model_box" style="margin-top:10px;">
@@ -222,12 +218,10 @@
             <option value="pump_belamos_tf3_60">Belamos TF3-60 каб. 35м — 11 152.80 ₽</option>
             <option value="pump_belamos_tf3_80">Belamos TF3-80 каб. 50м — 14 695.20 ₽</option>
             <option value="pump_waterstry_3_90">WATERSTRY 3"3ST 3-90 H=108м — 19 484.72 ₽</option>
-            <option value="pump_pw_tf3_80">Power Water PW TF3-80 каб.50м — 14 292.09 ₽</option>
-            <option value="pump_aquario_75_1_5m">Aquario ASP1E-75-75 каб. 1.5м — 14 976.00 ₽</option>
           </select>
         </div>
 
-        <!-- Выбор незамерзающего гидранта / крана (доп. опция) -->
+        <!-- НОВЫЙ БЛОК: Выбор незамерзающего гидранта / крана (доп. опция) -->
         <div id="hydrant_model_box" style="margin-top:10px;">
           <label>Незамерзающий гидрант / кран (доп. опция):</label>
           <select id="chosen_hydrant" onchange="calcWell()">
@@ -252,12 +246,8 @@
           <label id="lblTankModel">Гидроаккумулятор:</label>
           <select id="chosen_tank" onchange="calcWell()">
             <option value="tank_8bw">8л BELAMOS 8BW (подвесной) — 1 183.20 ₽</option>
-            <option value="tank_24">24л BELAMOS 24СТ2 синий — 1 906.80 ₽</option>
-            <option value="tank_50_hit">50л Джилекс Г 50 «ХИТ» — 3 783.00 ₽</option>
             <option value="tank_50vt">50л BELAMOS 50VT — 3 940.80 ₽</option>
-            <option value="tank_80vt">80л BELAMOS 80VT — 7 566.00 ₽</option>
             <option value="tank_100vt" selected>100л BELAMOS 100VT — 8 747.70 ₽</option>
-            <option value="tank_300_dzhileks">300л Джилекс 300 В — 23 049.00 ₽</option>
           </select>
         </div>
       </div>
@@ -290,19 +280,19 @@
     <!-- РАЗДЕЛ 2: СЕПТИК -->
     <div id="secSeptic" style="display: none;">
       <div class="card">
-        <div class="card-title" id="tSeptic">Канализация и септики «МИШКА-Био»</div>
-        <label id="lblSepticModel">Модель септика:</label>
+        <div class="card-title">Канализация и септики «МИШКА-Био»</div>
+        <label>Модель септика:</label>
         <select id="septicModelSelect">
           <option value="Септик МИШКА-Био 5" selected>МИШКА-Био 5 (до 5 чел.) — 105 000 ₽</option>
           <option value="Септик МИШКА-Био 3">МИШКА-Био 3 (до 3 чел.) — 85 000 ₽</option>
           <option value="Септик МИШКА-Био 8">МИШКА-Био 8 (до 8 чел.) — 138 000 ₽</option>
         </select>
-        <label id="lblDischarge" style="margin-top:6px;">Сброс воды:</label>
+        <label style="margin-top:6px;">Сброс воды:</label>
         <select id="septicDischarge">
-          <option value="gravity" id="optDisGrav">Самотечный (дренаж)</option>
-          <option value="forced" id="optDisForce">Принудительный (насос)</option>
+          <option value="gravity">Самотечный (дренаж)</option>
+          <option value="forced">Принудительный (насос)</option>
         </select>
-        <label id="lblPipeDist" style="margin-top:6px;">Длина трассы канализации (м):</label>
+        <label style="margin-top:6px;">Длина трассы канализации (м):</label>
         <input type="number" id="septicDistance" value="10">
       </div>
     </div>
@@ -310,19 +300,19 @@
     <!-- РАЗДЕЛ 3: ДРЕНАЖ -->
     <div id="secDrain" style="display: none;">
       <div class="card">
-        <div class="card-title" id="tDrain">Дренаж участка</div>
-        <label id="lblDrainType">Тип системы:</label>
+        <div class="card-title">Дренаж участка</div>
+        <label>Тип системы:</label>
         <select id="drainTypeSelect">
-          <option value="softrock" id="optDrainSoft" selected>Блоки «Софтрок» / Лайтдрок</option>
-          <option value="classic" id="optDrainClass">Классический (труба в щебне)</option>
+          <option value="softrock" selected>Блоки «Софтрок» / Лайтдрок</option>
+          <option value="classic">Классический (труба в щебне)</option>
         </select>
         <div class="grid-2" style="margin-top:6px;">
           <div>
-            <label id="lblDrainLen">Длина (м):</label>
+            <label>Длина (м):</label>
             <input type="number" id="drainLength" value="50">
           </div>
           <div>
-            <label id="lblDrainWells">Колодцев (шт):</label>
+            <label>Колодцев (шт):</label>
             <input type="number" id="drainWells" value="3">
           </div>
         </div>
@@ -332,14 +322,14 @@
     <!-- РАЗДЕЛ 4: ЛИВНЁВКА -->
     <div id="secStorm" style="display: none;">
       <div class="card">
-        <div class="card-title" id="tStorm">Подземная ливневая канализация</div>
+        <div class="card-title">Подземная ливневая канализация</div>
         <div class="grid-2">
           <div>
-            <label id="lblInlets">Дождеприёмников (шт):</label>
+            <label>Дождеприёмников (шт):</label>
             <input type="number" id="stormInlets" value="4">
           </div>
           <div>
-            <label id="lblStormLen">Длина трубы (м):</label>
+            <label>Длина трубы (м):</label>
             <input type="number" id="stormLength" value="30">
           </div>
         </div>
@@ -362,15 +352,15 @@
   <div class="card highlight-card" id="cardLogistics">
     <div class="card-title" id="tLogistics">🚚 Получение заказа</div>
     <div id="materialsLogisticsWrapper">
-      <label id="lblLogType">Способ получения:</label>
+      <label>Способ получения:</label>
       <select id="logisticsType" onchange="toggleLogisticsFields()">
-        <option value="pickup" id="optPickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
-        <option value="delivery" id="optDelivery">🚛 Доставка на объект заказчика</option>
+        <option value="pickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
+        <option value="delivery">🚛 Доставка на объект заказчика</option>
       </select>
       <div id="pickupBox">
-        <label id="lblPickupTime">Дата и время приезда на склад:</label>
+        <label>Дата и время приезда на склад:</label>
         <input type="text" id="pickupDateTime" placeholder="Сегодня к 15:30">
-        <a class="btn-maps" id="btnNavMaps" href="https://yandex.ru/navi?text=56.047416,37.538633&si=vuyt53qweyhyb7h2vyjb16pg04" target="_blank">
+        <a class="btn-maps" href="https://yandex.ru/navi?text=56.047416,37.538633&si=vuyt53qweyhyb7h2vyjb16pg04" target="_blank">
           📍 Открыть склад в Яндекс Навигаторе
         </a>
       </div>
@@ -384,12 +374,12 @@
   </div>
 
   <div class="card highlight-card">
-    <div class="card-title" id="tContact">📞 Контактные данные</div>
-    <label id="lblContactName">Имя клиента / монтажника:</label>
+    <div class="card-title">📞 Контактные данные</div>
+    <label>Имя клиента / монтажника:</label>
     <input type="text" id="contactName" placeholder="Фёдор">
-    <label id="lblCompany">Компания / Организация:</label>
+    <label>Компания / Организация:</label>
     <input type="text" id="contactCompany" placeholder="ООО АкваСтрой">
-    <label id="lblContactPhone">Телефон для связи:</label>
+    <label>Телефон для связи:</label>
     <input type="tel" id="contactPhone" placeholder="+7 (___) ___-__-__">
   </div>
 
@@ -400,17 +390,16 @@
 
   <div id="receipt-modal" class="receipt-screen">
     <div style="text-align: center; margin-bottom: 14px;">
-      <div class="receipt-badge" id="badgeSuccess">🎉 Наряд-заказ успешно зарегистрирован!</div>
+      <div class="receipt-badge">🎉 Наряд-заказ успешно зарегистрирован!</div>
       <h3 id="receipt-id" style="font-size: 22px; font-weight: 800; margin: 8px 0; color: #ffffff;">Заказ #...</h3>
-      <p style="color: #94a3b8; font-size: 13px;" id="receiptSub">Менеджеры завода «МИШКА» уже получили наряд в работу.</p>
     </div>
     <div id="receipt-details" style="font-size: 13px; margin-bottom: 14px; background: #1a222d; padding: 12px; border-radius: 10px;"></div>
     <div class="total-box" style="margin-bottom: 16px; background: #132a1e; border-color: #22c55e;">
-      <span id="lblReceiptTotal">Сумма к оплате:</span>
+      <span>Сумма к оплате:</span>
       <span id="receipt-total" style="color: #4ade80; font-size: 1.25rem;">0 ₽</span>
     </div>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-      <button class="btn-submit" style="background: #2563eb; margin: 0; padding: 12px;" id="btnNewCalc" onclick="resetOrder()">➕ Собрать ещё</button>
+      <button class="btn-submit" style="background: #2563eb; margin: 0; padding: 12px;" onclick="resetOrder()">➕ Собрать ещё</button>
       <button class="btn-submit" style="background: #334155; margin: 0; padding: 12px;" onclick="openOrderHistory()">📜 Мои заказы</button>
     </div>
   </div>
@@ -425,55 +414,11 @@
   </div>
 
   <script>
-    // Определение словаря DICT для устранения ошибки Can't find variable: DICT
-    const DICT = {
-      ru: {
-        title: "📦 Склад и Монтаж «МИШКА»",
-        tabWell: "💧 Скважина / Кессон",
-        tabSeptic: "☣️ Септик / Слив",
-        tabDrain: "🌾 Дренаж участка",
-        tabStorm: "🌧 Ливнёвка в земле",
-        lblLang: "🌐 Язык интерфейса",
-        tEquip: "1. Вариант обустройства скважины",
-        lblEquipType: "Тип системы:",
-        optVfd: "Кессон с Частотным Преобразователем (ЧП)",
-        optGa: "Кессон с гидробаком",
-        optAdapter: "Обустройство через скважинный адаптер TIM",
-        lblKessonModel: "Модель кессона «МИШКА»:",
-        tParams: "Параметры скважины и трассы",
-        tSpec: "2. Спецификация оборудования",
-        lblAddExtra: "➕ Добавить дополнительную позицию со склада:",
-        lblTotalText: "ИТОГО К ОПЛАТЕ:",
-        tLogistics: "🚚 Получение заказа",
-        lblLogType: "Способ получения:",
-        optPickup: "📦 Самовывоз со склада (п. Некрасовский)",
-        optDelivery: "🚛 Доставка на объект заказчика",
-        lblPickupTime: "Дата и время приезда на склад:",
-        btnNavMaps: "📍 Открыть склад в Яндекс Навигаторе",
-        lblDeliveryAddress: "Точный адрес доставки (МО / район / дом):",
-        lblDeliveryTime: "Желаемое время доставки:",
-        tContact: "📞 Контактные данные",
-        lblContactName: "Имя клиента / монтажника:",
-        lblCompany: "Компания / Организация:",
-        phCompany: "Например: ООО АкваСтрой / Частный монтаж",
-        lblContactPhone: "Телефон для связи:",
-        btnSubmit: "Отправить заказ на склад",
-        badgeSuccess: "🎉 Наряд-заказ успешно зарегистрирован!",
-        receiptSub: "Менеджеры завода «МИШКА» уже получили наряд в работу.",
-        lblReceiptTotal: "Сумма к оплате:",
-        btnNewCalc: "➕ Собрать ещё",
-        errPhone: "Пожалуйста, укажите телефон для связи!",
-        errDelivery: "Пожалуйста, укажите точный адрес доставки!",
-        sending: "Отправка..."
-      }
-    };
-
     let currentOrderMode = 'materials';
     let selectedWorks = {};
     let activeTab = 'well';
     let currentItems = [];
     let currentTotal = 0;
-    let isUserEdited = false;
 
     const ALL_WORKS = [
       {code: 'work_kesson_std', cat: 'kesson', name: 'Монтаж кессона (обвязка, ПНР, выход под кабель и магистраль)', price: 23000.0, unit: 'усл.'},
@@ -490,7 +435,6 @@
         if (btn) btn.classList.toggle('active', k === mode);
         if (sec) sec.style.display = (k === mode) ? 'block' : 'none';
       });
-      document.getElementById('receipt-modal').style.display = 'none';
       if (mode === 'well') calcWell();
     }
 
@@ -500,52 +444,7 @@
       document.getElementById('deliveryBox').style.display = isDelivery ? 'block' : 'none';
     }
 
-    function onLanguageChanged() {
-      const lang = document.getElementById('langSelect').value || 'ru';
-      const t = DICT[lang] || DICT.ru;
-      const setT = (id, text) => {
-        const el = document.getElementById(id);
-        if (el && text) el.innerText = text;
-      };
-      setT('uiTitle', t.title);
-      setT('btnTabWell', t.tabWell);
-      setT('btnTabSeptic', t.tabSeptic);
-      setT('btnTabDrain', t.tabDrain);
-      setT('btnTabStorm', t.tabStorm);
-      setT('lblLang', t.lblLang);
-      setT('tEquip', t.tEquip);
-      setT('lblEquipType', t.lblEquipType);
-      setT('optVfd', t.optVfd);
-      setT('optGa', t.optGa);
-      setT('optAdapter', t.optAdapter);
-      setT('lblKessonModel', t.lblKessonModel);
-      setT('tSpec', t.tSpec);
-      setT('lblAddExtra', t.lblAddExtra);
-      setT('lblTotalText', t.lblTotalText);
-      setT('tLogistics', t.tLogistics);
-      setT('lblLogType', t.lblLogType);
-      setT('optPickup', t.optPickup);
-      setT('optDelivery', t.optDelivery);
-      setT('lblPickupTime', t.lblPickupTime);
-      setT('btnNavMaps', t.btnNavMaps);
-      setT('lblDeliveryAddress', t.lblDeliveryAddress);
-      setT('lblDeliveryTime', t.lblDeliveryTime);
-      setT('tContact', t.tContact);
-      setT('lblContactName', t.lblContactName);
-      setT('lblCompany', t.lblCompany);
-      setT('lblContactPhone', t.lblContactPhone);
-      setT('btnSubmit', t.btnSubmit);
-      setT('badgeSuccess', t.badgeSuccess);
-      setT('receiptSub', t.receiptSub);
-      setT('lblReceiptTotal', t.lblReceiptTotal);
-      setT('btnNewCalc', t.btnNewCalc);
-      calcWell(true);
-    }
-
-    function calcWell(forceReset = false) {
-      if (isUserEdited && !forceReset) return;
-      isUserEdited = false;
-
+    function calcWell() {
       const depth = parseFloat(document.getElementById('pump_depth')?.value || 40) || 0;
       const distance = parseFloat(document.getElementById('trench_distance')?.value || 15) || 0;
       const equip_type = document.getElementById('equip_type').value;
@@ -613,13 +512,13 @@
         <div class="spec-item">
           <div class="spec-header">
             <div class="spec-name">${idx+1}. ${it.name}<div class="spec-unit-price">${it.price.toFixed(2)} ₽ / ${it.unit}</div></div>
-            <button class="del-btn" onclick="currentItems.splice(${idx},1); isUserEdited=true; recalcAndRender();">✖</button>
+            <button class="del-btn" onclick="currentItems.splice(${idx},1); recalcAndRender();">✖</button>
           </div>
           <div class="spec-controls-row">
             <div class="qty-ctrl">
-              <button class="qty-btn" type="button" onclick="currentItems[${idx}].qty = Math.max(0, currentItems[${idx}].qty-1); isUserEdited=true; recalcAndRender();">−</button>
-              <input class="qty-input" type="number" value="${it.qty}" oninput="currentItems[${idx}].qty = parseFloat(this.value)||0; isUserEdited=true; recalcAndRender();">
-              <button class="qty-btn" type="button" onclick="currentItems[${idx}].qty += 1; isUserEdited=true; recalcAndRender();">+</button>
+              <button class="qty-btn" type="button" onclick="currentItems[${idx}].qty = Math.max(0, currentItems[${idx}].qty-1); recalcAndRender();">−</button>
+              <input class="qty-input" type="number" value="${it.qty}" oninput="currentItems[${idx}].qty = parseFloat(this.value)||0; recalcAndRender();">
+              <button class="qty-btn" type="button" onclick="currentItems[${idx}].qty += 1; recalcAndRender();">+</button>
             </div>
             <div class="spec-subtotal">${itemSum.toFixed(2)} ₽</div>
           </div>
@@ -641,63 +540,41 @@
       };
       const info = catalog[val] || {name: "Доп. товар", price: 1000, unit: "шт"};
       currentItems.push({...info, qty: 1});
-      isUserEdited = true;
       recalcAndRender();
     }
 
     async function sendOrder() {
-      const btn = document.getElementById('btnSubmit');
+      const phone = document.getElementById('contactPhone').value.trim();
+      if (!phone || phone.length < 6) {
+        alert('Укажите корректный телефон!');
+        return;
+      }
+      const name = document.getElementById('contactName').value.trim() || 'Клиент';
+      const company = document.getElementById('contactCompany').value.trim();
+      const logisticsType = document.getElementById('logisticsType').value;
+      const deliveryType = logisticsType === 'pickup' ? 'Самовывоз со склада' : 'Доставка на объект';
+      const deliveryInfo = logisticsType === 'pickup' ? (document.getElementById('pickupDateTime').value.trim() || 'Самовывоз') : (document.getElementById('deliveryAddress').value.trim() || 'Адрес не указан');
+
+      const payload = {
+        mode: activeTab,
+        lang: 'ru',
+        client_name: name,
+        company: company,
+        phone: phone,
+        delivery_type: deliveryType,
+        delivery_info: deliveryInfo,
+        equip_type: document.getElementById('equip_type').value,
+        chosen_kesson: document.getElementById('chosen_kesson').value,
+        chosen_tank: document.getElementById('chosen_tank').value,
+        chosen_pump: document.getElementById('chosen_pump').value,
+        chosen_hydrant: document.getElementById('chosen_hydrant').value,
+        depth: parseFloat(document.getElementById('pump_depth')?.value || 40) || 0,
+        distance: parseFloat(document.getElementById('trench_distance')?.value || 15) || 0,
+        items: currentItems.filter(it => it.qty > 0),
+        total: currentTotal
+      };
+
       try {
-        const lang = document.getElementById('langSelect').value || 'ru';
-        const t = DICT[lang] || DICT.ru;
-
-        const phone = document.getElementById('contactPhone').value.trim();
-        if (!phone || phone.length < 6) {
-          alert(t.errPhone);
-          document.getElementById('contactPhone').focus();
-          return;
-        }
-        const name = document.getElementById('contactName').value.trim() || 'Клиент';
-        const company = document.getElementById('contactCompany').value.trim();
-        const logisticsType = document.getElementById('logisticsType').value;
-        const deliveryType = logisticsType === 'pickup' ? 'Самовывоз со склада' : 'Доставка на объект';
-        const deliveryInfo = logisticsType === 'pickup' ? (document.getElementById('pickupDateTime').value.trim() || 'Самовывоз') : (document.getElementById('deliveryAddress').value.trim() || 'Адрес не указан');
-
-        let itemsToOrder = currentItems.filter(it => it.qty > 0);
-        if (currentOrderMode === 'works') {
-          itemsToOrder = [];
-          ALL_WORKS.forEach(w => {
-            const q = selectedWorks[w.code] || 0;
-            if (q > 0) itemsToOrder.push({ item_key: w.code, name: w.name, qty: q, unit: w.unit, price: w.price });
-          });
-          if (itemsToOrder.length === 0) {
-            alert('Выберите хотя бы одну услугу!');
-            return;
-          }
-        }
-
-        const payload = {
-          mode: currentOrderMode === 'works' ? 'works' : activeTab,
-          lang: lang,
-          client_name: name,
-          company: company,
-          phone: phone,
-          delivery_type: deliveryType,
-          delivery_info: deliveryInfo,
-          equip_type: document.getElementById('equip_type').value,
-          chosen_kesson: document.getElementById('chosen_kesson').value,
-          chosen_tank: document.getElementById('chosen_tank').value,
-          chosen_pump: document.getElementById('chosen_pump').value,
-          chosen_hydrant: document.getElementById('chosen_hydrant').value,
-          depth: parseFloat(document.getElementById('pump_depth')?.value || 40) || 0,
-          distance: parseFloat(document.getElementById('trench_distance')?.value || 15) || 0,
-          items: itemsToOrder,
-          total: currentOrderMode === 'works' ? itemsToOrder.reduce((s,x)=>s+x.qty*x.price,0) : currentTotal
-        };
-
-        btn.disabled = true;
-        btn.innerText = t.sending;
-
         const res = await fetch('/api/miniapp_order', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
@@ -706,19 +583,15 @@
         const resp = await res.json();
         if (resp.status === 'ok') {
           document.getElementById('containerMaterials').style.display = 'none';
-          document.getElementById('containerWorks').style.display = 'none';
           document.getElementById('receipt-modal').style.display = 'block';
           document.getElementById('receipt-id').innerText = 'Заказ #' + resp.order_id;
-          document.getElementById('receipt-total').innerText = (resp.total || payload.total).toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
-          document.getElementById('receipt-details').innerHTML = `<p><b>Заказчик:</b> ${name} (${phone})</p><p><b>Способ:</b> ${deliveryType}</p>`;
+          document.getElementById('receipt-total').innerText = resp.total.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+          document.getElementById('receipt-details').innerHTML = `<p><b>Заказчик:</b> ${name} (${phone}</p><p><b>Способ:</b> ${deliveryType}</p>`;
         } else {
           alert('Ошибка: ' + (resp.error || 'не удалось оформить заказ'));
         }
       } catch (e) {
         alert('Ошибка соединения: ' + e.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = "Отправить заказ на склад";
       }
     }
 
