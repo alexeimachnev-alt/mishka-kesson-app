@@ -201,11 +201,12 @@
   <!-- РАЗДЕЛ 1: СКВАЖИНА И КЕССОН -->
   <div id="secWell">
     <div class="card">
-      <div class="card-title" id="tEquip">1. Вариант обустройства скважины (Кессон опрессованный)</div>
+      <div class="card-title" id="tEquip">1. Вариант обустройства скважины</div>
       <label id="lblEquipType">Тип системы:</label>
       <select id="equip_type" onchange="calcWell()">
         <option value="kesson_vfd" id="optVfd">Кессон с Частотным Преобразователем (ЧП)</option>
         <option value="kesson_ga" id="optGa">Кессон с гидробаком</option>
+        <option value="adapter" id="optAdapter">Обустройство через скважинный адаптер TIM</option>
       </select>
 
       <div id="kesson_model_box" style="margin-top:10px;">
@@ -216,6 +217,31 @@
           <option value="kesson_m3">Кессон «Мишка 3» (Ø1600х2000) — 65 000 ₽</option>
           <option value="kesson_m4">Кессон «Мишка 4» (Ø2000х2000) — 82 000 ₽</option>
           <option value="kesson_long">Кессон «Мишка LONG» (H=2500) — 58 000 ₽</option>
+        </select>
+      </div>
+
+      <div id="pump_model_box" style="margin-top:10px;">
+        <label>Скважинный насос:</label>
+        <select id="chosen_pump" onchange="calcWell()">
+          <option value="pump_none" selected>Без насоса (свой или покупается отдельно)</option>
+          <option value="pump_belamos_tf3_60">Belamos TF3-60 каб. 35м — 11 152.80 ₽</option>
+          <option value="pump_belamos_tf3_80_50m">Belamos TF3-80 каб. 50м — 14 695.20 ₽</option>
+          <option value="pump_waterstry_3_90">WATERSTRY 3"3ST 3-90 H=108м — 19 484.72 ₽</option>
+          <option value="pump_pw_tf3_80">Power Water PW TF3-80 каб.50м — 14 292.09 ₽</option>
+          <option value="pump_aquario_75_1_5m">Aquario ASP1E-75-75 каб. 1.5м — 14 976.00 ₽</option>
+        </select>
+      </div>
+
+      <div id="tank_model_box" style="margin-top:10px;">
+        <label id="lblTankModel">Гидроаккумулятор:</label>
+        <select id="chosen_tank" onchange="calcWell()">
+          <option value="tank_8bw">8л BELAMOS 8BW (подвесной) — 1 183.20 ₽</option>
+          <option value="tank_24">24л BELAMOS 24СТ2 синий — 1 906.80 ₽</option>
+          <option value="tank_50_hit">50л Джилекс Г 50 «ХИТ» — 3 783.00 ₽</option>
+          <option value="tank_50vt">50л BELAMOS 50VT — 3 940.80 ₽</option>
+          <option value="tank_80vt">80л BELAMOS 80VT — 7 566.00 ₽</option>
+          <option value="tank_100vt" selected>100л BELAMOS 100VT — 8 747.70 ₽</option>
+          <option value="tank_300_dzhileks">300л Джилекс 300 В — 23 049.00 ₽</option>
         </select>
       </div>
     </div>
@@ -448,258 +474,58 @@
     let currentItems = [];
     let currentTotal = 0;
 
-    const DICT = {
-      ru: {
-        title: "📦 Склад оборудования «МИШКА»",
-        tabWell: "💧 Скважина / Кессон",
-        tabSeptic: "☣️ Септик / Слив",
-        tabDrain: "🌾 Дренаж участка",
-        tabStorm: "🌧 Ливнёвка в земле",
-        lblLang: "🌐 Язык интерфейса",
-        tEquip: "1. Вариант обустройства скважины",
-        lblEquipType: "Тип системы:",
-        optVfd: "Кессон с Частотным Преобразователем (ЧП)",
-        optGa: "Кессон со стандартным гидробаком и реле",
-        optAdapter: "Обустройство через скважинный адаптер TIM",
-        lblKessonModel: "Модель кессона «МИШКА»:",
-        lblTankModel: "Объем гидроаккумулятора BELAMOS:",
-        tParams: "2. Параметры скважины и участка",
-        lblDepth: "Глубина скважины (м):",
-        lblDist: "Расстояние до дома (м):",
-        tSpec: "3. Спецификация оборудования (можно изменить любое кол-во)",
-        lblAddExtra: "➕ Добавить дополнительную позицию со склада:",
-        lblTotalText: "ИТОГО К ОПЛАТЕ:",
-        tLogistics: "🚚 Получение заказа",
-        lblLogType: "Способ получения:",
-        optPickup: "📦 Самовывоз со склада (п. Некрасовский)",
-        optDelivery: "🚛 Доставка на объект заказчика",
-        lblPickupTime: "Дата и время приезда на склад:",
-        btnNavMaps: "📍 Открыть склад в Яндекс Навигаторе",
-        lblDeliveryAddress: "Точный адрес доставки (МО / район / дом):",
-        lblDeliveryTime: "Желаемое время доставки:",
-        tContact: "📞 Контактные данные",
-        lblContactName: "Имя клиента / монтажника:",
-        lblCompany: "Компания / Организация:",
-        phCompany: "Например: ООО АкваСтрой / Частный монтаж",
-        lblContactPhone: "Телефон для связи:",
-        btnSubmit: "Отправить заказ на склад",
-        errPhone: "⚠️ Укажите контактный телефон!",
-        errDelivery: "⚠️ Укажите точный адрес доставки!",
-        badgeSuccess: "✅ Заказ успешно оформлен!",
-        receiptSub: "Наряд передан менеджерам склада «МИШКА».",
-        lblReceiptTotal: "Сумма заказа:",
-        btnNewCalc: "СОЗДАТЬ НОВЫЙ РАСЧЕТ",
-        sending: "⏳ Отправка на склад..."
-      },
-      tj: {
-        title: "📦 Анбори таҷҳизоти «МИШКА»",
-        tabWell: "💧 Чоҳ / Кессон",
-        tabSeptic: "☣️ Септик / Слив",
-        tabDrain: "🌾 Дренажи замин",
-        tabStorm: "🌧 Оброҳаи зеризаминӣ",
-        lblLang: "🌐 Забони барнома",
-        tEquip: "1. Намуди таҷҳизоти чоҳ",
-        lblEquipType: "Система:",
-        optVfd: "Кессон бо табдилдиҳандаи басомад (ЧП)",
-        optGa: "Кессон бо гидробак ва реле",
-        optAdapter: "Таҷҳизот тавассути адаптери TIM",
-        lblKessonModel: "Намуди кессони «МИШКА»:",
-        lblTankModel: "Ҳаҷми гидроаккумулятор BELAMOS:",
-        tParams: "2. Параметрҳои чоҳ ва замин",
-        lblDepth: "Чуқурии чоҳ (м):",
-        lblDist: "Масофа то хона (м):",
-        tSpec: "3. Рӯйхати таҷҳизот (миқдорро иваз кардан мумкин аст)",
-        lblAddExtra: "➕ Илова кардани таҷҳизоти иловагӣ аз анбор:",
-        lblTotalText: "ҲАМАГӢ БАРОИ ПАРДОХТ:",
-        tLogistics: "🚚 Тарзи гирифтани мол",
-        lblLogType: "Тарзи гирифтан:",
-        optPickup: "📦 Худам аз анбор мегирам (Некрасовский)",
-        optDelivery: "🚛 Бурдан ба суроғаи манзил",
-        lblPickupTime: "Сана ва вақти омадан ба анбор:",
-        btnNavMaps: "📍 Кушодани харита (Яндекс Навигатор)",
-        lblDeliveryAddress: "Суроғаи расонидан:",
-        lblDeliveryTime: "Вақти расонидан:",
-        tContact: "📞 Маълумоти тамос",
-        lblContactName: "Номи мизоҷ / усто:",
-        lblCompany: "Ширкат / Ташкилот:",
-        phCompany: "Масалан: ҶДММ Оби Пок / Устои инфиродӣ",
-        lblContactPhone: "Рақами телефон:",
-        btnSubmit: "Фармоишро ба анбор фиристед",
-        errPhone: "⚠️ Рақами телефонро нависед!",
-        errDelivery: "⚠️ Суроғаи расониданро нависед!",
-        badgeSuccess: "✅ Фармоиш қабул шуд!",
-        receiptSub: "Фармоиш ба анбори «МИШКА» супорида шуд.",
-        lblReceiptTotal: "Маблағи пардохт:",
-        btnNewCalc: "ҲИСОБИ НАВ",
-        sending: "⏳ Фиристодан..."
-      },
-      uz: {
-        title: "📦 «MISHKA» uskunalar ombori",
-        tabWell: "💧 Quduq / Kesson",
-        tabSeptic: "☣️ Septik / Kanalizatsiya",
-        tabDrain: "🌾 Drenaj tizimi",
-        tabStorm: "🌧 Yomg'ir tizimi",
-        lblLang: "🌐 Dastur tili",
-        tEquip: "1. Quduq tizimi turi",
-        lblEquipType: "Tizim turi:",
-        optVfd: "Kesson chastota boshqaruvi bilan (VFD)",
-        optGa: "Kesson gidroakkumulyator va rele bilan",
-        optAdapter: "TIM adapteri orqali quduq",
-        lblKessonModel: "«MISHKA» kesson modeli:",
-        lblTankModel: "BELAMOS gidroakkumulyator hajmi:",
-        tParams: "2. Quduq va hudud parametrlari",
-        lblDepth: "Quduq chuqurligi (m):",
-        lblDist: "Uygacha masofa (m):",
-        tSpec: "3. Uskunalar ro'yxati (miqdorini o'zgartirish mumkin)",
-        lblAddExtra: "➕ Ombordan qo'shimcha tovar qo'shish:",
-        lblTotalText: "TO'LOV UCHUN JAMI:",
-        tLogistics: "🚚 Buyurtmani olish",
-        lblLogType: "Olish usuli:",
-        optPickup: "📦 Ombordan olib ketish (Nekrasovskiy)",
-        optDelivery: "🚛 Obyektga yetkazib berish",
-        lblPickupTime: "Omborga kelish vaqti:",
-        btnNavMaps: "📍 Yandex Navigatorda ochish",
-        lblDeliveryAddress: "Yetkazib berish manzili:",
-        lblDeliveryTime: "Yetkazish vaqti:",
-        tContact: "📞 Aloqa ma'lumotlari",
-        lblContactName: "Mijoz / usta ismi:",
-        lblCompany: "Kompaniya / Tashkilot:",
-        phCompany: "Masalan: MCHJ Suv Qurilish / Xususiy usta",
-        lblContactPhone: "Telefon raqami:",
-        btnSubmit: "Buyurtmani omborga yuborish",
-        errPhone: "⚠️ Telefon raqamini kiriting!",
-        errDelivery: "⚠️ Yetkazish manzilini kiriting!",
-        badgeSuccess: "✅ Buyurtma qabul qilindi!",
-        receiptSub: "Buyurtma ombor boshqaruviga topshirildi.",
-        lblReceiptTotal: "Buyurtma summasi:",
-        btnNewCalc: "YANGI HISOBLASH",
-        sending: "⏳ Yuborilmoqda..."
-      },
-      hy: {
-        title: "📦 «ՄԻՇԿԱ» սարքավորումների պահեստ",
-        tabWell: "💧 Հորատանցք / Կեսոն",
-        tabSeptic: "☣️ Սեպտիկ / Կոյուղի",
-        tabDrain: "🌾 Դրենաժային համակարգ",
-        tabStorm: "🌧 Անձրևաջրերի համակարգ",
-        lblLang: "🌐 Լեզու",
-        tEquip: "1. Հորատանցքի տեսակ",
-        lblEquipType: "Համակարգի տեսակ:",
-        optVfd: "Կեսոն հաճախականության կարգավորիչով",
-        optGa: "Կեսոն ստանդարտ հիդրոբակով և ռելեով",
-        optAdapter: "TIM ադապտերով համակարգ",
-        lblKessonModel: "«ՄԻՇԿԱ» կեսոնի մոդել:",
-        lblTankModel: "BELAMOS հիդրոակումուլյատորի ծավալ:",
-        tParams: "2. Պարամետրեր",
-        lblDepth: "Հորատանցքի խորություն (մ):",
-        lblDist: "Հեռավորություն մինչև տուն (մ):",
-        tSpec: "3. Ապրանքացուցակ (քանակը կարող եք փոխել)",
-        lblAddExtra: "➕ Ավելացնել ապրանք պահեստից:",
-        lblTotalText: "ԸՆԴԱՄԵՆԸ ՎՃԱՐՄԱՆ:",
-        tLogistics: "🚚 Ստացման եղանակ",
-        lblLogType: "Ստացման ձև:",
-        optPickup: "📦 Ինքնուրույն պահեստից (Նեկրասովսկի)",
-        optDelivery: "🚛 Առաքում դեպի օբյեկտ",
-        lblPickupTime: "Պահեստ գալու ժամ:",
-        btnNavMaps: "📍 Բացել Yandex Navigator-ում",
-        lblDeliveryAddress: "Առաքման հասցե:",
-        lblDeliveryTime: "Առաքման ժամ:",
-        tContact: "📞 Կոնտակտներ",
-        lblContactName: "Անուն:",
-        lblCompany: "Ընկերություն / Կազմակերպություն:",
-        phCompany: "Օրինակ՝ ՍՊԸ Ջրաշին / Անհատ վարպետ",
-        lblContactPhone: "Հեռախոսահամար:",
-        btnSubmit: "Ուղարկել պատվերը պահեստ",
-        errPhone: "⚠️ Նշեք Ձեր հեռախոսահամարը:",
-        errDelivery: "⚠️ Նշեք առաքման հասցեն:",
-        badgeSuccess: "✅ Պատվերն ընդունված է:",
-        receiptSub: "Պատվերը փոխանցված է պահեստ:",
-        lblReceiptTotal: "Գումար:",
-        btnNewCalc: "ՆՈՐ ՀԱՇՎԱՐԿ",
-        sending: "⏳ Ուղարկում..."
-      },
-      ky: {
-        title: "📦 «МИШКА» кампасы",
-        tabWell: "💧 Скважина / Кессон",
-        tabSeptic: "☣️ Септик / Канализация",
-        tabDrain: "🌾 Жер дренажы",
-        tabStorm: "🌧 Ливнёвка түтүгү",
-        lblLang: "🌐 Тилди тандоо",
-        tEquip: "1. Скважинаны жабдуу түрү",
-        lblEquipType: "Система түрү:",
-        optVfd: "Кессон жыштык өзгөрткүчү менен (ЧП)",
-        optGa: "Кессон гидробак жана реле менен",
-        optAdapter: "TIM адаптери аркылуу",
-        lblKessonModel: "«МИШКА» кессон модели:",
-        lblTankModel: "BELAMOS гидробак көлөмү:",
-        tParams: "2. Скважина параметрлери",
-        lblDepth: "Скважина тереңдиги (м):",
-        lblDist: "Үйгө чейинки аралык (м):",
-        tSpec: "3. Кампа жабдуулары (санын өзгөртсө болот)",
-        lblAddExtra: "➕ Кампадан кошумча товар кошуу:",
-        lblTotalText: "ТӨЛӨМ ҮЧҮН ЖАЛПЫ:",
-        tLogistics: "🚚 Заказды алуу",
-        lblLogType: "Алуу ыкмасы:",
-        optPickup: "📦 Кампадан өзү алып кетүү (Некрасовский)",
-        optDelivery: "🚛 Объектке жеткирүү",
-        lblPickupTime: "Кампага келүү убактысы:",
-        btnNavMaps: "📍 Яндекс Навигатордон ачуу",
-        lblDeliveryAddress: "Жеткирүү дареги:",
-        lblDeliveryTime: "Жеткирүү убактысы:",
-        tContact: "📞 Байланыш маалыматтары",
-        lblContactName: "Кардардын аты:",
-        lblCompany: "Компания / Уюм:",
-        phCompany: "Мисалы: ЖЧК СууКурулуш / Жеке уста",
-        lblContactPhone: "Телефон номери:",
-        btnSubmit: "Заказды кампага жөнөтүү",
-        errPhone: "⚠️ Телефон номериңизди жазыңыз!",
-        errDelivery: "⚠️ Жеткирүү дарегин жазыңыз!",
-        badgeSuccess: "✅ Заказ кабыл алынды!",
-        receiptSub: "Заказ «МИШКА» кампасына өткөрүлдү.",
-        lblReceiptTotal: "Заказ суммасы:",
-        btnNewCalc: "ЖАҢЫ ЭСЕПТӨӨ",
-        sending: "⏳ Жөнөтүлүүдө..."
-      }
-    };
-
-    // ==========================================
-    // ⚙️ НАСТРОЙКИ АКТИВНЫХ УСЛУГ (МОДУЛЕЙ)
-    // ==========================================
-    const ENABLED_SERVICES = {
-      mode_works: false,      // Кнопка режима "Только монтаж и работы"
-      tab_well: true,         // Вкладка "Скважина / Кессон"
-      tab_septic: false,      // Вкладка "Септик / Слив"
-      tab_drain: false,       // Вкладка "Дренаж участка"
-      tab_storm: false        // Вкладка "Ливнёвка"
-    };
-
-    function applyServicesConfig() {
-      const modeGrid = document.querySelector('.mode-switch-grid');
-      if (modeGrid) modeGrid.style.display = ENABLED_SERVICES.mode_works ? 'grid' : 'none';
-
-      const tabsMap = { well: 'btnTabWell', septic: 'btnTabSeptic', drainage: 'btnTabDrain', storm: 'btnTabStorm' };
-      const settingsMap = { well: ENABLED_SERVICES.tab_well, septic: ENABLED_SERVICES.tab_septic, drainage: ENABLED_SERVICES.tab_drain, storm: ENABLED_SERVICES.tab_storm };
-
-      let activeCount = 0;
-      let firstActive = null;
-
-      for (let key in tabsMap) {
-        const btn = document.getElementById(tabsMap[key]);
-        if (btn) {
-          if (settingsMap[key]) {
-            btn.style.display = ''; 
-            activeCount++;
-            if (!firstActive) firstActive = key;
-          } else {
-            btn.style.display = 'none'; 
-          }
-        }
-      }
-      const tabGrid = document.querySelector('.tab-grid');
-      if (tabGrid) tabGrid.style.display = activeCount > 1 ? 'grid' : 'none';
-      if (firstActive) selectTab(firstActive);
-    }
-
-    const ITEM_NAMES = {"work_kesson_std": {"ru": "Монтаж кессона (обвязка, ПНР, выход под кабель и магистраль)", "tj": "Васли кессон (пайвасткунӣ, бакорандозӣ, баромадгоҳи кабел ва қубур)", "uz": "Kesson montaji (bog'lash, ishga tushirish, kabel va magistral chiqishi)", "hy": "Կեսոնի տեղադրում (միացումներ, գործարկում, ելքեր մալուխի և ջրագծի)", "ky": "Кессон монтажы (байлоо, иштетүү, кабель жана түтүк чыгуусу)"}, "work_kesson_weld": {"ru": "Монтаж кессона со сваркой (обвязка, ПНР, кабель, магистраль)", "tj": "Васли кессон бо кафшер (пайвасткунӣ, бакорандозӣ, кабел, қубур)", "uz": "Kesson payvandlash bilan montaji (bog'lash, ishga tushirish)", "hy": "Կեսոնի տեղադրում զոդումով (միացումներ, գործարկում)", "ky": "Кессон ширетүү менен монтажы (байлоо, иштетүү)"}, "work_kesson_extra_outlet": {"ru": "Дополнительный выход из кессона", "tj": "Баромадгоҳи иловагӣ аз кессон", "uz": "Kessondan qo'shimcha chiqish", "hy": "Լրացուցիչ ելք կեսոնից", "ky": "Кессондон кошумча чыгуу"}, "work_kesson_demount_mount": {"ru": "Демонтаж и повторный монтаж кессона", "tj": "Кушодан ва аз нав васл кардани кессон", "uz": "Kessonni qismlarga ajratish va qayta o'rnatish", "hy": "Կեսոնի ապամոնտաժում և կրկնակի տեղադրում", "ky": "Кессонду бузуп кайра орнотуу"}, "work_adapter_turnkey": {"ru": "Монтаж скважинного адаптера «под ключ»", "tj": "Васли адаптери чоҳ «тайёр ба кор»", "uz": "Quduq adapterini o'rnatish «tayyor holda»", "hy": "Հորատանցքի ադապտերի տեղադրում «բանալին ձեռքին»", "ky": "Скважина адаптерин «ачкычы менен» орнотуу"}, "work_well_turnkey": {"ru": "Монтаж колодца «под ключ»", "tj": "Сохтани чоҳи об «тайёр ба кор»", "uz": "Quduqni to'liq montaj qilish", "hy": "Հորի կառուցում «բանալին ձեռքին»", "ky": "Кудукту толук куруу"}, "work_summer_tap": {"ru": "Монтаж узла летнего полива", "tj": "Васли нуқтаи обёрии тобистона", "uz": "Yozgi sug'orish tugunini o'rnatish", "hy": "Ամառային ոռոգման հանգույցի տեղադրում", "ky": "Жайкы сугаруу түйүнүн монтаждоо"}, "work_pump_change_50": {"ru": "Замена скважинного насоса до 50 м (труба 32 мм)", "tj": "Ивази насоси чоҳ то 50 м (қубури 32 мм)", "uz": "50 metrgacha quduq nasosini almashtirish (32 mm)", "hy": "Խորքային պոմպի փոխարինում մինչև 50 մ (32 մմ)", "ky": "50 метрге чейинки скважина насосун алмаштыруу"}, "work_pump_change_100": {"ru": "Замена скважинного насоса от 50 до 100 м (труба 32 мм)", "tj": "Ивази насоси чоҳ аз 50 то 100 м (қубури 32 мм)", "uz": "50 dan 100 metrgacha quduq nasosini almashtirish", "hy": "Խորքային պոմպի փոխարինում 50-ից 100 մ", "ky": "50дөн 100 метрге чейин насос алмаштыруу"}, "work_pump_demount": {"ru": "Демонтаж скважинного насоса (отдельно)", "tj": "Кушода гирифтани насоси чоҳ (алоҳида)", "uz": "Quduq nasosini qismlarga ajratish (alohida)", "hy": "Խորքային պոմպի ապամոնտաժում (առանձին)", "ky": "Скважина насосун чыгаруу (өзүнчө)"}, "work_septic_mount": {"ru": "Монтаж септика от 3 до 6 (стандарт)", "tj": "Васли септик аз 3 то 6 нафар (стандарт)", "uz": "Septik montaji 3 dan 6 kishigacha (standart)", "hy": "Սեպտիկի տեղադրում 3-ից 6 անձի համար", "ky": "3төн 6 кишилик септик монтажы"}, "work_pipe_110_lay": {"ru": "Укладка трубы 110 в траншею", "tj": "Хобондани қубури 110 дар хандақ", "uz": "Xandakka 110 quvur yotqizish", "hy": "110 խողովակի անցկացում խրամուղում", "ky": "Орго 110 түтүгүн төшөө"}, "work_dig_septic": {"ru": "Копка котлована под септик (стандарт 1.2х2 м)", "tj": "Кафтани чоҳ барои септик (1.2х2 м)", "uz": "Septik uchun kotlovan qazish (1.2x2 m)", "hy": "Սեպտիկի փոսորակի փորում (1.2х2 մ)", "ky": "Септик үчүн котлован казуу (1.2х2 м)"}, "work_dig_trench_50": {"ru": "Земляные работы (траншея глубиной до 50 см)", "tj": "Корҳои заминӣ (хандақ то 50 см)", "uz": "Yer qazish ishlari (50 sm chuqurlikkacha)", "hy": "Հողային աշխատանքներ (խրամուղի մինչև 50 սմ)", "ky": "Жер казуу иштери (50 см чейин)"}, "work_dig_trench_100": {"ru": "Земляные работы (траншея глубиной до 100 см)", "tj": "Корҳои заминӣ (хандақ то 100 см)", "uz": "Yer qazish ishlari (100 sm chuqurlikkacha)", "hy": "Հողային աշխատանքներ (խրամուղի մինչև 100 սմ)", "ky": "Жер казуу иштери (100 см чейин)"}, "work_dig_trench_150": {"ru": "Земляные работы (траншея глубиной до 150 см)", "tj": "Корҳои заминӣ (хандақ то 150 см)", "uz": "Yer qazish ishlari (150 sm chuqurlikkacha)", "hy": "Հողային աշխատանքներ (խրամուղի մինչև 150 սմ)", "ky": "Жер казуу иштери (150 см чейин)"}, "work_dig_trench_200": {"ru": "Земляные работы (траншея глубиной до 200 см)", "tj": "Корҳои заминӣ (хандақ то 200 см)", "uz": "Yer qazish ishlari (200 sm chuqurlikkacha)", "hy": "Հողային աշխատանքներ (խրամուղի մինչև 200 սմ)", "ky": "Жер казуу иштери (200 см чейин)"}, "work_dig_kesson_type2": {"ru": "Копка котлована под кессон Тип 2 (1.2 м)", "tj": "Кафтани чоҳ барои кессон Намуди 2 (1.2 м)", "uz": "Kesson uchun kotlovan qazish 2-tur (1.2 m)", "hy": "Կեսոնի փոսորակի փորում Տիպ 2 (1.2 մ)", "ky": "Кессон үчүн котлован казуу 2-түрү (1.2 м)"}, "work_undermine_2m": {"ru": "Подкоп под фундаментом / препятствием (до 2 м)", "tj": "Зери пойдевор кафтан (то 2 м)", "uz": "Poydevor ostini qazish (2 m gacha)", "hy": "Հիմքի տակով փորում (մինչև 2 մ)", "ky": "Пайда пайдубалынын астын казуу (2 м чейин)"}, "work_storm_lay_50": {"ru": "Монтаж ливнёвки (глубина до 50 см)", "tj": "Васли оброҳаи борон (то 50 см)", "uz": "Yomg'ir suvi tizimi montaji (50 sm gacha)", "hy": "Անձրևաջրերի համակարգի մոնտաժ (մինչև 50 սմ)", "ky": "Жаан суу тутумун орнотуу (50 см чейин)"}, "work_drain_softrock_1m": {"ru": "Монтаж дренажа «Софтрок» (глубина до 1 м)", "tj": "Васли дренажи «Софтрок» (то 1 м)", "uz": "«Softrok» drenaj montaji (1 m gacha)", "hy": "«Սոֆթռոք» դրենաժի մոնտաժ (մինչև 1 մ)", "ky": "«Софтрок» дренажын монтаждоо (1 м чейин)"}, "work_boiler_mount": {"ru": "Монтаж водонагревателя (бойлера)", "tj": "Васли обгармкунак (бойлер)", "uz": "Boylerni (suv isitgich) o'rnatish", "hy": "Ջրատաքացուցիչի (բոյլեր) տեղադրում", "ky": "Бойлерди (суу ысыткыч) орнотуу"}, "work_water_point": {"ru": "Монтаж точки водоснабжения (ХВС / ГВС)", "tj": "Васли нуқтаи об (ХВС / ГВС)", "uz": "Suv ta'minoti nuqtasini o'rnatish", "hy": "Ջրամատակարարման կետի տեղադրում", "ky": "Суу түйүнүн орнотуу"}, "work_toilet_mount": {"ru": "Установка и подключение унитаза", "tj": "Васл ва пайваст кардани ҳоҷатхона", "uz": "Unitaz o'rnatish va ulash", "hy": "Զուգարանակոնքի տեղադրում և միացում", "ky": "Унитазды орнотуу жана туташтыруу"}, "work_sink_mount": {"ru": "Установка и подключение раковины / мойки", "tj": "Васли дастшӯяк / зарфшӯяк", "uz": "Rakovina / moyka o'rnatish va ulash", "hy": "Լվացարանի տեղադրում և միացում", "ky": "Раковинаны орнотуу և туташтыруу"}, "work_shower_cabin": {"ru": "Сборка душевой кабины (стандарт)", "tj": "Ҷамъ кардани кабинаи душ (стандарт)", "uz": "Dush kabinasini yig'ish (standart)", "hy": "Լոգախցիկի հավաքում (ստանդարտ)", "ky": "Душ кабинасын чогултуу (стандарт)"}, "work_diagnostic_visit": {"ru": "Выезд специалиста, осмотр и диагностика", "tj": "Омадани мутахассис ва ташхис", "uz": "Mutaxassis chiqishi va diagnostika", "hy": "Մասնագետի այց և ախտորոշում", "ky": "Адистин келип текшерүүсү"}, "kesson_m1": {"ru": "Кессон «Мишка 1» (муфта 125/133) 1050x2000", "tj": "Кессон «Мишка 1» (муфтаи 125/133) 1050x2000", "uz": "Kesson «Mishka 1» (mufta 125/133) 1050x2000", "hy": "Կեսոն «Միշկա 1» (կցորդիչ 125/133) 1050x2000", "ky": "Кессон «Мишка 1» (муфта 125/133) 1050x2000"}, "kesson_m2": {"ru": "Кессон «Мишка 2» (муфта 125/133) 1300x2000", "tj": "Кессон «Мишка 2» (муфтаи 125/133) 1300x2000", "uz": "Kesson «Mishka 2» (mufta 125/133) 1300x2000", "hy": "Կեսոն «Միշկա 2» (կցորդիչ 125/133) 1300x2000", "ky": "Кессон «Мишка 2» (муфта 125/133) 1300x2000"}, "kesson_m3": {"ru": "Кессон «Мишка 3» (муфта 125/133) 1600x2000", "tj": "Кессон «Мишка 3» (муфтаи 125/133) 1600x2000", "uz": "Kesson «Mishka 3» (mufta 125/133) 1600x2000", "hy": "Կեսոն «Միշկա 3» (կցորդիչ 125/133) 1600x2000", "ky": "Кессон «Мишка 3» (муфта 125/133) 1600x2000"}, "kesson_m4": {"ru": "Кессон «Мишка 4» (муфта 125/133) 2000x2000", "tj": "Кессон «Мишка 4» (муфтаи 125/133) 2000x2000", "uz": "Kesson «Mishka 4» (mufta 125/133) 2000x2000", "hy": "Կեսոն «Միշկա 4» (կցորդիչ 125/133) 2000x2000", "ky": "Кессон «Мишка 4» (муфта 125/133) 2000x2000"}, "kesson_long": {"ru": "Кессон «Мишка LONG» (муфта 125/133) H=2500", "tj": "Кессон «Мишка LONG» (муфтаи 125/133) H=2500", "uz": "Kesson «Mishka LONG» (mufta 125/133) H=2500", "hy": "Կեսոն «Միշկա LONG» (կցորդիչ 125/133) H=2500", "ky": "Кессон «Мишка LONG» (муфта 125/133) H=2500"}, "adapter_tim_1": {"ru": "Адаптер скважинный 1\" TIM со сливным клапаном", "tj": "Адаптери чоҳ 1\" TIM бо клапани холӣ кардан", "uz": "Quduq adapteri 1\" TIM tushirish klapani bilan", "hy": "Հորատանցքի ադապտեր 1\" TIM ջրահեռացման փականով", "ky": "Скважина адаптери 1\" TIM суу төгүү клапаны менен"}, "cover_adapter": {"ru": "Крышка скважины Джилекс КС 110-133", "tj": "Сарпӯши чоҳ Джилекс КС 110-133", "uz": "Quduq qopqog'i Dzhileks KS 110-133", "hy": "Հորատանցքի կափարիչ Ջիլեքս ԿՍ 110-133", "ky": "Скважина капкагы Джилекс КС 110-133"}, "well_head_osp": {"ru": "Оголовок скважинный Джилекс ОСП 110-133/32", "tj": "Сарпӯши махсуси чоҳ Джилекс ОСП 110-133/32", "uz": "Quduq og'izligi Dzhileks OSP 110-133/32", "hy": "Հորատանցքի գլխիկ Ջիլեքս ՕՍՊ 110-133/32", "ky": "Скважина башы Джилекс ОСП 110-133/32"}, "vfd_fil10": {"ru": "Частотный преобразователь FIL-10 2.2kW 220V", "tj": "Табдилдиҳандаи басомад FIL-10 2.2kW 220V", "uz": "Chastota o'zgartirgich FIL-10 2.2kW 220V", "hy": "Հաճախականության կարգավորիչ FIL-10 2.2kW 220V", "ky": "Жыштык өзгөрткүчү FIL-10 2.2kW 220V"}, "tank_8bw": {"ru": "Гидроаккумулятор BELAMOS 8BW (подвесной)", "tj": "Гидроаккумулятор BELAMOS 8BW (овезон)", "uz": "Gidroakkumulyator BELAMOS 8BW (osma)", "hy": "Հիդրոակումուլյատոր BELAMOS 8BW (կախովի)", "ky": "Гидроаккумулятор BELAMOS 8BW (асма)"}, "tank_50": {"ru": "Гидроаккумулятор 50VT BELAMOS", "tj": "Гидроаккумулятор 50VT BELAMOS", "uz": "Gidroakkumulyator 50VT BELAMOS", "hy": "Հիդրոակումուլյատոր 50VT BELAMOS", "ky": "Гидроаккумулятор 50VT BELAMOS"}, "tank_80": {"ru": "Гидроаккумулятор 80VT BELAMOS", "tj": "Гидроаккумулятор 80VT BELAMOS", "uz": "Gidroakkumulyator 80VT BELAMOS", "hy": "Հիդրոակումուլյատոր 80VT BELAMOS", "ky": "Гидроаккумулятор 80VT BELAMOS"}, "tank_100": {"ru": "Гидроаккумулятор 100VT BELAMOS", "tj": "Гидроаккумулятор 100VT BELAMOS", "uz": "Gidroakkumulyator 100VT BELAMOS", "hy": "Հիդրոակումուլյատոր 100VT BELAMOS", "ky": "Гидроаккумулятор 100VT BELAMOS"}, "tank_150": {"ru": "Гидроаккумулятор 150VT BELAMOS", "tj": "Гидроаккумулятор 150VT BELAMOS", "uz": "Gidroakkumulyator 150VT BELAMOS", "hy": "Հիդրոակումուլյատոր 150VT BELAMOS", "ky": "Гидроаккумулятор 150VT BELAMOS"}, "tank_200": {"ru": "Гидроаккумулятор 200VT BELAMOS", "tj": "Гидроаккумулятор 200VT BELAMOS", "uz": "Gidroakkumulyator 200VT BELAMOS", "hy": "Հիդրոակումուլյատոր 200VT BELAMOS", "ky": "Гидроаккумулятор 200VT BELAMOS"}, "tank_300": {"ru": "Гидроаккумулятор 300VT BELAMOS", "tj": "Гидроаккумулятор 300VT BELAMOS", "uz": "Gidroakkumulyator 300VT BELAMOS", "hy": "Հիդրոակումուլյատոր 300VT BELAMOS", "ky": "Гидроаккумулятор 300VT BELAMOS"}, "pressure_switch": {"ru": "Реле давления AQUARIO PS-5-2", "tj": "Релеи фишор AQUARIO PS-5-2", "uz": "Bosim relesi AQUARIO PS-5-2", "hy": "Ճնշման ռելե AQUARIO PS-5-2", "ky": "Басым релеси AQUARIO PS-5-2"}, "manometer": {"ru": "Манометр радиальный 0-10 бар D53мм 1/4", "tj": "Манометр 0-10 бар D53мм 1/4", "uz": "Manometr 0-10 bar D53mm 1/4", "hy": "Մանոմետր 0-10 բար D53մմ 1/4", "ky": "Манометр 0-10 бар D53мм 1/4"}, "pipe_ppr_32": {"ru": "Труба полипропиленовая 32х5,4мм PN20 (цвет белый)", "tj": "Қубури полипропиленӣ 32х5,4мм PN20 (сафед)", "uz": "Polipropilen quvur 32x5,4mm PN20 (oq)", "hy": "Պոլիպրոպիլենային խողովակ 32х5,4մմ PN20 (սպիտակ)", "ky": "Полипропилен түтүгү 32х5,4мм PN20 (ак)"}, "pipe_pnd_32": {"ru": "Труба ПНД 32х3,0 SDR 11 (синяя)", "tj": "Қубури ПНД 32х3,0 SDR 11 (кабуд)", "uz": "PND quvuri 32x3,0 SDR 11 (ko'k)", "hy": "Խողովակ ՊՆԴ 32х3,0 SDR 11 (կապույտ)", "ky": "ПНД түтүгү 32х3,0 SDR 11 (көк)"}, "pipe_pnd_20": {"ru": "Труба ПНД 20x2,0 SDR 11 (под кабель)", "tj": "Қубури ПНД 20х2,0 SDR 11 (барои кабел)", "uz": "PND quvuri 20x2,0 SDR 11 (kabel uchun)", "hy": "Խողովակ ՊՆԴ 20х2,0 SDR 11 (մալուխի համար)", "ky": "ПНД түтүгү 20х2,0 SDR 11 (кабель үчүн)"}, "cable_pvs_3x2_5": {"ru": "Кабель ПВС 3х2,5 белый гибкий", "tj": "Кабели ПВС 3х2,5 сафеди чандир", "uz": "PVS kabeli 3x2,5 oq egiluvchan", "hy": "Մալուխ ՊՎՍ 3х2,5 սպիտակ ճկուն", "ky": "ПВС кабели 3х2,5 ак ийилчээк"}, "rope_3mm_304": {"ru": "Трос нержавеющая сталь 3мм AISI 304", "tj": "Сими пӯлоди зангногир 3мм AISI 304", "uz": "Zanglamaydigan po'lat tros 3mm AISI 304", "hy": "Չժանգոտվող պողպատե ճոպան 3մմ AISI 304", "ky": "Дат баспас болот аркан 3мм AISI 304"}, "valve_ppr_32": {"ru": "Кран шаровой PP-R VALFEX OPTIMA 32мм (цвет белый)", "tj": "Крани куравии PP-R VALFEX 32мм", "uz": "Sharli kran PP-R VALFEX 32mm", "hy": "Գնդիկավոր ծորակ PP-R VALFEX 32մմ", "ky": "Шарлуу кран PP-R VALFEX 32мм"}, "valve_watering_1_2": {"ru": "Кран шаровый VALFEX 1/2\" водоразборный, ручка рычаг, с носиком под шланг", "tj": "Крани обёрӣ 1/2' бо нӯги шланг", "uz": "Sug'orish krani 1/2' shlang uchi bilan", "hy": "Ոռոգման ծորակ 1/2' փողրակի ծայրով", "ky": "Сугаруучу кран 1/2' шланг учундуу"}, "valve_brass_1": {"ru": "Кран шаровой Вн/Нр (бабочка) 1' латунь", "tj": "Крани биринҷӣ 1' (шапалак)", "uz": "Latun sharli kran 1' (kapalak)", "hy": "Լատունե գնդիկավոր ծորակ 1'", "ky": "Жез шарлуу кран 1' (көпөлөк)"}, "check_valve_1": {"ru": "Обратный клапан 1' Millennium с металл. седлом", "tj": "Клапани баръакси 1' Millennium бо нишасти филизӣ", "uz": "Qaytish klapani 1' Millennium metall o'rindiqli", "hy": "Հակադարձ փական 1' Millennium մետաղական նստատեղով", "ky": "Артка кайтаруу клапаны 1' Millennium металл отургучтуу"}, "ppr_union_32_1": {"ru": "Муфта разъемная PP-R 32-1' ВР (американка)", "tj": "Муфтаи ҷудошавандаи PP-R 32-1' (американка)", "uz": "Ajraladigan mufta PP-R 32-1' (amerikanka)", "hy": "Անջատովի կցորդիչ PP-R 32-1' (ամերիկանկա)", "ky": "Ажыратылма муфта PP-R 32-1' (американка)"}, "ppr_comb_coupling_32_1_hp": {"ru": "Муфта комб. PP-R 32-1' HP неразъемная", "tj": "Муфтаи омехтаи PP-R 32-1' БО", "uz": "Kombinatsiyalangan mufta PP-R 32-1' TQ", "hy": "Կոմբինացված կցորդիչ PP-R 32-1' ԱՊ", "ky": "Айкалышкан муфта PP-R 32-1' СТ"}, "ppr_elbow_90_32": {"ru": "Отвод 90* PP-R Millennium 32мм (цвет белый)", "tj": "Кунҷак 90 PP-R Millennium 32мм (сафед)", "uz": "Tirsak 90 PP-R Millennium 32mm (oq)", "hy": "Անկյունակ 90 PP-R Millennium 32մմ", "ky": "Бурчтук 90 PP-R Millennium 32мм"}, "ppr_elbow_45_32": {"ru": "Отвод 45* PP-R Millennium 32мм (цвет белый)", "tj": "Кунҷак 45 PP-R Millennium 32мм (сафед)", "uz": "Tirsak 45 PP-R Millennium 32mm (oq)", "hy": "Անկյունակ 45 PP-R Millennium 32մմ", "ky": "Бурчтук 45 PP-R Millennium 32мм"}, "ppr_tee_32": {"ru": "Тройник PP-R Millennium 32мм (цвет белый)", "tj": "Тройник PP-R Millennium 32мм (сафед)", "uz": "Troynik PP-R Millennium 32mm (oq)", "hy": "Եռաբաշխիչ PP-R Millennium 32մմ", "ky": "Тройник PP-R Millennium 32мм"}, "ppr_plug_32": {"ru": "Заглушка PP-R Millennium 32мм (цвет белый)", "tj": "Сарпӯши PP-R Millennium 32мм", "uz": "Qopqoq PP-R Millennium 32mm", "hy": "Խցան PP-R Millennium 32մմ", "ky": "Тыгын PP-R Millennium 32мм"}, "ppr_coupling_32": {"ru": "Муфта PP-R Millennium 32мм (цвет белый)", "tj": "Муфтаи пайвасткунандаи PP-R 32мм", "uz": "Ulovchi mufta PP-R 32mm", "hy": "Կցորդիչ PP-R 32մմ", "ky": "Бириктирүүчү муфта PP-R 32мм"}, "ppr_comb_elbow_32_1_2_bp": {"ru": "Отвод комб. с внутренней резьбой 90* PP-R Millennium 32-1/2\" (цвет белый)", "tj": "Кунҷаки омехта бо риштаи дохилӣ 90 PP-R 32-1/2'", "uz": "Ichki rezbali tirsak 90 PP-R 32-1/2'", "hy": "Ներքին պարույրով անկյունակ 90 PP-R 32-1/2'", "ky": "Ички сайлуу бурчтук 90 PP-R 32-1/2'"}, "ppr_comb_elbow_32_1_2_hp": {"ru": "Отвод комб. с наружной резьбой 90* PP-R Millennium 32-1/2\" (цвет белый)", "tj": "Кунҷаки омехта бо риштаи беруна 90 PP-R 32-1/2'", "uz": "Tashqi rezbali tirsak 90 PP-R 32-1/2'", "hy": "Արտաքին պարույրով անկյունակ 90 PP-R 32-1/2'", "ky": "Сырткы сайлуу бурчтук 90 PP-R 32-1/2'"}, "hose_straight_1_2_60cm": {"ru": "Подводка для воды прямая 1/2\" 60см г/г", "tj": "Шланги чандири об 1/2' 60см", "uz": "Suv uchun egiluvchan shlang 1/2' 60sm", "hy": "Ճկուն ջրի խողովակ 1/2' 60սմ", "ky": "Ийилчээк суу түтүгү 1/2' 60см"}, "hose_giant_1_80cm": {"ru": "Подводка для воды угловая 1\" 80см г/г ГИГАНТ", "tj": "Шланги калони об 1' 80см ГИГАНТ", "uz": "Katta suv shlangi 1' 80sm GIGANT", "hy": "Խոշոր ճկուն խողովակ 1' 80սմ ԳԻԳԱՆՏ", "ky": "Чоң суу түтүгү 1' 80см ГИГАНТ"}, "brass_bushing_1_2_1_4": {"ru": "Футорка НВ 1/2'x1/4' (латунь)", "tj": "Футорка биринҷӣ 1/2'x1/4'", "uz": "Futorka latun 1/2'x1/4'", "hy": "Ֆուտորկա լատուն 1/2'x1/4'", "ky": "Футорка жез 1/2'x1/4'"}, "ppr_trans_tee_32_1_2_bp": {"ru": "Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1/2\"x32 (цвет белый)", "tj": "Тройники гузарандаи PP-R 32x1/2'x32", "uz": "O'tish troynigi PP-R 32x1/2'x32", "hy": "Անցումային եռաբաշխիչ PP-R 32x1/2'x32", "ky": "Өткөөл тройник PP-R 32x1/2'x32"}, "ppr_trans_tee_32_1_bp": {"ru": "Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1\"x32 (цвет белый)", "tj": "Тройники гузарандаи PP-R 32x1'x32", "uz": "O'tish troynigi PP-R 32x1'x32", "hy": "Անցումային եռաբաշխիչ PP-R 32x1'x32", "ky": "Өткөөл тройник PP-R 32x1'x32"}, "ppr_trans_tee_32_1_hp": {"ru": "Тройник переходной комб. с наружной резьбой PP-R Millennium 32x1\"x32 (цвет белый)", "tj": "Тройники гузарандаи HP PP-R 32x1'x32", "uz": "O'tish troynigi HP PP-R 32x1'x32", "hy": "Անցումային եռաբաշխիչ HP PP-R 32x1'x32", "ky": "Өткөөл тройник HP PP-R 32x1'x32"}, "pnd_coupling_32_1_hp": {"ru": "Муфта ПНД 32х1' HP Unidelta", "tj": "Муфтаи ПНД 32х1' БО Unidelta", "uz": "PND mufta 32x1' TQ Unidelta", "hy": "Կցորդիչ ՊՆԴ 32х1' ԱՊ Unidelta", "ky": "ПНД муфта 32х1' СТ Unidelta"}, "pnd_elbow_32_1_hp": {"ru": "Угол ПНД 32x1' HP Unidelta", "tj": "Кунҷаки ПНД 32х1' БО Unidelta", "uz": "PND burchak 32x1' TQ Unidelta", "hy": "Անկյունակ ՊՆԴ 32х1' ԱՊ Unidelta", "ky": "ПНД бурчтук 32х1' СТ Unidelta"}, "pnd_coupling_32_32": {"ru": "Муфта ПНД 32x32 Unidelta", "tj": "Муфтаи пайвасткунандаи ПНД 32х32 Unidelta", "uz": "PND ulash muftasi 32x32 Unidelta", "hy": "Կցորդիչ ՊՆԴ 32х32 Unidelta", "ky": "ПНД бириктирүүчү муфта 32х32 Unidelta"}, "pnd_reduct_32_20": {"ru": "Муфта ПНД редукц. 32х20 Unidelta", "tj": "Муфтаи редуксионии ПНД 32х20 Unidelta", "uz": "PND reduksiya muftasi 32x20 Unidelta", "hy": "Ռեդուկցիոն կցորդիչ ՊՆԴ 32х20 Unidelta", "ky": "ПНД өткөөл муфта 32х20 Unidelta"}, "cable_clamp_4mm": {"ru": "Зажим для троса AISI 316 4мм", "tj": "Қисқичи сим 4мм AISI 316", "uz": "Tros qisqichi 4mm AISI 316", "hy": "Ճոպանի սեղմակ 4մմ AISI 316", "ky": "Аркан кыскычы 4мм AISI 316"}, "plug_16a": {"ru": "Вилка электрическая прямая 16A 250B", "tj": "Виллкаи барқии 16A 250B", "uz": "Elektr shtepsel vilkasi 16A 250B", "hy": "Էլեկտրական խրոց 16A 250B", "ky": "Электр вилкасы 16A 250B"}, "brass_tee_1_bbb": {"ru": "Тройник ВВВ 1' латунь Millenium", "tj": "Тройник биринҷӣ 1' Millenium", "uz": "Latun troynik 1' Millenium", "hy": "Լատունե եռաբաշխիչ 1' Millenium", "ky": "Жез тройник 1' Millenium"}, "brass_tee_1_2_bbb": {"ru": "Тройник ВВВ 1/2' (латунь)", "tj": "Тройник биринҷӣ 1/2'", "uz": "Latun troynik 1/2'", "hy": "Լատունե եռաբաշխիչ 1/2'", "ky": "Жез тройник 1/2'"}, "brass_nipple_1": {"ru": "Ниппель НН 1' (латунь)", "tj": "Ниппели биринҷӣ 1'", "uz": "Latun nippel 1'", "hy": "Լատունե նիպել 1'", "ky": "Жез ниппель 1'"}, "brass_nipple_1_2": {"ru": "Ниппель НН 1/2' (латунь)", "tj": "Ниппели биринҷӣ 1/2'", "uz": "Latun nippel 1/2'", "hy": "Լատունե նիպել 1/2'", "ky": "Жез ниппель 1/2'"}, "brass_nipple_1_2_1_4": {"ru": "Ниппель перех. НН 1/2'x1/4' (латунь)", "tj": "Ниппели гузарандаи биринҷӣ 1/2'x1/4'", "uz": "O'tish nippeli latun 1/2'x1/4'", "hy": "Անցումային նիպել լատուն 1/2'x1/4'", "ky": "Өткөөл ниппель жез 1/2'x1/4'"}, "brass_nipple_1_2_3_8": {"ru": "Ниппель переходной НН 1/2'x3/8' (латунь)", "tj": "Ниппели гузарандаи биринҷӣ 1/2'x3/8'", "uz": "O'tish nippeli latun 1/2'x3/8'", "hy": "Անցումային նիպել լատուն 1/2'x3/8'", "ky": "Өткөөл ниппель жез 1/2'x3/8'"}, "septic_bio3": {"ru": "Станция «МИШКА-Био 3»", "tj": "Истгоҳи «МИШКА-Био 3»", "uz": "«MISHKA-Bio 3» stansiyasi", "hy": "Կայան «ՄԻՇԿԱ-Բիո 3»", "ky": "«МИШКА-Био 3» станциясы"}, "septic_bio5": {"ru": "Станция «МИШКА-Био 5»", "tj": "Истгоҳи «МИШКА-Био 5»", "uz": "«MISHKA-Bio 5» stansiyasi", "hy": "Կայան «ՄԻՇԿԱ-Բիո 5»", "ky": "«МИШКА-Био 5» станциясы"}, "septic_bio8": {"ru": "Станция «МИШКА-Био 8»", "tj": "Истгоҳи «МИШКА-Био 8»", "uz": "«MISHKA-Bio 8» stansiyasi", "hy": "Կայան «ՄԻՇԿԱ-Բիո 8»", "ky": "«МИШКА-Био 8» станциясы"}, "pipe110": {"ru": "Труба ПВХ рыжая наружная 110х3.2", "tj": "Қубури норинҷӣ 110х3.2 беруна", "uz": "Zarg'aldoq quvur 110x3.2 tashqi", "hy": "Նարնջագույն խողովակ 110х3.2 արտաքին", "ky": "Кызгылт сары түтүк 110х3.2 сырткы"}, "insul110": {"ru": "Утеплитель для трубы 110", "tj": "Гармидиҳанда барои қубури 110", "uz": "110 quvur uchun izolyatsiya", "hy": "Ջերմամեկուսիչ 110 խողովակի համար", "ky": "110 түтүк үчүн жылуулагыч"}, "elbow110_45": {"ru": "Отводы 110х45° рыжие", "tj": "Кунҷак 110х45° норинҷӣ", "uz": "Tirsak 110x45° zarg'aldoq", "hy": "Անկյունակ 110х45° նարնջագույն", "ky": "Бурчтук 110х45° кызгылт"}, "tee110": {"ru": "Тройник ревизионный 110 с заглушкой", "tj": "Тройники назоратӣ 110 бо сарпӯш", "uz": "Tekshiruv troynigi 110 qopqoqli", "hy": "Ստուգիչ եռաբաշխիչ 110 խցանով", "ky": "Текшерүүчү тройник 110 капкактуу"}, "bacteria": {"ru": "Бактерии для быстрого запуска", "tj": "Бактерия барои оғози кор", "uz": "Tez ishga tushirish uchun bakteriyalar", "hy": "Բակտերիաներ արագ գործարկման համար", "ky": "Тез иштетүү үчүн бактериялар"}, "drain_softrock": {"ru": "Блоки «Софтрок/Лайтдрок» 110 (L=3м)", "tj": "Блокҳои «Софтрок» 110 (L=3м)", "uz": "«Softrok» bloklari 110 (L=3m)", "hy": "Բլոկներ «Սոֆթռոք» 110 (L=3մ)", "ky": "«Софтрок» блоктору 110 (L=3м)"}, "drain_pipe_classic": {"ru": "Труба дренажная 110 с фильтром", "tj": "Қубури дренажӣ 110 бо филтр", "uz": "Drenaj quvuri 110 filtr bilan", "hy": "Դրենաժային խողովակ 110 ֆիլտրով", "ky": "Дренаж түтүгү 110 чыпка менен"}, "geotextile_roll": {"ru": "Геотекстиль Дорнит (рулон 2х50м)", "tj": "Геотекстил Дорнит (рулон 2х50м)", "uz": "Geotekstil Dornit (rulon 2x50m)", "hy": "Գեոտեքստիլ Դոռնիտ (ռուլոն 2х50մ)", "ky": "Геотекстиль Дорнит (рулон 2х50м)"}, "well_drain_315": {"ru": "Колодец смотровой d315 + люк + дно", "tj": "Чоҳи назоратӣ d315 + сарпӯш + таҳхона", "uz": "Kuzatuv qudug'i d315 + lyuk + tubi", "hy": "Դիտահոր d315 + լյուկ + հատակ", "ky": "Көзөмөл кудугу d315 + люк + түбү"}, "storm_inlet_box": {"ru": "Дождеприёмник 300х300 с корзиной и решёткой", "tj": "Қабулкунаки бороноб 300х300 бо панҷара", "uz": "Yomg'ir qabul qilgich 300x300 panjara bilan", "hy": "Անձրևընդունիչ 300х300 ցանցով", "ky": "Жаан суу кабыл алгыч 300х300 тор менен"}, "storm_pipe110": {"ru": "Труба ПВХ рыжая 110х3.2 наружная", "tj": "Қубури норинҷӣ 110х3.2 беруна", "uz": "Zarg'aldoq quvur 110x3.2 tashqi", "hy": "Նարնջագույն խողովակ 110х3.2 արտաքին", "ky": "Кызгылт сары түтүк 110х3.2 сырткы"}, "storm_well_315": {"ru": "Колодец поворотный d315 с люком", "tj": "Чоҳи гардишӣ d315 бо сарпӯш", "uz": "Burilish qudug'i d315 lyuk bilan", "hy": "Շրջադարձային հոր d315 լյուկով", "ky": "Бурулуш кудугу d315 люк менен"}, "work_self_overflow_3": {"ru": "Монтаж самоизливной скважины с кессоном (до 3 м³/ч)", "tj": "Васли чоҳи худҷӯш бо кессон (то 3 м³/с)", "uz": "O'z оqimli quduqni kesson bilan montaji (3 m³/soatgacha)", "hy": "Ինքնահոս հորատանցքի տեղադրում կեսոնով (մինչև 3 խմ/ժ)", "ky": "Өзү агымдуу скважинаны монтаждоо (3 м³/ч чейин)"}, "work_self_overflow_10": {"ru": "Монтаж самоизливной скважины с кессоном (от 3 до 10 м³/ч)", "tj": "Васли чоҳи худҷӯш бо кессон (аз 3 то 10 м³/с)", "uz": "O'z оqimli quduqni kesson bilan montaji (3 dan 10 m³/soatgacha)", "hy": "Ինքնահոս հորատանցքի տեղադրում կեսոնով (3-ից 10 խմ/ժ)", "ky": "Өзү агымдуу скважинаны монтаждоо (3төн 10 м³/ч чейин)"}, "work_self_overflow_30": {"ru": "Монтаж самоизливной скважины с кессоном (от 10 до 30 м³/ч)", "tj": "Васли чоҳи худҷӯш бо кессон (аз 10 то 30 м³/с)", "uz": "O'z оqimli quduqni kesson bilan montaji (10 dan 30 m³/soatgacha)", "hy": "Ինքնահոս հորատանցքի տեղադրում կեսոնով (10-ից 30 խմ/ժ)", "ky": "Өзү агымдуу скважинаны монтаждоо (10дон 30 м³/ч чейин)"}, "work_dig_kesson_type3": {"ru": "Копка котлована под кессон Тип 3 (1.2–2.0 м)", "tj": "Кафтани чоҳ барои кессон Намуди 3 (1.2–2.0 м)", "uz": "Kesson uchun kotlovan qazish 3-tur (1.2-2.0 m)", "hy": "Կեսոնի փոսորակի փորում Տիպ 3 (1.2–2.0 մ)", "ky": "Кессон үчүн котлован казуу 3-түрү (1.2–2.0 м)"}, "work_dig_kesson_type4": {"ru": "Копка котлована под кессон Тип 4 (1.5–2.0 м)", "tj": "Кафтани чоҳ барои кессон Намуди 4 (1.5–2.0 м)", "uz": "Kesson uchun kotlovan qazish 4-tur (1.5-2.0 m)", "hy": "Կեսոնի փոսորակի փորում Տիպ 4 (1.5–2.0 մ)", "ky": "Кессон үчүн котлован казуу 4-түрү (1.5–2.0 м)"}, "work_undermine_5m": {"ru": "Подкоп под фундаментом / препятствием (от 2 до 5 м)", "tj": "Зери пойдевор кафтан (аз 2 то 5 м)", "uz": "Poydevor ostini qazish (2 dan 5 m gacha)", "hy": "Հիմքի տակով փորում (2-ից 5 մ)", "ky": "Пайда пайдубалынын астын казуу (2ден 5 м чейин)"}, "work_trench_under_stilts": {"ru": "Копка траншеи под домом на сваях (глубина до 1 м)", "tj": "Кафтани хандақ зери хонаи чӯбӣ/пояи сутунӣ (то 1 м)", "uz": "Ustunli uy ostida xandaq qazish (1 m gacha)", "hy": "Խրամուղու փորում սາຍების վրա կառուցված տան տակ (մինչև 1 մ)", "ky": "Мамык үйдүн астын казуу (1 м чейин)"}, "work_min_digger_shift": {"ru": "Минимальный выезд землекопа", "tj": "Баромади ҳадди ақали коргар", "uz": "Qazuvchining minimal chiqishi", "hy": "Հողափորի նվազագույն այց", "ky": "Жер казуучунун минималдуу келиши"}, "work_formwork_mount": {"ru": "Монтаж опалубки в траншее / котловане", "tj": "Васли қолаб дар хандақ / чоҳ", "uz": "Xandak / kotlovanda опалубка montaji", "hy": "Կաղապարрамеածքի տեղադրում խրամուղում", "ky": "Ордо опалубканы монтаждоо"}, "work_jackhammer_rent": {"ru": "Аренда отбойного молотка (за 1 день)", "tj": "Ижараи болғаи барқӣ (барои 1 рӯз)", "uz": "Отбойный молоток арендаси (1 кун uchun)", "hy": "Մուրճ-գայлиკის վարձույթ (1 օրվա համար)", "ky": "Ток балканы ижарага алуу (1 күн)"}, "work_soil_move_20m": {"ru": "Перенос грунта по участку (до 20 м)", "tj": "Гузаронидани хок дар қитъа (то 20 м)", "uz": "Hudud bo'ylab tuproqni ko'chirish (20 m gacha)", "hy": "Грунти տեղափոխում տեղամասում (մինչև 20 մ)", "ky": "Топуракты ташуу (20 м чейин)"}, "work_sand_move_20m": {"ru": "Перевозка песка по участку (до 20 м)", "tj": "Кашондани қум дар қитъа (то 20 м)", "uz": "Hudud bo'ylab qum tashish (20 m gacha)", "hy": "Ավազի տեղափոխում տեղամասում (մինչև 20 մ)", "ky": "Кумду ташуу (20 м чейин)"}, "work_sand_move_50m": {"ru": "Перевозка песка по участку (от 20 до 50 м)", "tj": "Кашондани қум дар қитъа (аз 20 то 50 м)", "uz": "Hudud bo'ylab qum tashish (20 dan 50 m gacha)", "hy": "Ավազի տեղափոխում տեղամասում (20-ից 50 մ)", "ky": "Кумду ташуу (20дон 50 м чейин)"}, "work_equip_carry_40m": {"ru": "Перенос оборудования по участку (от 20 до 40 м)", "tj": "Гузаронидани таҷҳизот (аз 20 то 40 м)", "uz": "Uskunalarni ko'chirish (20 dan 40 m gacha)", "hy": "Сարքավորումների տեղափոխում (20-ից 40 մ)", "ky": "Жабдууларды ташуу (20дон 40 м чейин)"}, "work_drain_storm_combo_1m": {"ru": "Монтаж дренажа и ливнёвки в одной траншее (глубина до 1 м)", "tj": "Васли дренаж ва оброҳа дар як хандақ (то 1 м)", "uz": "Bir xandakda drenaj va yomg'ir suvi montaji (1 m gacha)", "hy": "Դրենաժի և անձրևաջրերի տեղադրում միևնույն խրամուղում (մինչև 1 մ)", "ky": "Дренаж жана жаан суу түтүгүн бир орго монтаждоо (1 м чейин)"}, "work_drain_classic_1m": {"ru": "Монтаж классического дренажа в щебне (глубина до 1 м)", "tj": "Васли дренажи классикӣ дар шагыл (то 1 м)", "uz": "Shag'alli klassik drenaj montaji (1 m gacha)", "hy": "Դասական դրենաժի տեղադրում խճով (մինչև 1 մ)", "ky": "Шагылдуу классикалык дренаж монтажы (1 м чейин)"}, "work_drain_sand_rubble_move": {"ru": "Перенос песка и щебня под дренаж (до 30 м)", "tj": "Гузаронидани қум ва шагыл (то 30 м)", "uz": "Drenaj uchun qum va shag'al ko'chirish (30 m gacha)", "hy": "Ավազի և խճի տեղափոխում դրենաժի համար (մինչև 30 մ)", "ky": "Дренаж үчүн кум жана шагыл ташуу (30 м чейин)"}, "work_boiler_bypass": {"ru": "Сборка байпаса водонагревателя", "tj": "Ҷамъ кардани байпаси обгармкунак", "uz": "Bojler baypasini yig'ish", "hy": "Ջրատաքացուցիչի շրջанցիկ խողովակի (բայպաս) հավաքում", "ky": "Бойлер байпасын чогултуу"}, "work_pipe_water_lay": {"ru": "Укладка трубы водопровода внутри дома", "tj": "Хобондани қубури об дар داخل хона", "uz": "Uy ichida suv quvurini yotqizish", "hy": "Ջրատաքացուցիչի խողովակի անցկացում տանը", "ky": "Үй ичине суу түтүгүн төшөө"}, "work_sewer_point_110": {"ru": "Монтаж точки канализации D=110 мм", "tj": "Васли нуқтаи канализатсия D=110 мм", "uz": "Kanalizatsiya nuqtasini o'rnatish D=110 mm", "hy": "Կոյուղու կետի տեղադրում D=110 մմ", "ky": "Канализация түйүнүн орнотуу D=110 мм"}, "work_sewer_point_50": {"ru": "Монтаж точки канализации D=50 мм", "tj": "Васли нуқтаи канализатсия D=50 мм", "uz": "Kanalizatsiya nuqtasini o'rnatish D=50 mm", "hy": "Կոյուղու կետի տեղադրում D=50 մմ", "ky": "Канализация түйүнүн орнотуу D=50 мм"}, "work_wall_hole_50": {"ru": "Отверстие в стене диаметром до 50 мм", "tj": "Сӯрох кардани девор то 50 мм", "uz": "Devorda 50 mm gacha teshik ochish", "hy": "Անցք պատում մինչև 50 մմ", "ky": "Дубалга 50 мм чейин тешик ачуу"}, "work_wall_hole_110": {"ru": "Отверстие в стене диаметром 50–110 мм", "tj": "Сӯрох кардани девор 50–110 мм", "uz": "Devorda 50-110 mm teshik ochish", "hy": "Անցք պատում 50–110 մմ", "ky": "Дубалга 50–110 мм тешик ачуу"}, "work_diamond_drilling": {"ru": "Алмазное бурение технологических отверстий", "tj": "Пур кардани сурохҳои технологӣ бо алмаз", "uz": "Olмос yordamida teshik ochish", "hy": "Ադամանդային հորատում", "ky": "Алмаз менен тешик казуу"}};
+    const ALL_WORKS = [
+      {code: 'work_kesson_std', cat: 'kesson', name: 'Монтаж кессона (обвязка, ПНР, выход под кабель и магистраль)', price: 23000.0, unit: 'усл.'},
+      {code: 'work_kesson_weld', cat: 'kesson', name: 'Монтаж кессона со сваркой (обвязка, ПНР, кабель, магистраль)', price: 26000.0, unit: 'усл.'},
+      {code: 'work_kesson_extra_outlet', cat: 'kesson', name: 'Дополнительный выход из кессона', price: 1500.0, unit: 'шт.'},
+      {code: 'work_kesson_demount_mount', cat: 'kesson', name: 'Демонтаж и повторный монтаж кессона', price: 55000.0, unit: 'компл.'},
+      {code: 'work_adapter_turnkey', cat: 'kesson', name: 'Монтаж скважинного адаптера «под ключ»', price: 17000.0, unit: 'усл.'},
+      {code: 'work_well_turnkey', cat: 'kesson', name: 'Монтаж колодца «под ключ»', price: 17000.0, unit: 'усл.'},
+      {code: 'work_summer_tap', cat: 'kesson', name: 'Монтаж узла летнего полива', price: 12000.0, unit: 'усл.'},
+      {code: 'work_pump_change_50', cat: 'kesson', name: 'Замена скважинного насоса до 50 м (труба 32 мм)', price: 35000.0, unit: 'усл.'},
+      {code: 'work_pump_change_100', cat: 'kesson', name: 'Замена скважинного насоса от 50 до 100 м (труба 32 мм)', price: 45000.0, unit: 'усл.'},
+      {code: 'work_pump_demount', cat: 'kesson', name: 'Демонтаж скважинного насоса (отдельно)', price: 12000.0, unit: 'усл.'},
+      {code: 'work_self_overflow_3', cat: 'kesson', name: 'Монтаж самоизливной скважины с кессоном (до 3 м³/ч)', price: 45000.0, unit: 'усл.'},
+      {code: 'work_self_overflow_10', cat: 'kesson', name: 'Монтаж самоизливной скважины с кессоном (от 3 до 10 м³/ч)', price: 75000.0, unit: 'усл.'},
+      {code: 'work_self_overflow_30', cat: 'kesson', name: 'Монтаж самоизливной скважины с кессоном (от 10 до 30 м³/ч)', price: 100000.0, unit: 'усл.'},
+      {code: 'work_septic_mount', cat: 'septic', name: 'Монтаж септика от 3 до 6 (стандарт)', price: 15000.0, unit: 'усл.'},
+      {code: 'work_pipe_110_lay', cat: 'septic', name: 'Укладка трубы 110 в траншею', price: 200.0, unit: 'м.п.'},
+      {code: 'work_dig_septic', cat: 'septic', name: 'Копка котлована под септик (стандарт 1.2х2 м)', price: 10000.0, unit: 'усл.'},
+      {code: 'work_dig_trench_50', cat: 'earth', name: 'Земляные работы (траншея глубиной до 50 см)', price: 650.0, unit: 'м.п.'},
+      {code: 'work_dig_trench_100', cat: 'earth', name: 'Земляные работы (траншея глубиной до 100 см)', price: 800.0, unit: 'м.п.'},
+      {code: 'work_dig_trench_150', cat: 'earth', name: 'Земляные работы (траншея глубиной до 150 см)', price: 1100.0, unit: 'м.п.'},
+      {code: 'work_dig_trench_200', cat: 'earth', name: 'Земляные работы (траншея глубиной до 200 см)', price: 1600.0, unit: 'м.п.'},
+      {code: 'work_dig_kesson_type2', cat: 'earth', name: 'Копка котлована под кессон Тип 2 (1.2 м)', price: 9000.0, unit: 'усл.'},
+      {code: 'work_dig_kesson_type3', cat: 'earth', name: 'Копка котлована под кессон Тип 3 (1.2–2.0 м)', price: 12000.0, unit: 'усл.'},
+      {code: 'work_dig_kesson_type4', cat: 'earth', name: 'Копка котлована под кессон Тип 4 (1.5–2.0 м)', price: 15000.0, unit: 'усл.'},
+      {code: 'work_undermine_2m', cat: 'earth', name: 'Подкоп под фундаментом / препятствием (до 2 м)', price: 3000.0, unit: 'усл.'},
+      {code: 'work_undermine_5m', cat: 'earth', name: 'Подкоп под фундаментом / препятствием (от 2 до 5 м)', price: 5000.0, unit: 'усл.'},
+      {code: 'work_trench_under_stilts', cat: 'earth', name: 'Копка траншеи под домом на сваях (глубина до 1 м)', price: 2000.0, unit: 'м.п.'},
+      {code: 'work_min_digger_shift', cat: 'earth', name: 'Минимальный выезд землекопа', price: 5000.0, unit: 'выход'},
+      {code: 'work_formwork_mount', cat: 'earth', name: 'Монтаж опалубки в траншее / котловане', price: 10000.0, unit: 'усл.'},
+      {code: 'work_jackhammer_rent', cat: 'earth', name: 'Аренда отбойного молотка (за 1 день)', price: 2000.0, unit: 'день'},
+      {code: 'work_soil_move_20m', cat: 'earth', name: 'Перенос грунта по участку (до 20 м)', price: 2500.0, unit: 'м³'},
+      {code: 'work_sand_move_20m', cat: 'earth', name: 'Перевозка песка по участку (до 20 м)', price: 1500.0, unit: 'м³'},
+      {code: 'work_sand_move_50m', cat: 'earth', name: 'Перевозка песка по участку (от 20 до 50 м)', price: 2500.0, unit: 'м³'},
+      {code: 'work_equip_carry_40m', cat: 'earth', name: 'Перенос оборудования по участку (от 20 до 40 м)', price: 2500.0, unit: 'усл.'},
+      {code: 'work_storm_lay_50', cat: 'drainage', name: 'Монтаж ливнёвки (глубина до 50 см)', price: 750.0, unit: 'м.п.'},
+      {code: 'work_drain_softrock_1m', cat: 'drainage', name: 'Монтаж дренажа «Софтрок» (глубина до 1 м)', price: 900.0, unit: 'м.п.'},
+      {code: 'work_drain_storm_combo_1m', cat: 'drainage', name: 'Монтаж дренажа и ливнёвки в одной траншее (глубина до 1 м)', price: 1200.0, unit: 'м.п.'},
+      {code: 'work_drain_classic_1m', cat: 'drainage', name: 'Монтаж классического дренажа в щебне (глубина до 1 м)', price: 850.0, unit: 'м.п.'},
+      {code: 'work_drain_sand_rubble_move', cat: 'drainage', name: 'Перенос песка и щебня под дренаж (до 30 м)', price: 1000.0, unit: 'м³'},
+      {code: 'work_boiler_mount', cat: 'plumbing', name: 'Монтаж водонагревателя (бойлера)', price: 3000.0, unit: 'шт.'},
+      {code: 'work_boiler_bypass', cat: 'plumbing', name: 'Сборка байпаса водонагревателя', price: 1500.0, unit: 'шт.'},
+      {code: 'work_water_point', cat: 'plumbing', name: 'Монтаж точки водоснабжения (ХВС / ГВС)', price: 750.0, unit: 'точка'},
+      {code: 'work_pipe_water_lay', cat: 'plumbing', name: 'Укладка трубы водопровода внутри дома', price: 200.0, unit: 'м.п.'},
+      {code: 'work_sewer_point_110', cat: 'plumbing', name: 'Монтаж точки канализации D=110 мм', price: 1500.0, unit: 'точка'},
+      {code: 'work_sewer_point_50', cat: 'plumbing', name: 'Монтаж точки канализации D=50 мм', price: 1000.0, unit: 'точка'},
+      {code: 'work_toilet_mount', cat: 'plumbing', name: 'Установка и подключение унитаза', price: 1500.0, unit: 'шт.'},
+      {code: 'work_sink_mount', cat: 'plumbing', name: 'Установка и подключение раковины / мойки', price: 1500.0, unit: 'шт.'},
+      {code: 'work_shower_cabin', cat: 'plumbing', name: 'Сборка душевой кабины (стандарт)', price: 7000.0, unit: 'шт.'},
+      {code: 'work_wall_hole_50', cat: 'plumbing', name: 'Отверстие в стене диаметром до 50 мм', price: 2500.0, unit: 'шт.'},
+      {code: 'work_wall_hole_110', cat: 'plumbing', name: 'Отверстие в стене диаметром 50–110 мм', price: 4000.0, unit: 'шт.'},
+      {code: 'work_diamond_drilling', cat: 'plumbing', name: 'Алмазное бурение технологических отверстий', price: 15000.0, unit: 'усл.'}
+    ];
 
     let isUserEdited = false;
 
@@ -783,15 +609,22 @@
 
     function calcWell(forceReset = false) {
       if (isUserEdited && !forceReset) {
-         // Optionally warn user, but for now we'll just regenerate quietly
+         // Optionally warn user
       }
       isUserEdited = false;
 
       const equip_type = document.getElementById('equip_type').value;
+      const kessonBox = document.getElementById('kesson_model_box');
+      
+      if (equip_type === 'adapter') {
+          kessonBox.style.display = 'none';
+      } else {
+          kessonBox.style.display = 'block';
+      }
+
       const kessonSelect = document.getElementById('chosen_kesson');
-      const kessonNameText = kessonSelect.options[kessonSelect.selectedIndex].text;
-      const kessonName = kessonNameText.split(' — ')[0];
       const kessonKey = kessonSelect.value;
+      const kessonName = kessonSelect.options[kessonSelect.selectedIndex].text.split(' — ')[0];
       
       let kessonPrice = 41170;
       if (kessonKey === 'kesson_m2') kessonPrice = 52000;
@@ -799,34 +632,93 @@
       if (kessonKey === 'kesson_m4') kessonPrice = 82000;
       if (kessonKey === 'kesson_long') kessonPrice = 58000;
 
+      const pumpSelect = document.getElementById('chosen_pump');
+      const pumpKey = pumpSelect.value;
+      const pumpName = pumpSelect.options[pumpSelect.selectedIndex].text.split(' — ')[0];
+      const pumpPriceText = pumpSelect.options[pumpSelect.selectedIndex].text.split(' — ')[1];
+      const pumpPrice = pumpPriceText ? parseFloat(pumpPriceText.replace(/[^0-9.]/g, '')) : 0;
+
+      const tankSelect = document.getElementById('chosen_tank');
+      const tankKey = tankSelect.value;
+      const tankName = tankSelect.options[tankSelect.selectedIndex].text.split(' — ')[0];
+      const tankPriceText = tankSelect.options[tankSelect.selectedIndex].text.split(' — ')[1];
+      const tankPrice = tankPriceText ? parseFloat(tankPriceText.replace(/[^0-9.]/g, '')) : 0;
+
       const isVFD = (equip_type === 'kesson_vfd');
       currentItems = [];
 
-      currentItems.push({ item_key: kessonKey, name: kessonName, price: kessonPrice, qty: 1, unit: 'шт' });
-      currentItems.push({ item_key: 'pipe_ppr_32', name: 'Труба полипропиленовая 32х5,4мм PN20 (цвет белый)', price: 151.42, qty: 4, unit: 'м' });
-      currentItems.push({ item_key: 'ppr_elbow_90_32', name: 'Отвод 90* PP-R Millennium 32мм (цвет белый)', price: 48.33, qty: 4, unit: 'шт' });
-      currentItems.push({ item_key: 'ppr_elbow_45_32', name: 'Отвод 45* PP-R Millennium 32мм (цвет белый)', price: 38.20, qty: 4, unit: 'шт' });
-      currentItems.push({ item_key: 'ppr_plug_32', name: 'Заглушка PP-R Millennium 32мм (цвет белый)', price: 37.50, qty: 3, unit: 'шт' });
-      currentItems.push({ item_key: 'valve_ppr_32', name: 'Кран шаровой PP-R VALFEX OPTIMA 32мм (цвет белый)', price: 180.93, qty: 4, unit: 'шт' });
-      currentItems.push({ item_key: 'valve_watering_1_2', name: 'Кран шаровый VALFEX 1/2" водоразборный, ручка рычаг, с носиком под шланг', price: 436.13, qty: 1, unit: 'шт' });
-
-      if (isVFD) {
-          currentItems.push({ item_key: 'ppr_trans_tee_32_1_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 190.46, qty: 1, unit: 'шт' });
-      } else {
-          currentItems.push({ item_key: 'ppr_trans_tee_32_1_hp', name: 'Тройник переходной комб. с наружной резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 305.00, qty: 1, unit: 'шт' });
+      if (pumpPrice > 0) {
+          currentItems.push({ item_key: pumpKey, name: pumpName, price: pumpPrice, qty: 1, unit: 'шт' });
       }
 
-      currentItems.push({ item_key: 'ppr_tee_32', name: 'Тройник PP-R Millennium 32мм (цвет белый)', price: 74.70, qty: 3, unit: 'шт' });
-      currentItems.push({ item_key: 'ppr_coupling_32', name: 'Муфта PP-R Millennium 32мм (цвет белый)', price: 29.83, qty: 1, unit: 'шт' });
-      currentItems.push({ item_key: 'ppr_comb_elbow_32_1_2_bp', name: 'Отвод комб. с внутренней резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 169.35, qty: 1, unit: 'шт' });
-      currentItems.push({ item_key: 'ppr_comb_elbow_32_1_2_hp', name: 'Отвод комб. с наружной резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 274.83, qty: 1, unit: 'шт' });
-
-      if (isVFD) {
-          currentItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
-          currentItems.push({ item_key: 'ppr_trans_tee_32_1_2_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1/2"x32 (цвет белый)', price: 174.15, qty: 1, unit: 'шт' });
-      } else {
+      if (equip_type === 'adapter') {
+          currentItems.push({ item_key: 'adapter_tim_1', name: 'Адаптер скважинный со сливным клапаном 1" TIM', price: 3627.31, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'cover_adapter', name: 'Крышка скважины Джилекс КС 110-133', price: 3351.60, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'pnd_coupling_32_1_hp', name: 'Муфта ПНД 32x1" HP Unidelta', price: 263.84, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: tankKey, name: tankName + ' (в дом)', price: tankPrice, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'pressure_switch', name: 'Реле давления AQUARIO PS-5-2 (вращ. гайка) Акварио', price: 782.40, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'manometer', name: 'Манометр радиальный 0-10 бар D53мм 1/4', price: 181.31, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'hose_giant_1_80cm', name: 'Подводка для воды угловая 1" 80см г/г ГИГАНТ', price: 761.93, qty: 1, unit: 'шт' });
-          currentItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'valve_brass_1', name: 'Кран шаровой Вн/Нр (бабочка) 1"', price: 874.43, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_tee_1_bbb', name: 'Тройник для труб с внутренней резьбой ВВВ 1" латунь Millenium', price: 640.17, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_tee_1_2_bbb', name: 'Тройник ВВВ 1/2" (латунь)', price: 192.42, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_nipple_1', name: 'Ниппель НН 1" (латунь)', price: 196.76, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_nipple_1_2', name: 'Ниппель НН 1/2" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7х7 AISI 304, 3мм', price: 19.20, qty: 40, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) синяя', price: 78.00, qty: 55, unit: 'м' });
+      } else {
+          currentItems.push({ item_key: kessonKey, name: kessonName, price: kessonPrice, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'pipe_ppr_32', name: 'Труба полипропиленовая 32х5,4мм PN20 (цвет белый)', price: 151.42, qty: 4, unit: 'м' });
+          
+          if (!isVFD) {
+              currentItems.push({ item_key: tankKey, name: tankName, price: tankPrice, qty: 1, unit: 'шт' });
+          }
+          
+          currentItems.push({ item_key: 'ppr_elbow_90_32', name: 'Отвод 90* PP-R Millennium 32мм (цвет белый)', price: 48.33, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_elbow_45_32', name: 'Отвод 45* PP-R Millennium 32мм (цвет белый)', price: 38.20, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_plug_32', name: 'Заглушка PP-R Millennium 32мм (цвет белый)', price: 37.50, qty: 3, unit: 'шт' });
+          currentItems.push({ item_key: 'valve_ppr_32', name: 'Кран шаровой PP-R VALFEX OPTIMA 32мм (цвет белый)', price: 180.93, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'valve_watering_1_2', name: 'Кран шаровый VALFEX 1/2" водоразборный, ручка рычаг, с носиком под шланг', price: 436.13, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_union_32_1', name: 'Муфта разъемная PP-R с внутренней резьбой Millennium 32-1" (цвет белый), американка', price: 648.03, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_comb_coupling_32_1_hp', name: 'Муфта комб. PP-R с наружной резьбой Millennium 32-1" (цвет белый), неразъемная', price: 99.88, qty: 4, unit: 'шт' });
+          
+          if (isVFD) {
+              currentItems.push({ item_key: 'ppr_trans_tee_32_1_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 190.46, qty: 1, unit: 'шт' });
+          } else {
+              currentItems.push({ item_key: 'ppr_trans_tee_32_1_hp', name: 'Тройник переходной комб. с наружной резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 305.00, qty: 1, unit: 'шт' });
+          }
+
+          currentItems.push({ item_key: 'ppr_tee_32', name: 'Тройник PP-R Millennium 32мм (цвет белый)', price: 74.70, qty: 3, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_coupling_32', name: 'Муфта PP-R Millennium 32мм (цвет белый)', price: 29.83, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_comb_elbow_32_1_2_bp', name: 'Отвод комб. с внутренней резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 169.35, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_comb_elbow_32_1_2_hp', name: 'Отвод комб. с наружной резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 274.83, qty: 1, unit: 'шт' });
+          
+          if (isVFD) {
+              currentItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'vfd_fil10', name: 'Частотный преобразователь FIL-10 2.2KW 220V', price: 7708.80, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: tankKey, name: tankName, price: tankPrice, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'ppr_trans_tee_32_1_2_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1/2"x32 (цвет белый)', price: 174.15, qty: 1, unit: 'шт' });
+          } else {
+              currentItems.push({ item_key: 'hose_giant_1_80cm', name: 'Подводка для воды угловая 1" 80см г/г ГИГАНТ', price: 761.93, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'pressure_switch', name: 'Реле давления AQUARIO PS-5-2 (вращ. гайка) Акварио', price: 782.40, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'manometer', name: 'Манометр радиальный 0-10 бар D53мм 1/4', price: 181.31, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_tee_1_2_bbb', name: 'Тройник ВВВ 1/2" (латунь)', price: 192.42, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_nipple_1_2_3_8', name: 'Ниппель переходной НН 1/2"x3/8" (латунь)', price: 66.54, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_nipple_1_2', name: 'Ниппель НН 1/2" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+          }
+          currentItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'well_head_osp', name: 'Оголовок для скважины Джилекс ОСП 110-133/32', price: 1916.39, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7х7 AISI 304, 3мм', price: 19.20, qty: 40, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) синяя', price: 78.00, qty: 55, unit: 'м' });
       }
 
       recalcAndRender();
@@ -914,15 +806,8 @@
 
         const curLang = document.getElementById('langSelect').value || 'ru';
         let displayName = it.name;
-        if (it.item_key && ITEM_NAMES[it.item_key] && ITEM_NAMES[it.item_key][curLang]) {
+        if (it.item_key && typeof ITEM_NAMES !== 'undefined' && ITEM_NAMES[it.item_key] && ITEM_NAMES[it.item_key][curLang]) {
           displayName = ITEM_NAMES[it.item_key][curLang];
-        } else {
-          for (let k in ITEM_NAMES) {
-            if (ITEM_NAMES[k]['ru'] === it.name && ITEM_NAMES[k][curLang]) {
-              displayName = ITEM_NAMES[k][curLang];
-              break;
-            }
-          }
         }
 
         const unitMap = {
@@ -1032,7 +917,6 @@
           totalAmount = currentTotal;
         }
 
-        // Безопасное получение данных Telegram без опциональной цепочки (?.)
         const tgApp = window.Telegram ? window.Telegram.WebApp : null;
         let tgUserId = 0;
         let tgUserTag = '';
@@ -1043,6 +927,8 @@
 
         const equipEl = document.getElementById('equip_type');
         const kessonEl = document.getElementById('chosen_kesson');
+        const tankEl = document.getElementById('chosen_tank');
+        const pumpEl = document.getElementById('chosen_pump');
 
         const payload = {
           mode: currentOrderMode === 'works' ? 'works' : activeTab,
@@ -1057,7 +943,8 @@
           worker_tag: tgUserTag,
           equip_type: equipEl ? equipEl.value : 'kesson_vfd',
           chosen_kesson: kessonEl ? kessonEl.value : 'kesson_m1',
-          chosen_tank: "none",
+          chosen_tank: tankEl ? tankEl.value : 'tank_100vt',
+          chosen_pump: pumpEl ? pumpEl.value : 'pump_none',
           depth: 0,
           distance: 0,
           distances: [0],
@@ -1107,15 +994,8 @@
           
           (resp.items || itemsToOrder).forEach((x, i) => {
             let rName = x.name;
-            if (x.item_key && ITEM_NAMES[x.item_key] && ITEM_NAMES[x.item_key][curLang]) {
+            if (x.item_key && typeof ITEM_NAMES !== 'undefined' && ITEM_NAMES[x.item_key] && ITEM_NAMES[x.item_key][curLang]) {
               rName = ITEM_NAMES[x.item_key][curLang];
-            } else {
-              for (let k in ITEM_NAMES) {
-                if (ITEM_NAMES[k]['ru'] === x.name && ITEM_NAMES[k][curLang]) {
-                  rName = ITEM_NAMES[k][curLang];
-                  break;
-                }
-              }
             }
             const rUnit = (unitMap[x.unit] && unitMap[x.unit][curLang]) ? unitMap[x.unit][curLang] : (x.unit || 'усл.');
             detHtml += `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px;">${i+1}. ${rName} — <b>${x.qty} ${rUnit}</b> (${(x.qty*x.price).toFixed(2)} ₽)</div>`;
@@ -1137,7 +1017,6 @@
       }
     }
 
-    // ==================== ИСТОРИЯ ВСЕХ ЗАКАЗОВ ====================
     function saveOrderToLocalHistory(orderRecord) {
       try {
         let history = JSON.parse(localStorage.getItem('mishka_orders_history') || '[]');
@@ -1343,7 +1222,7 @@
       filtered.forEach(w => {
         const qty = selectedWorks[w.code] || 0;
         let displayName = w.name;
-        if (ITEM_NAMES[w.code] && ITEM_NAMES[w.code][curLang]) {
+        if (typeof ITEM_NAMES !== 'undefined' && ITEM_NAMES[w.code] && ITEM_NAMES[w.code][curLang]) {
           displayName = ITEM_NAMES[w.code][curLang];
         }
 
