@@ -6,75 +6,75 @@
 
 PRICES = {
     # --- КЕССОНЫ (ЛИНЕЙКА МИШКА) ---
-    "kesson_m1": 41170.00,    # Кессон Мишка 1 (муфта 125/133) 1050x2000
-    "kesson_m2": 52000.00,    # Кессон Мишка 2 (муфта 125/133) 1300x2000
-    "kesson_m3": 65000.00,    # Кессон Мишка 3 (муфта 125/133) 1600x2000
-    "kesson_m4": 82000.00,    # Кессон Мишка 4 (муфта 125/133) 2000x2000
-    "kesson_long": 58000.00,  # Кессон Мишка LONG (H=2500)
+    "kesson_m1": 41170.00,
+    "kesson_m2": 52000.00,
+    "kesson_m3": 65000.00,
+    "kesson_m4": 82000.00,
+    "kesson_long": 58000.00,
 
     # --- АДАПТЕР И КРЫШКА ---
-    "adapter_tim_1": 3627.31,  # Адаптер скважинный 1" TIM со сливным клапаном
-    "cover_adapter": 3351.60,  # Крышка скважины Джилекс КС 110-133
-    "well_head_osp": 1916.39,  # Оголовок для скважины Джилекс ОСП 110-133/32
+    "adapter_tim_1": 3627.31,
+    "cover_adapter": 3351.60,
+    "well_head_osp": 1916.39,
 
     # --- АВТОМАТИКА И БАКИ ---
-    "vfd_fil10": 7708.80,      # Частотный преобразователь FIL-10 2.2KW 220V
-    "tank_8bw": 1832.00,       # Гидроаккумулятор BELAMOS 8BW синий (подвесной)
-    "tank_50": 5420.00,        # Гидроаккумулятор 50VT BELAMOS
-    "tank_80": 7150.00,        # Гидроаккумулятор 80VT BELAMOS
-    "tank_100": 8747.70,       # Гидроаккумулятор 100VT BELAMOS
-    "tank_150": 13900.00,      # Гидроаккумулятор 150VT BELAMOS
-    "tank_200": 18200.00,      # Гидроаккумулятор 200VT BELAMOS
-    "tank_300": 26500.00,      # Гидроаккумулятор 300VT BELAMOS
-    "pressure_switch": 782.40, # Реле давления AQUARIO PS-5-2
-    "manometer": 181.31,       # Манометр радиальный 0-10 бар D53мм 1/4"
+    "vfd_fil10": 7708.80,
+    "tank_8bw": 1832.00,
+    "tank_50": 5420.00,
+    "tank_80": 7150.00,
+    "tank_100": 8747.70,
+    "tank_150": 13900.00,
+    "tank_200": 18200.00,
+    "tank_300": 26500.00,
+    "pressure_switch": 782.40,
+    "manometer": 181.31,
 
     # --- ТРУБЫ И КАБЕЛЬ (цена за 1 метр) ---
-    "pipe_ppr_32": 151.42,     # Труба полипропиленовая 32х5,4мм PN20 (белая)
-    "pipe_pnd_32": 78.00,      # Труба ПНД 32х3,0 SDR 11 (PN 16) синяя
-    "pipe_pnd_20": 42.54,      # Труба ПНД 20х2,0 SDR 11 (PN 16) синяя
-    "pipe_pnd_25": 48.46,      # Труба ПНД 25х2,0 мм SDR 13,6 (PN 10) синяя
-    "cable_pvs_3x2_5": 84.89,  # Кабель ПВС 3х2,5, белый, гибкий
-    "rope_3mm_304": 19.20,     # Трос нержавеющая сталь 7х7 AISI 304, 3мм
+    "pipe_ppr_32": 151.42,
+    "pipe_pnd_32": 78.00,
+    "pipe_pnd_20": 42.54,
+    "pipe_pnd_25": 48.46,
+    "cable_pvs_3x2_5": 84.89,
+    "rope_3mm_304": 19.20,
 
     # --- КРАНЫ И КЛАПАНЫ ---
-    "valve_ppr_32": 180.93,       # Кран шаровой PP-R VALFEX OPTIMA 32мм
-    "valve_watering_1_2": 436.13, # Кран шаровый 1/2" с носиком под шланг
-    "valve_brass_1": 874.43,      # Кран шаровой Вн/Нр (бабочка) 1"
-    "check_valve_1": 750.00,      # Обратный клапан с металлическим седлом 1" Millennium
+    "valve_ppr_32": 180.93,
+    "valve_watering_1_2": 436.13,
+    "valve_brass_1": 874.43,
+    "check_valve_1": 750.00,
 
     # --- ФИТИНГИ ПОЛИПРОПИЛЕН (PP-R) ---
-    "ppr_union_32_1": 648.03,            # Муфта разъемная PP-R Millennium 32-1" ВР (американка)
-    "ppr_comb_coupling_32_1_hp": 99.88,  # Муфта комб. PP-R Millennium 32-1" HP
-    "ppr_elbow_90_32": 48.33,            # Отвод 90 PP-R Millennium 32мм
-    "ppr_elbow_45_32": 38.20,            # Отвод 45 PP-R Millennium 32мм
-    "ppr_tee_32": 74.70,                 # Тройник PP-R Millennium 32мм
-    "ppr_plug_32": 37.50,                # Заглушка PP-R Millennium 32мм
-    "ppr_coupling_32": 29.83,            # Муфта PP-R Millennium 32мм
-    "ppr_comb_elbow_32_1_2_bp": 169.35,  # Отвод комб. ВР 90 PP-R 32-1/2"
-    "ppr_comb_elbow_32_1_2_hp": 274.83,  # Отвод комб. НР 90 PP-R 32-1/2"
-    "ppr_trans_tee_32_1_2_bp": 174.15,   # Тройник перех. комб. PP-R 32x1/2"x32 ВР
-    "ppr_trans_tee_32_1_bp": 190.46,     # Тройник перех. комб. PP-R 32x1"x32 ВР
-    "ppr_trans_tee_32_1_hp": 305.00,     # Тройник перех. комб. PP-R 32x1"x32 HP
+    "ppr_union_32_1": 648.03,
+    "ppr_comb_coupling_32_1_hp": 99.88,
+    "ppr_elbow_90_32": 48.33,
+    "ppr_elbow_45_32": 38.20,
+    "ppr_tee_32": 74.70,
+    "ppr_plug_32": 37.50,
+    "ppr_coupling_32": 29.83,
+    "ppr_comb_elbow_32_1_2_bp": 169.35,
+    "ppr_comb_elbow_32_1_2_hp": 274.83,
+    "ppr_trans_tee_32_1_2_bp": 174.15,
+    "ppr_trans_tee_32_1_bp": 190.46,
+    "ppr_trans_tee_32_1_hp": 305.00,
 
     # --- ФИТИНГИ КОМПРЕССИОННЫЕ ПНД (Unidelta) ---
-    "pnd_coupling_32_1_hp": 263.84, # Муфта ПНД 32х1" HP Unidelta
-    "pnd_elbow_32_1_hp": 319.60,    # Угол ПНД 32x1" HP Unidelta
-    "pnd_coupling_32_32": 472.60,   # Муфта ПНД 32x32 Unidelta
-    "pnd_reduct_32_20": 435.20,     # Муфта ПНД редукц. 32х20 Unidelta
+    "pnd_coupling_32_1_hp": 263.84,
+    "pnd_elbow_32_1_hp": 319.60,
+    "pnd_coupling_32_32": 472.60,
+    "pnd_reduct_32_20": 435.20,
 
     # --- ПОДВОДКИ, ЛАТУНЬ И МЕЛОЧЕВКА ---
-    "hose_giant_1_80cm": 761.93,     # Подводка для воды угловая 1" 80см г/г ГИГАНТ
-    "hose_straight_1_2_60cm": 160.00,# Подводка для воды прямая 1/2" 60см г/г
-    "brass_tee_1_bbb": 640.17,       # Тройник ВВВ 1" латунь Millenium
-    "brass_tee_1_2_bbb": 192.42,     # Тройник ВВВ 1/2" латунь
-    "brass_nipple_1": 196.76,        # Ниппель НН 1" латунь
-    "brass_nipple_1_2": 70.88,       # Ниппель НН 1/2" латунь
-    "brass_nipple_1_2_1_4": 70.88,   # Ниппель перех. НН 1/2"x1/4" латунь
-    "brass_nipple_1_2_3_8": 66.54,   # Ниппель перех. НН 1/2"x3/8" латунь
-    "brass_bushing_1_2_1_4": 75.23,  # Футорка НВ 1/2"x1/4" латунь
-    "cable_clamp_4mm": 40.80,        # Зажим для троса AISI 316 4мм
-    "plug_16a": 64.42,               # Вилка электрическая прямая 16A 250B
+    "hose_giant_1_80cm": 761.93,
+    "hose_straight_1_2_60cm": 160.00,
+    "brass_tee_1_bbb": 640.17,
+    "brass_tee_1_2_bbb": 192.42,
+    "brass_nipple_1": 196.76,
+    "brass_nipple_1_2": 70.88,
+    "brass_nipple_1_2_1_4": 70.88,
+    "brass_nipple_1_2_3_8": 66.54,
+    "brass_bushing_1_2_1_4": 75.23,
+    "cable_clamp_4mm": 40.80,
+    "plug_16a": 64.42,
 }
 
 KESSON_MODELS = {
@@ -86,10 +86,37 @@ KESSON_MODELS = {
 }
 
 TANK_CATALOG = {
-    "tank_50": {"name": "Гидроаккумулятор 50VT BELAMOS", "price": 5420.00},
-    "tank_80": {"name": "Гидроаккумулятор 80VT BELAMOS", "price": 7150.00},
-    "tank_100": {"name": "Гидроаккумулятор 100VT BELAMOS", "price": 8747.70},
-    "tank_150": {"name": "Гидроаккумулятор 150VT BELAMOS", "price": 13900.00},
-    "tank_200": {"name": "Гидроаккумулятор 200VT BELAMOS", "price": 18200.00},
-    "tank_300": {"name": "Гидроаккумулятор 300VT BELAMOS", "price": 26500.00},
+    "tank_8bw": {"name": "Гидроаккумулятор 8л BELAMOS 8BW (подвесной)", "price": 1183.20},
+    "tank_24": {"name": "Гидроаккумулятор 24л BELAMOS 24СТ2 синий", "price": 1906.80},
+    "tank_50_hit": {"name": "Гидроаккумулятор 50л Джилекс Г 50 «ХИТ»", "price": 3783.00},
+    "tank_50vt": {"name": "Гидроаккумулятор 50л BELAMOS 50VT", "price": 3940.80},
+    "tank_80vt": {"name": "Гидроаккумулятор 80л BELAMOS 80VT", "price": 7566.00},
+    "tank_100vt": {"name": "Гидроаккумулятор 100л BELAMOS 100VT", "price": 8747.70},
+    "tank_300_dzhileks": {"name": "Гидроаккумулятор 300л Джилекс 300 В", "price": 23049.00},
+}
+
+PUMP_CATALOG = {
+    "pump_none": {"name": "Без насоса (свой или приобретается отдельно)", "price": 0.00},
+    "pump_belamos_tf3_60": {"name": "Скважинный насос Belamos TF3-60 каб. 35м", "price": 11152.80},
+    "pump_belamos_tf3_80": {"name": "Скважинный насос Belamos TF3-80 каб. 50м", "price": 14695.20},
+    "pump_waterstry_3_90": {"name": "Скважиннный насос WATERSTRY 3"3ST 3-90 H=108м", "price": 19484.72},
+    "pump_waterstry_2_50": {"name": "Скважиннный насос WATERSTRY 3"3ST 2-50 H=64м", "price": 12327.42},
+    "pump_waterstry_2_120": {"name": "Скважиннный насос WATERSTRY 3"3ST 2-120", "price": 19092.00},
+    "pump_waterstry_2_85": {"name": "Скважиннный насос WATERSTRY 3"3ST 2-85", "price": 13800.00},
+    "pump_waterstry_1_60": {"name": "Скважиннный насос WATERSTRY 3"3ST 1-60", "price": 11084.56},
+    "pump_waterstry_2_100": {"name": "Скважиннный насос WATERSTRY 3"3ST 2-100", "price": 16574.72},
+    "pump_pw_tf3_80": {"name": "Насос скважинный Power Water PW TF3-80 каб.50м", "price": 14292.09},
+    "pump_pw_tf3_60": {"name": "Насос скважинный Power Water PW TF3-60 каб.35м", "price": 11806.14},
+    "pump_pw_tf3_40": {"name": "Насос скважинный Power Water PW TF3-40 каб.20м", "price": 9427.50},
+    "pump_pw_tf3_110": {"name": "Насос скважинный Power Water PW TF3-110 каб.65м", "price": 18435.00},
+    "pump_belamos_tf3_80_1_5m": {"name": "Скважинный насос Belamos TF3-80 каб. 1.5м", "price": 11152.80},
+    "pump_belamos_tf3_40": {"name": "Скважинный насос Belamos TF3-40 каб. 20м", "price": 9771.60},
+    "pump_belamos_tf3_200": {"name": "Скважинный насос Belamos TF3-200 каб. 80м", "price": 35043.60},
+    "pump_belamos_tf3_150": {"name": "Скважинный насос Belamos TF3-150 каб. 80м", "price": 25555.20},
+    "pump_belamos_tf3_110_65m": {"name": "Скважинный насос Belamos TF3-110 каб. 65м", "price": 18363.60},
+    "pump_belamos_tf3_110_1_5m": {"name": "Скважинный насос Belamos TF3-110 каб. 1.5м", "price": 12730.80},
+    "pump_aquario_75_1_5m": {"name": "Скважинный насос Aquario ASP1E-75-75 каб. 1.5м", "price": 14976.00},
+    "pump_aquario_125_15m": {"name": "Скважинный насос Aquario ASP1E-125-75 каб. 15м", "price": 22959.73},
+    "pump_aquario_100_60m": {"name": "Скважинный насос Aquario ASP1E-100-75 каб.60м", "price": 27251.63},
+    "pump_aquario_55_35m": {"name": "Скважинный насос Aquario ASP1E-55-75 каб. 35м", "price": 16321.52},
 }
