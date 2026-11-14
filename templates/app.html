@@ -191,9 +191,9 @@
   <div id="containerMaterials">
   <div class="tab-grid">
     <div class="tab-btn active" id="btnTabWell" onclick="selectTab('well')">💧 Скважина / Кессон</div>
-    <div class="tab-btn" id="btnTabSeptic" onclick="selectTab('septic')">☣️ Септик / Слив</div>
-    <div class="tab-btn" id="btnTabDrain" onclick="selectTab('drainage')">🌾 Дренаж участка</div>
-    <div class="tab-btn" id="btnTabStorm" onclick="selectTab('storm')">🌧 Ливнёвка в земле</div>
+    
+    
+    
   </div>
 
 
@@ -256,6 +256,16 @@
           <option value="tank_300_dzhileks">300л Джилекс 300 В — 23 049.00 ₽</option>
         </select>
       </div>
+
+      <!-- Незамерзающий гидрант для Адаптера -->
+      <div id="hydrant_model_box" style="display:none; margin-top:10px;">
+        <label>Незамерзающий гидрант (для адаптера):</label>
+        <select id="chosen_hydrant" onchange="calcWell()">
+          <option value="hydrant_none" selected>Без гидранта (не требуется)</option>
+          <option value="hydrant_belamos">Гидрант GDR 1' 1900 мм Беламос — 5 902.80 ₽</option>
+          <option value="hydrant_tim">Кран незамерзающий, 2.2м Гидрант W-HF0122 TIM — 7 381.20 ₽</option>
+        </select>
+      </div>
     </div>
 
     <div class="card">
@@ -297,65 +307,8 @@
     </div>
   </div>
 
-  <!-- РАЗДЕЛ 2: СЕПТИК -->
-  <div id="secSeptic" style="display: none;">
-    <div class="card">
-      <div class="card-title" id="tSeptic">Канализация и септики «МИШКА-Био»</div>
-      <label id="lblSepticModel">Модель септика:</label>
-      <select id="septicModelSelect">
-        <option value="Септик МИШКА-Био 5" selected>МИШКА-Био 5 (до 5 чел.) — 105 000 ₽</option>
-        <option value="Септик МИШКА-Био 3">МИШКА-Био 3 (до 3 чел.) — 85 000 ₽</option>
-        <option value="Септик МИШКА-Био 8">МИШКА-Био 8 (до 8 чел.) — 138 000 ₽</option>
-      </select>
-      <label id="lblDischarge" style="margin-top:6px;">Сброс воды:</label>
-      <select id="septicDischarge">
-        <option value="gravity" id="optDisGrav">Самотечный (дренаж)</option>
-        <option value="forced" id="optDisForce">Принудительный (насос)</option>
-      </select>
-      <label id="lblPipeDist" style="margin-top:6px;">Длина трассы канализации (м):</label>
-      <input type="number" id="septicDistance" value="10">
-    </div>
-  </div>
-
-  <!-- РАЗДЕЛ 3: ДРЕНАЖ -->
-  <div id="secDrain" style="display: none;">
-    <div class="card">
-      <div class="card-title" id="tDrain">Дренаж участка</div>
-      <label id="lblDrainType">Тип системы:</label>
-      <select id="drainTypeSelect">
-        <option value="softrock" id="optDrainSoft" selected>Блоки «Софтрок» / Лайтдрок</option>
-        <option value="classic" id="optDrainClass">Классический (труба в щебне)</option>
-      </select>
-      <div class="grid-2" style="margin-top:6px;">
-        <div>
-          <label id="lblDrainLen">Длина (м):</label>
-          <input type="number" id="drainLength" value="50">
-        </div>
-        <div>
-          <label id="lblDrainWells">Колодцев (шт):</label>
-          <input type="number" id="drainWells" value="3">
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- РАЗДЕЛ 4: ЛИВНЁВКА -->
-  <div id="secStorm" style="display: none;">
-    <div class="card">
-      <div class="card-title" id="tStorm">Подземная ливневая канализация</div>
-      <div class="grid-2">
-        <div>
-          <label id="lblInlets">Дождеприёмников (шт):</label>
-          <input type="number" id="stormInlets" value="4">
-        </div>
-        <div>
-          <label id="lblStormLen">Длина трубы (м):</label>
-          <input type="number" id="stormLength" value="30">
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <!-- РАЗДЕЛ 2 удален -->
+  <!-- РАЗДЕЛ 3 удален -->
   </div><!-- /containerMaterials -->
 
   <!-- ==================== БЛОК: ТОЛЬКО РАБОТЫ ==================== -->
@@ -630,11 +583,14 @@
 
       const equip_type = document.getElementById('equip_type').value;
       const kessonBox = document.getElementById('kesson_model_box');
+      const hydrantBox = document.getElementById('hydrant_model_box');
       
       if (equip_type === 'adapter') {
-          kessonBox.style.display = 'none';
+          if (kessonBox) kessonBox.style.display = 'none';
+          if (hydrantBox) hydrantBox.style.display = 'block';
       } else {
-          kessonBox.style.display = 'block';
+          if (kessonBox) kessonBox.style.display = 'block';
+          if (hydrantBox) hydrantBox.style.display = 'none';
       }
 
       const kessonSelect = document.getElementById('chosen_kesson');
@@ -657,7 +613,14 @@
       const tankKey = tankSelect.value;
       const tankName = tankSelect.options[tankSelect.selectedIndex].text.split(' — ')[0];
       const tankPriceText = tankSelect.options[tankSelect.selectedIndex].text.split(' — ')[1];
+      const tankPriceText = tankSelect.options[tankSelect.selectedIndex].text.split(' — ')[1];
       const tankPrice = tankPriceText ? parseFloat(tankPriceText.replace(/[^0-9.]/g, '')) : 0;
+
+      const hydrantSelect = document.getElementById('chosen_hydrant');
+      const hydrantKey = hydrantSelect ? hydrantSelect.value : 'hydrant_none';
+      const hydrantName = hydrantSelect ? hydrantSelect.options[hydrantSelect.selectedIndex].text.split(' — ')[0] : '';
+      const hydrantPriceText = hydrantSelect && hydrantSelect.options[hydrantSelect.selectedIndex].text.includes(' — ') ? hydrantSelect.options[hydrantSelect.selectedIndex].text.split(' — ')[1] : '0';
+      const hydrantPrice = parseFloat(hydrantPriceText.replace(/[^0-9.]/g, '')) || 0;
 
       const isVFD = (equip_type === 'kesson_vfd');
       currentItems = [];
@@ -667,7 +630,10 @@
       }
 
       if (equip_type === 'adapter') {
-          currentItems.push({ item_key: 'adapter_tim_1', name: 'Адаптер скважинный со сливным клапаном 1" TIM', price: 3627.31, qty: 1, unit: 'шт' });
+          if (hydrantPrice > 0) {
+              currentItems.push({ item_key: hydrantKey, name: hydrantName, price: hydrantPrice, qty: 1, unit: 'шт' });
+          }
+          currentItems.push({ item_key: 'adapter_tim_1', name: 'Адаптер скважинный со сливным клапаном 1" TIM', price: 3627.31, qty: 1, unit: 'шт' });, name: 'Адаптер скважинный со сливным клапаном 1" TIM', price: 3627.31, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'cover_adapter', name: 'Крышка скважины Джилекс КС 110-133', price: 3351.60, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'pnd_coupling_32_1_hp', name: 'Муфта ПНД 32x1" HP Unidelta', price: 263.84, qty: 4, unit: 'шт' });
           currentItems.push({ item_key: tankKey, name: tankName + ' (в дом)', price: tankPrice, qty: 1, unit: 'шт' });
@@ -968,6 +934,7 @@
           chosen_kesson: kessonEl ? kessonEl.value : 'kesson_m1',
           chosen_tank: tankEl ? tankEl.value : 'tank_100vt',
           chosen_pump: pumpEl ? pumpEl.value : 'pump_none',
+          chosen_hydrant: hydrantSelect ? hydrantSelect.value : 'hydrant_none',
           depth: parseFloat(document.getElementById('pump_depth')?.value || 40) || 0,
           distance: parseFloat(document.getElementById('trench_distance')?.value || 15) || 0,
           distances: [parseFloat(document.getElementById('trench_distance')?.value || 15) || 0],
