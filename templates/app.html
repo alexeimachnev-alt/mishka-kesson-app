@@ -255,10 +255,10 @@
         <label id="lblAddExtra" style="color:#71b1ff;">➕ Добавить дополнительную позицию со склада:</label>
         <div style="display:flex; gap:6px;">
           <select id="extraCatalogSelect" style="flex:1; margin-bottom:0; font-size:0.85rem;">
-            <option value="pipe_pnd_32">Труба ПНД 32х3.0 синяя (78 ₽/м)</option>
+            <option value="pipe_pnd_32">Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)</option>
             <option value="pipe_pnd_20">Труба ПНД 20х2.0 под кабель (42.54 ₽/м)</option>
             <option value="cable_pvs_3x2_5">Кабель ПВС 3х2.5 белый гибкий (84.89 ₽/м)</option>
-            <option value="rope_3mm_304">Трос нерж. 3мм AISI 304 (19.20 ₽/м)</option>
+            <option value="rope_3mm_304">Трос нержавеющая сталь 7x7 AISI 304, 3мм</option>
             <option value="cable_clamp_4mm">Зажим троса нерж. 4мм (40.80 ₽/шт)</option>
             <option value="vfd_fil10">Частотный преобразователь FIL-10 (7 708.80 ₽)</option>
             <option value="tank_8bw">Гидроаккумулятор 8BW подвесной (1 832 ₽)</option>
@@ -668,8 +668,8 @@
           currentItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
-          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7х7 AISI 304, 3мм', price: 19.20, qty: 40, unit: 'м' });
-          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) синяя', price: 78.00, qty: 55, unit: 'м' });
+          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7x7 AISI 304, 3мм', price: 19.20, qty: 40, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: 55, unit: 'м' });
       } else {
           currentItems.push({ item_key: kessonKey, name: kessonName, price: kessonPrice, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'pipe_ppr_32', name: 'Труба полипропиленовая 32х5,4мм PN20 (цвет белый)', price: 151.42, qty: 4, unit: 'м' });
@@ -717,8 +717,8 @@
           currentItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'well_head_osp', name: 'Оголовок для скважины Джилекс ОСП 110-133/32', price: 1916.39, qty: 1, unit: 'шт' });
           currentItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
-          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7х7 AISI 304, 3мм', price: 19.20, qty: 40, unit: 'м' });
-          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) синяя', price: 78.00, qty: 55, unit: 'м' });
+          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7x7 AISI 304, 3мм', price: 19.20, qty: 40, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: 55, unit: 'м' });
       }
 
       recalcAndRender();
@@ -757,10 +757,10 @@
       const text = select.options[select.selectedIndex].text;
 
       const catalogPrices = {
-        "pipe_pnd_32": { name: "Труба ПНД 32х3,0 SDR 11 (синяя)", price: 78.00, unit: "м" },
+        "pipe_pnd_32": { name: "Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)", price: 78.00, unit: "м" },
         "pipe_pnd_20": { name: "Труба ПНД 20x2,0 SDR 11 (под кабель)", price: 42.54, unit: "м" },
         "cable_pvs_3x2_5": { name: "Кабель ПВС 3х2,5 белый гибкий", price: 84.89, unit: "м" },
-        "rope_3mm_304": { name: "Трос нержавеющая сталь 3мм AISI 304", price: 19.20, unit: "м" },
+        "rope_3mm_304": { name: "Трос нержавеющая сталь 7x7 AISI 304, 3мм", price: 19.20, unit: "м" },
         "cable_clamp_4mm": { name: "Зажим для троса AISI 316 4мм", price: 40.80, unit: "шт" },
         "vfd_fil10": { name: "Частотный преобразователь FIL-10 2.2KW 220V", price: 7708.80, unit: "шт" },
         "tank_8bw": { name: "Гидроаккумулятор BELAMOS 8BW синий (подвесной)", price: 1832.00, unit: "шт" },
