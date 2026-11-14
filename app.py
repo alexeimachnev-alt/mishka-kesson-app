@@ -21,10 +21,11 @@ from calc_module import (
     YANDEX_MAPS_URL,
     PRICES,
     KESSON_MODELS,
-    TANK_CATALOG
+    TANK_CATALOG,
+    HYDRANT_CATALOG
 )
 
-BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("BOT_TOKEN") or "").strip().strip("'\"")
+BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("BOT_TOKEN") or "").strip().strip("'\'")
 if not BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN не задан в переменных окружения!")
 
@@ -55,7 +56,6 @@ def api_calculate():
 
 @app.route("/api/user_orders", methods=["GET", "POST"])
 def get_user_orders():
-    """Возвращает историю заказов пользователя по user_id или номеру телефона"""
     try:
         user_id = request.args.get("user_id") or (request.json or {}).get("user_id")
         phone = request.args.get("phone") or (request.json or {}).get("phone")
@@ -79,8 +79,6 @@ def get_user_orders():
                     "delivery_info": order.get("delivery_info", ""),
                     "items": order.get("items", [])
                 })
-        
-        # Сортируем от новых к старым
         results.reverse()
         return jsonify({"status": "ok", "orders": results}), 200
     except Exception as e:
@@ -92,18 +90,15 @@ def handle_miniapp_order():
         data = request.json or {}
         user_id = data.get("user_id") or data.get("chat_id") or 0
 
-        # Формируем и рассчитываем заказ по утвержденной номенклатуре
         order_id, admin_text, client_text, total_sum = build_order_payload(data)
         kb_admin = make_warehouse_keyboard(order_id)
 
-        # 1. Рассылка всем 3 администраторам склада
         for a_id in ADMIN_CHAT_IDS:
             try:
                 bot.send_message(a_id, admin_text, parse_mode="HTML", reply_markup=kb_admin)
             except Exception as e:
                 print(f"[ERR ADMIN SEND] {a_id}: {e}")
 
-        # 2. Уведомление клиенту со ссылкой на Яндекс Карты (маршрут к складу)
         if user_id:
             try:
                 lang = data.get("lang", "ru")
@@ -131,14 +126,10 @@ def handle_miniapp_order():
         print(f"[ERROR API] {e}")
         return jsonify({"error": str(e)}), 500
 
-# ==============================================================================
-# ОБРАБОТКА ДЕЙСТВИЙ МЕНЕДЖЕРОВ (КНОПКИ ЧЕК-ЛИСТА, СБОРКИ, ОПЛАТЫ, ОТМЕНЫ)
-# ==============================================================================
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callbacks(call):
     data = call.data
 
-    # 1. Чек-лист сборщика (нажал на товар -> загорелся зеленым 🟢)
     if data.startswith("chk_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -159,8 +150,6 @@ def handle_callbacks(call):
         st = "взят со склада ✅" if order["collected"][item_idx] else "снят с отметки ❌"
         bot.answer_callback_query(call.id, f"{order['items'][item_idx]['name']}: {st}")
 
-    # 2. Завершение сборки: уведомление клиенту + статус в Google Sheets
-    # 1.1. Согласование заказа на монтажные работы
     elif data.startswith("agree_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -235,7 +224,6 @@ def handle_callbacks(call):
             except Exception as e:
                 print(f"[ERR NOTIFY CLIENT] {client_id}: {e}")
 
-    # 3. Меню оплаты заказа менеджером
     elif data.startswith("paymenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -258,7 +246,6 @@ def handle_callbacks(call):
             reply_markup=kb_pay
         )
 
-    # 4. Фиксация способа оплаты
     elif data.startswith("setpay_"):
         parts = data.split("_")
         order_id = parts[1]
@@ -309,7 +296,6 @@ def handle_callbacks(call):
             except Exception as e:
                 print(f"[ERR CLIENT PAID NOTIFY] {e}")
 
-    # 5. Запрос причины отмены заказа
     elif data.startswith("cancel_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -326,7 +312,6 @@ def handle_callbacks(call):
         )
         bot.register_next_step_handler(msg, process_cancel_reason, order_id, call.message.message_id)
 
-    # 6. Меню редактирования заказа
     elif data.startswith("editmenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -349,7 +334,6 @@ def handle_callbacks(call):
             reply_markup=kb_edit
         )
 
-    # 7. Добавление позиции
     elif data.startswith("addmenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -384,7 +368,6 @@ def handle_callbacks(call):
         )
         bot.register_next_step_handler(msg, process_add_item_qty, order_id, item_idx)
 
-    # 8. Удаление позиции
     elif data.startswith("delmenu_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -426,7 +409,6 @@ def handle_callbacks(call):
             except Exception:
                 pass
 
-    # 9. Возврат к заказу
     elif data.startswith("backorder_"):
         order_id = data.split("_")[1]
         order = ACTIVE_ORDERS.get(order_id)
@@ -437,7 +419,6 @@ def handle_callbacks(call):
         kb = make_warehouse_keyboard(order_id)
         bot.send_message(call.message.chat.id, admin_text, parse_mode="HTML", reply_markup=kb)
 
-    # 10. Повтор заказа
     elif data.startswith("repeat_"):
         old_order_id = data.split("_")[1]
         old_order = ACTIVE_ORDERS.get(old_order_id)
