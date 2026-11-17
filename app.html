@@ -2,7 +2,11 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ПК МИШКА">
+  <meta name="theme-color" content="#17212b">
   <title>Склад МИШКА</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
@@ -19,11 +23,11 @@
       --danger: #eb5757;
     }
     body {
-      margin: 0; padding: 12px;
+      margin: 0;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(80px + env(safe-area-inset-bottom, 0px)) 12px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--text);
       -webkit-tap-highlight-color: transparent;
-      padding-bottom: 80px;
     }
     h2 { font-size: 1.15rem; text-align: center; margin: 4px 0 10px; }
     
@@ -832,6 +836,13 @@
     <button class="btn-submit" style="background: #2563eb; margin-top: 14px; margin-bottom: 0;" onclick="closeOrderHistory()">
       🔙 Вернуться к калькулятору
     </button>
+  </div>
+
+  <!-- БЛОК БЕЗОПАСНОСТИ ДЛЯ МОДЕРАЦИИ APP STORE / GOOGLE PLAY -->
+  <div style="text-align:center; margin: 16px 0 8px; padding: 10px; font-size: 0.76rem; color: #64748b; border-top: 1px solid rgba(255,255,255,0.06);">
+    <div style="margin-bottom: 6px;">ID клиента: <code id="clientDeviceIdBadge" style="color:#94a3b8;">...</code></div>
+    <a href="/privacy" target="_blank" style="color:#71b1ff; text-decoration:underline; margin-right:14px;">Политика конфиденциальности</a>
+    <a href="javascript:void(0)" onclick="deleteMyAccountData()" style="color:#eb5757; text-decoration:underline;">Удалить мои данные</a>
   </div>
 
   <script>
@@ -1743,6 +1754,16 @@
         const resp = await res.json();
         
         if (resp.status === 'ok') {
+          saveOrderToLocalHistory({
+            order_id: resp.order_id,
+            date: new Date().toLocaleDateString('ru-RU'),
+            total: resp.total || totalAmount,
+            status: 'active',
+            is_works: currentOrderMode === 'works',
+            delivery_type: deliveryType,
+            delivery_info: deliveryDetails,
+            items: resp.items || itemsToOrder
+          });
           document.getElementById('containerMaterials').style.display = 'none';
           document.getElementById('containerWorks').style.display = 'none';
           
@@ -1822,11 +1843,7 @@
       const curLang = document.getElementById('langSelect').value || 'ru';
       let orders = [];
 
-      const tgApp = window.Telegram ? window.Telegram.WebApp : null;
-      let uid = 0;
-      if (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user) {
-          uid = tgApp.initDataUnsafe.user.id || 0;
-      }
+      let uid = getCurrentTelegramUserId() || 0;
       
       const phoneEl = document.getElementById('contactPhone');
       const phone = phoneEl ? phoneEl.value.trim() : '';
@@ -2243,9 +2260,14 @@
       } catch (e) {}
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('uid')) return parseInt(urlParams.get('uid'), 10);
-      const savedDebugId = sessionStorage.getItem('mishka_owner_id');
+      const savedDebugId = localStorage.getItem('mishka_owner_id') || sessionStorage.getItem('mishka_owner_id');
       if (savedDebugId) return parseInt(savedDebugId, 10);
-      return 0;
+      let standaloneId = localStorage.getItem('mishka_standalone_uid');
+      if (!standaloneId) {
+        standaloneId = String(Math.floor(7000000000 + Math.random() * 1999999999));
+        localStorage.setItem('mishka_standalone_uid', standaloneId);
+      }
+      return parseInt(standaloneId, 10);
     }
 
     function onTitleSecretTap() {
@@ -2270,6 +2292,7 @@
       const enteredId = inp ? parseInt(inp.value.trim(), 10) : 0;
       if (enteredId === OWNER_ADMIN_ID) {
         window.FORCED_OWNER_ID = OWNER_ADMIN_ID;
+        localStorage.setItem('mishka_owner_id', String(OWNER_ADMIN_ID));
         sessionStorage.setItem('mishka_owner_id', String(OWNER_ADMIN_ID));
         document.getElementById('secretDebugAuthBox').style.display = 'none';
         document.getElementById('ownerAdminTopBar').style.display = 'block';
@@ -2920,7 +2943,28 @@
       }
     }
 
+    async function deleteMyAccountData() {
+      if (!confirm('Вы уверены, что хотите удалить сохраненные контактные данные, персональные настройки и историю заказов с этого устройства?')) return;
+      const uid = getCurrentTelegramUserId();
+      const phone = document.getElementById('contactPhone') ? document.getElementById('contactPhone').value.trim() : '';
+      try {
+        await fetch('/api/delete_my_data', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ user_id: uid, phone: phone })
+        });
+      } catch (e) {}
+      localStorage.removeItem('mishka_orders_history');
+      localStorage.removeItem('mishka_owner_id');
+      localStorage.removeItem('mishka_standalone_uid');
+      sessionStorage.clear();
+      alert('Ваши данные успешно удалены.');
+      location.reload();
+    }
+
     function applyServicesConfig() {
+      const badge = document.getElementById('clientDeviceIdBadge');
+      if (badge) badge.innerText = String(getCurrentTelegramUserId());
       calcWell(true);
       loadServerConfigAndInit();
     }

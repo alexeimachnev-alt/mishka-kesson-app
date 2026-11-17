@@ -47,6 +47,72 @@ if not BOT_TOKEN:
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__, template_folder="templates", static_folder=".")
 
+@app.after_request
+def add_cors_headers(response):
+    """Разрешает работу приложения внутри нативной оболочки iOS (Xcode) и Android (Google Play)"""
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-User-Id"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return response
+
+@app.route("/api/delete_my_data", methods=["POST"])
+def api_delete_my_data():
+    """Обязательный эндпоинт для прохождения модерации в App Store и Google Play (Удаление данных)"""
+    try:
+        data = request.json or {}
+        uid = str(data.get("user_id", "")).strip()
+        phone = str(data.get("phone", "")).strip()
+        if uid:
+            remove_user_modifier(uid)
+        to_delete = [
+            oid for oid, ord_data in ACTIVE_ORDERS.items()
+            if (uid and str(ord_data.get("client_id")) == uid) or (phone and phone in str(ord_data.get("phone", "")))
+        ]
+        for oid in to_delete:
+            ACTIVE_ORDERS.pop(oid, None)
+        return jsonify({"status": "ok", "deleted_orders": len(to_delete)}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/privacy")
+def privacy_policy():
+    """Страница Политики конфиденциальности (для App Store и Google Play)"""
+    html = """<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Политика конфиденциальности — ПК МИШКА</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #17212b; color: #f5f5f5; padding: 24px; line-height: 1.6; max-width: 720px; margin: 0 auto; }
+    h1 { color: #2ea6ff; font-size: 1.4rem; }
+    h2 { color: #71b1ff; font-size: 1.1rem; margin-top: 20px; }
+    .card { background: #232e3c; padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+    a { color: #2ea6ff; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Политика конфиденциальности ООО «ПК МИШКА»</h1>
+    <p>Настоящая Политика конфиденциальности регулирует порядок обработки и защиты информации о пользователях мобильного и веб-приложения «Склад и Монтаж МИШКА».</p>
+    <h2>1. Какие данные мы собираем</h2>
+    <p>Приложение запрашивает только те данные, которые пользователь вводит добровольно при оформлении наряд-заказа на оборудование или монтаж скважины:</p>
+    <ul>
+      <li>Имя заказчика или представителя монтажной организации;</li>
+      <li>Контактный номер телефона для связи по заказу;</li>
+      <li>Адрес объекта (в случае выбора доставки или выезда монтажной бригады);</li>
+      <li>Технический идентификатор сессии/устройства для сохранения истории заказов и персональной скидки.</li>
+    </ul>
+    <h2>2. Как используются данные</h2>
+    <p>Данные используются исключительно для расчета инженерной сметы, комплектации оборудования на складе ООО «ПК МИШКА» и связи менеджера с заказчиком. Данные не передаются третьим лицам в рекламных или маркетинговых целях.</p>
+    <h2>3. Удаление данных</h2>
+    <p>Пользователь имеет право в любой момент полностью удалить свои сохраненные данные и историю заказов прямо в интерфейсе приложения, нажав на кнопку «Удалить мои данные» в нижней части экрана.</p>
+    <p style="margin-top:20px;"><a href="/app">← Вернуться в приложение</a></p>
+  </div>
+</body>
+</html>"""
+    return html, 200
+
 WELCOME_BANNER_URL = "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1000&q=80"
 
 @app.route("/")
