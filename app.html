@@ -1,0 +1,2936 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Склад МИШКА</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #17212b;
+      --card: #232e3c;
+      --text: #f5f5f5;
+      --hint: #7f8c99;
+      --btn: #2ea6ff;
+      --btn-hover: #1e96ef;
+      --btn-text: #ffffff;
+      --border: rgba(255, 255, 255, 0.12);
+      --accent: #2e8b57;
+      --danger: #eb5757;
+    }
+    body {
+      margin: 0; padding: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: 80px;
+    }
+    h2 { font-size: 1.15rem; text-align: center; margin: 4px 0 10px; }
+    
+    .tab-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;
+    }
+    .tab-btn {
+      padding: 10px 4px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-weight: 700; font-size: 0.82rem;
+      cursor: pointer; text-align: center; user-select: none;
+    }
+    .tab-btn.active {
+      background: var(--btn) !important; color: var(--btn-text) !important; border-color: var(--btn) !important;
+    }
+
+    .card {
+      background: var(--card); border-radius: 12px; padding: 12px 14px;
+      margin-bottom: 10px; border: 1px solid var(--border);
+    }
+    .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; color: #71b1ff; }
+    label { display: block; font-weight: 600; font-size: 0.82rem; margin-bottom: 5px; color: var(--text); }
+    input, select {
+      width: 100%; box-sizing: border-box; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 9px; font-size: 0.95rem;
+      background: var(--bg); color: var(--text); outline: none; margin-bottom: 8px;
+    }
+    input:focus, select:focus { border-color: var(--btn); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    
+    /* Интерактивные строки спецификации */
+    .spec-item {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .spec-item:last-child { border-bottom: none; }
+    .spec-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .spec-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #ffffff;
+      line-height: 1.35;
+      flex: 1;
+    }
+    .spec-unit-price {
+      font-size: 0.78rem;
+      color: var(--hint);
+      margin-top: 2px;
+    }
+    .spec-controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .qty-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #2a3848;
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qty-btn:hover { background: var(--btn); }
+    .qty-input {
+      width: 58px !important;
+      text-align: center;
+      padding: 6px 2px !important;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0 !important;
+    }
+    .spec-subtotal {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #71b1ff;
+      text-align: right;
+    }
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      margin-left: 6px;
+    }
+
+    .add-item-card {
+      background: #1e2836;
+      border: 1px dashed #3a506b;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
+
+    .total-box {
+      margin-top: 14px; padding: 12px 14px; background: #163323; border: 1px solid #2e7a4b;
+      border-radius: 10px; display: flex; justify-content: space-between; align-items: center;
+      font-size: 1.05rem; font-weight: 700; color: #4ade80;
+    }
+    
+    .btn-submit {
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      background: var(--btn); color: var(--btn-text); font-size: 1.05rem;
+      font-weight: 700; margin: 12px 0 20px; cursor: pointer; transition: 0.2s;
+    }
+    .btn-submit:hover { background: var(--btn-hover); }
+
+    .btn-maps {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 12px; background: #24354a; color: #71b1ff;
+      border: 1px solid #365070; border-radius: 10px; font-size: 0.9rem;
+      font-weight: 600; text-decoration: none; margin-top: 8px;
+    }
+    .highlight-card { border: 1.5px solid var(--btn) !important; }
+
+
+    /* Блок визуализации и описания схемы водоснабжения */
+    .scheme-info-box {
+      margin-top: 10px;
+      margin-bottom: 12px;
+      background: #1a2430;
+      border: 1px solid rgba(113, 177, 255, 0.28);
+      border-radius: 11px;
+      padding: 12px;
+      overflow: hidden;
+    }
+    .scheme-badge {
+      display: inline-block;
+      background: rgba(46, 166, 255, 0.18);
+      color: #71b1ff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .scheme-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+    .scheme-svg-wrap {
+      width: 100%;
+      background: #111820;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .scheme-desc {
+      font-size: 0.8rem;
+      line-height: 1.42;
+      color: #cbd5e1;
+    }
+    .scheme-desc b {
+      color: #93c5fd;
+    }
+    .scheme-toggle-btn {
+      width: 100%;
+      background: #24354a;
+      color: #71b1ff;
+      border: 1px solid #365070;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      text-align: center;
+    }
+    @keyframes waterFlow {
+      to { stroke-dashoffset: -24; }
+    }
+    @keyframes pumpPulse {
+      0%, 100% { opacity: 0.65; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.06); }
+    }
+    @keyframes freqBlink {
+      0%, 100% { fill: #4ade80; }
+      50% { fill: #22d3ee; }
+    }
+    .water-pipe-anim {
+      stroke-dasharray: 6 6;
+      animation: waterFlow 0.9s linear infinite;
+    }
+
+    .receipt-screen {
+      display: none; background: var(--card); border-radius: 12px; padding: 20px 16px;
+      border: 1px solid var(--border); text-align: left; margin-bottom: 20px;
+    }
+    .receipt-badge { background: #1c3d28; color: #4ade80; padding: 6px 12px; border-radius: 20px; font-size: 12px; display: inline-block; font-weight: 700; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+    <h2 id="uiTitle" style="cursor:pointer; user-select:none;" onclick="onTitleSecretTap()">📦 Склад и Монтаж «МИШКА»</h2>
+
+  <!-- СКРЫТОЕ ПОЛЕ БЫСТРОЙ ОТЛАДКИ / ВХОДА (ПОЯВЛЯЕТСЯ ПОСЛЕ 5 НАЖАТИЙ НА ЗАГОЛОВОК) -->
+  <div id="secretDebugAuthBox" style="display:none; background:#1e293b; border:1.5px dashed #f59e0b; border-radius:10px; padding:10px 12px; margin-bottom:10px;">
+    <div style="font-size:0.8rem; font-weight:700; color:#fde047; margin-bottom:6px;">🔐 Резервный вход администратора (отладка с ПК / проверка ID):</div>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <input type="number" id="secretDebugAdminIdInput" value="551209811" placeholder="Введите ID (551209811)" style="margin-bottom:0; flex:1; padding:8px 10px; font-weight:700;">
+      <button type="button" onclick="confirmSecretDebugAuth()" style="background:#f59e0b; color:#111827; border:none; border-radius:8px; padding:8px 14px; font-weight:800; cursor:pointer; white-space:nowrap;">Войти</button>
+      <button type="button" onclick="document.getElementById('secretDebugAuthBox').style.display='none'" style="background:#334155; color:#fff; border:none; border-radius:8px; padding:8px 10px; cursor:pointer;">✖</button>
+    </div>
+  </div>
+
+  <!-- ЗОЛОТАЯ КНОПКА УПРАВЛЕНИЯ БОТОМ (ВИДНА ТОЛЬКО ПРИ ID == 551209811) -->
+  <div id="ownerAdminTopBar" style="display:none; margin-bottom:12px;">
+    <button type="button" id="btnToggleOwnerAdmin" onclick="toggleOwnerAdminPanel(event)" style="width:100%; padding:12px 14px; border-radius:11px; border:1.5px solid #f59e0b; background:linear-gradient(135deg, #3b2a0e 0%, #1e293b 100%); color:#fde047; font-weight:800; font-size:0.92rem; cursor:pointer; box-shadow:0 4px 14px rgba(245,158,11,0.25); display:flex; align-items:center; justify-content:center; gap:8px;">
+      <span>👑 Управление ботом</span>
+    </button>
+  </div>
+
+  <!-- ВСТРОЕННАЯ ВИЗУАЛЬНАЯ АДМИН-ПАНЕЛЬ ВЛАДЕЛЬЦА (ОТКРЫВАЕТСЯ ПРЯМО ВНУТРИ MINI APP БЕЗ ПЕРЕХОДА В ЧАТ) -->
+  <div id="ownerAdminModal" style="display:none; background:#1b2430; border:2px solid #f59e0b; border-radius:14px; padding:14px; margin-bottom:18px; box-shadow:0 10px 30px rgba(0,0,0,0.65);">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.12); padding-bottom:10px; margin-bottom:12px;">
+      <div>
+        <div style="font-size:1rem; font-weight:800; color:#fde047;">👑 Управление ботом «МИШКА»</div>
+        <div style="font-size:0.74rem; color:#94a3b8;">Администратор ID: 551209811 • Визуальный редактор базы</div>
+      </div>
+      <button type="button" onclick="closeOwnerAdminPanel()" style="background:#334155; border:1px solid #475569; color:#fff; border-radius:8px; padding:7px 12px; font-weight:700; cursor:pointer;">🔙 К калькулятору</button>
+    </div>
+
+    <!-- 5 вкладок админ-панели -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px;">
+      <button type="button" class="tab-btn active" id="admTabBtn_prices" style="padding:9px 6px; font-size:0.8rem;" onclick="switchAdminSubTab('prices')">💰 Цены и Каталог</button>
+      <button type="button" class="tab-btn" id="admTabBtn_discounts" style="padding:9px 6px; font-size:0.8rem;" onclick="switchAdminSubTab('discounts')">👥 Клиенты / Скидки</button>
+      <button type="button" class="tab-btn" id="admTabBtn_add" style="padding:9px 6px; font-size:0.8rem;" onclick="switchAdminSubTab('add')">➕ Добавить позицию</button>
+      <button type="button" class="tab-btn" id="admTabBtn_schemes" style="padding:9px 6px; font-size:0.8rem;" onclick="switchAdminSubTab('schemes')">📝 Описания схем</button>
+      <button type="button" class="tab-btn" id="admTabBtn_backup" style="grid-column: span 2; padding:9px 6px; font-size:0.8rem;" onclick="switchAdminSubTab('backup')">💾 Бэкап и синхронизация на сервере</button>
+    </div>
+
+    <!-- ВКЛАДКА 1: ЦЕНЫ И КАТАЛОГ -->
+    <div id="admSec_prices">
+      <div style="background:#131b24; padding:10px; border-radius:10px; margin-bottom:10px; border:1px solid rgba(255,255,255,0.08);">
+        <label style="color:#93c5fd; margin-bottom:4px;">Категория позиций для редактирования:</label>
+        <select id="admPriceCatFilter" onchange="renderAdminPricesEditor()" style="margin-bottom:6px; background:#17212b; border-color:#38bdf8; font-weight:600;">
+          <option value="kessons">🛢 Кессоны «МИШКА» (24 модели — Розница и Дилер)</option>
+          <option value="pumps">🌊 Насосы скважинные и дренажные (24 модели)</option>
+          <option value="tanks">🔵 Гидроаккумуляторы (баки)</option>
+          <option value="components">🔧 Трубы, фитинги, гидранты, греющий кабель</option>
+          <option value="custom_bundle">📦 Позиции, добавленные в базовую смету</option>
+          <option value="extra_catalog">➕ Каталог «Добавить доп. позицию со склада»</option>
+          <option value="works">🔨 Монтажные и земляные работы</option>
+        </select>
+        <input type="text" id="admSearchInput" placeholder="🔍 Быстрый поиск по названию в выбранной категории..." oninput="renderAdminPricesEditor()" style="margin-bottom:0; font-size:0.84rem; padding:8px 10px;">
+      </div>
+
+      <div id="admPricesListBox" style="max-height:420px; overflow-y:auto; padding-right:2px;"></div>
+
+      <button type="button" class="btn-submit" style="background:#16a34a; margin:10px 0 0; padding:12px;" onclick="saveOwnerAdminConfig()">
+        💾 Сохранить изменения цен
+      </button>
+    </div>
+
+    <!-- ВКЛАДКА: УПРАВЛЕНИЕ КЛИЕНТАМИ / ПЕРСОНАЛЬНЫЕ СКИДКИ И НАЦЕНКИ -->
+    <div id="admSec_discounts" style="display:none;">
+      <div style="background:#131b24; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); margin-bottom:10px;">
+        <div style="font-size:0.9rem; font-weight:700; color:#fde047; margin-bottom:6px;">🏷 Назначить персональную скидку или наценку по Telegram ID</div>
+        <p style="font-size:0.76rem; color:#94a3b8; margin-top:0; margin-bottom:10px; line-height:1.35;">
+          Укажите цифровой Telegram ID клиента (он отображается в каждом заказе в строке <code>🆔 Telegram ID</code>). Смета клиента будет пересчитываться автоматически.
+        </p>
+
+        <label>🆔 Цифровой Telegram ID клиента:</label>
+        <input type="text" id="admDiscTgId" placeholder="Например: 123456789" style="font-weight:700;">
+
+        <div class="grid-2">
+          <div>
+            <label style="color:#4ade80;">📉 Персональная скидка (%):</label>
+            <input type="number" id="admDiscMinusVal" placeholder="Например: 10" min="0" max="99" step="any" oninput="if(this.value) document.getElementById('admDiscPlusVal').value='';">
+          </div>
+          <div>
+            <label style="color:#f59e0b;">📈 Персональная наценка (%):</label>
+            <input type="number" id="admDiscPlusVal" placeholder="Например: 5" min="0" max="500" step="any" oninput="if(this.value) document.getElementById('admDiscMinusVal').value='';">
+          </div>
+        </div>
+
+        <label>📝 Комментарий / Имя клиента (для себя):</label>
+        <input type="text" id="admDiscNote" placeholder="Например: Иван (постоянный дилер Королёв)">
+
+        <button type="button" class="btn-submit" style="background:#16a34a; margin:6px 0 0; padding:12px;" onclick="saveAdminUserDiscount()">
+          💾 Сохранить условие для этого Telegram ID
+        </button>
+      </div>
+
+      <div style="background:#131b24; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
+        <div style="font-size:0.86rem; font-weight:700; color:#93c5fd; margin-bottom:8px;">📋 Активные персональные скидки и наценки (`users_discounts.json`):</div>
+        <div id="admDiscountsListBox" style="max-height:280px; overflow-y:auto;"></div>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 2: ДОБАВИТЬ ПОЗИЦИЮ -->
+    <div id="admSec_add" style="display:none;">
+      <div style="background:#131b24; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
+        <label style="color:#fde047;">Выберите категорию (куда добавить товар / услугу):</label>
+        <select id="admNewTarget" onchange="onAdmNewTargetChange()" style="background:#17212b; border-color:#f59e0b; font-weight:600;">
+          <option value="kesson">🛢 Кессоны «МИШКА» (в выбор модели кессона)</option>
+          <option value="pump">🌊 Насосы (в выбор скважинного насоса)</option>
+          <option value="tank">🔵 Гидробаки (в выбор гидроаккумулятора)</option>
+          <option value="bundle_all_well">📦 Базовая смета — во ВСЕ комплектации скважины</option>
+          <option value="bundle_kesson_vfd">📦 Базовая смета — только в «Кессон с ЧП»</option>
+          <option value="bundle_kesson_ga">📦 Базовая смета — только в «Кессон с гидробаком»</option>
+          <option value="bundle_adapter">📦 Базовая смета — только в «Скважинный адаптер»</option>
+          <option value="extra_catalog">➕ Доп. склад (в выпадающий список доп. позиций)</option>
+          <option value="work">🔨 Монтаж (в список монтажных и земляных работ)</option>
+        </select>
+
+        <label>Название товара / характеристики:</label>
+        <input type="text" id="admNewName" placeholder="Например: Кессон Мишка 5 (2000х2500) или Насос Belamos...">
+
+        <div class="grid-2">
+          <div>
+            <label id="lblAdmNewPrice1" style="color:#4ade80;">Дилерская / основная цена (₽):</label>
+            <input type="number" id="admNewPrice" value="1500" step="any">
+          </div>
+          <div id="admNewRetailBox">
+            <label style="color:#93c5fd;">Розничная цена (₽):</label>
+            <input type="number" id="admNewRetailPrice" value="2500" step="any">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>Единица измерения:</label>
+            <select id="admNewUnit">
+              <option value="шт">шт</option>
+              <option value="м">м</option>
+              <option value="компл.">компл.</option>
+              <option value="усл.">усл.</option>
+              <option value="м.п.">м.п.</option>
+              <option value="точка">точка</option>
+            </select>
+          </div>
+          <div id="admNewQtyBox" style="display:none;">
+            <label>Кол-во по умолчанию в смете:</label>
+            <input type="number" id="admNewQty" value="1" min="1" step="any">
+          </div>
+        </div>
+
+        <div id="admNewWorkCatBox" style="display:none;">
+          <label>Подкатегория монтажных работ:</label>
+          <select id="admNewWorkCat">
+            <option value="kesson">Кессоны / Скважины</option>
+            <option value="earth">Земляные работы</option>
+            <option value="plumbing">Сантехника в доме</option>
+          </select>
+        </div>
+
+        <button type="button" class="btn-submit" style="background:#16a34a; margin:10px 0 0; padding:12px;" onclick="addAdminNewItem()">
+          ➕ Добавить в базу и сохранить
+        </button>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 3: ОПИСАНИЯ СХЕМ -->
+    <div id="admSec_schemes" style="display:none;">
+      <div style="background:#131b24; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
+        <label style="color:#93c5fd;">Выберите вариант обустройства для редактирования текста:</label>
+        <select id="admSchemeSelect" onchange="renderAdminSchemeEditor()" style="background:#17212b; border-color:#38bdf8; font-weight:600;">
+          <option value="kesson_ga">Вариант 1: Классика — Кессон с гидробаком</option>
+          <option value="kesson_vfd">Вариант 2: Современная система — Кессон с ЧРП</option>
+          <option value="adapter">Вариант 3: Скважинный адаптер (оборудование в доме)</option>
+        </select>
+
+        <label>Верхняя плашка (бейдж):</label>
+        <input type="text" id="admSchBadge" oninput="updateAdminSchemeField('badge', this.value)">
+
+        <label>Заголовок схемы:</label>
+        <input type="text" id="admSchTitle" oninput="updateAdminSchemeField('title', this.value)">
+
+        <label>Блок 1 — «Суть схемы»:</label>
+        <textarea id="admSchEssence" rows="3" style="width:100%; box-sizing:border-box; padding:9px; border-radius:8px; background:#17212b; color:#fff; border:1px solid var(--border); margin-bottom:8px; font-family:inherit; font-size:0.86rem;" oninput="updateAdminSchemeField('essence', this.value)"></textarea>
+
+        <label>Блок 2 — «На схеме»:</label>
+        <textarea id="admSchVisual" rows="3" style="width:100%; box-sizing:border-box; padding:9px; border-radius:8px; background:#17212b; color:#fff; border:1px solid var(--border); margin-bottom:8px; font-family:inherit; font-size:0.86rem;" oninput="updateAdminSchemeField('visual', this.value)"></textarea>
+
+        <label>Блок 3 — «Как работает система»:</label>
+        <textarea id="admSchAnim" rows="4" style="width:100%; box-sizing:border-box; padding:9px; border-radius:8px; background:#17212b; color:#fff; border:1px solid var(--border); margin-bottom:8px; font-family:inherit; font-size:0.86rem;" oninput="updateAdminSchemeField('animText', this.value)"></textarea>
+
+        <button type="button" class="btn-submit" style="background:#16a34a; margin:6px 0 0; padding:12px;" onclick="saveOwnerAdminConfig()">
+          💾 Сохранить описания схем
+        </button>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 4: БЭКАП И СИНХРОНИЗАЦИЯ -->
+    <div id="admSec_backup" style="display:none;">
+      <div style="background:#131b24; padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
+        <div style="font-size:0.9rem; font-weight:700; color:#fde047; margin-bottom:6px;">☁️ Гибридное сохранение и резервная копия</div>
+        <p style="font-size:0.8rem; color:#cbd5e1; line-height:1.45; margin-top:0;">
+          При нажатии на большую кнопку ниже все текущие цены, новые товары и описания схем:<br>
+          1. Записываются на сервер в <code>catalog_config.json</code>.<br>
+          2. Отправляются по вебхуку в вашу таблицу Google Sheets.<br>
+          3. Высылаются файлом <code>catalog_config.json</code> вам в личный чат Telegram (ID <code>551209811</code>).
+        </p>
+
+        <button type="button" id="btnSaveAdminCfgBig" class="btn-submit" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); margin:10px 0; padding:15px; font-size:1rem; box-shadow:0 4px 16px rgba(37,99,235,0.45);" onclick="saveOwnerAdminConfig()">
+          💾 Сохранить все изменения на сервере (+ Бэкап в ТГ)
+        </button>
+
+        <div style="margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
+          <label style="color:#93c5fd;">📂 Восстановить базу из файла <code>catalog_config.json</code>:</label>
+          <input type="file" id="admImportFile" accept=".json" onchange="importAdminConfigFile(this)" style="padding:8px; margin-bottom:0;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Индикатор статуса сохранения -->
+    <div id="admSaveStatus" style="display:none; margin-top:10px; padding:10px 12px; border-radius:9px; font-size:0.82rem; font-weight:700; text-align:center;"></div>
+  </div>
+
+  <div class="card">
+    <label id="lblLang">🌐 Язык интерфейса</label>
+    <select id="langSelect" onchange="onLanguageChanged()">
+      <option value="ru" selected>🇷🇺 Русский</option>
+      <option value="tj">🇹🇯 Тоҷикӣ</option>
+      <option value="uz">🇺🇿 Oʻzbekcha</option>
+      <option value="hy">🇦🇲 Հայերեն</option>
+      <option value="ky">🇰🇬 Кыргызча</option>
+    </select>
+  </div>
+
+    <!-- ПЕРЕКЛЮЧАТЕЛЬ: МАТЕРИАЛЫ / РАБОТЫ -->
+  <div class="mode-switch-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+    <button class="tab-btn active" id="btnModeMaterials" style="padding:12px 6px; font-size:0.85rem;" onclick="switchOrderMode('materials')">📦 Только материалы</button>
+    <button class="tab-btn" id="btnModeWorks" style="padding:12px 6px; font-size:0.85rem; background:#243245;" onclick="switchOrderMode('works')">🔨 Только монтаж и работы</button>
+  </div>
+
+
+  <div id="containerMaterials">
+  <div class="tab-grid" style="grid-template-columns: 1fr;">
+    <div class="tab-btn active" id="btnTabWell" onclick="selectTab('well')">💧 Скважина / Кессон</div>
+  </div>
+
+
+
+  <!-- РАЗДЕЛ 1: СКВАЖИНА И КЕССОН -->
+  <div id="secWell">
+    <div class="card">
+      <div class="card-title" id="tEquip">1. Вариант обустройства скважины</div>
+      <label id="lblEquipType">Тип системы:</label>
+      <select id="equip_type" onchange="calcWell()">
+        <option value="kesson_vfd" id="optVfd">Кессон с Частотным Преобразователем (ЧП)</option>
+        <option value="kesson_ga" id="optGa">Кессон с гидробаком</option>
+        <option value="adapter" id="optAdapter">Обустройство через скважинный адаптер TIM</option>
+      </select>
+
+      <!-- НАГЛЯДНАЯ ВИЗУАЛИЗАЦИЯ И ОПИСАНИЕ ВЫБРАННОЙ СХЕМЫ -->
+      <div id="scheme_info_container" class="scheme-info-box"></div>
+
+      <div id="kesson_model_box" style="margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <label id="lblKessonModel" style="margin-bottom:0;">Модель кессона «МИШКА»:</label>
+          <select id="kesson_price_tier" onchange="calcWell()" style="width:auto; padding:4px 8px; margin-bottom:0; font-size:0.78rem; background:#1e3a5f; border-color:#38bdf8; color:#93c5fd; font-weight:700;">
+            <option value="dealer" selected>🏷 Дилер (-40%)</option>
+            <option value="retail">🏪 Розничная цена</option>
+          </select>
+        </div>
+        <select id="chosen_kesson" onchange="calcWell()" style="font-size:0.86rem;">
+          <option value="kesson_m1_no_cuff" data-dealer="39000.0" data-retail="65000.0" data-name="Кессон Мишка 1 без муфты (2000х1050)">Кессон Мишка 1 без муфты (2000х1050) — Розн. 65 000 ₽ | Дилер 39 000 ₽</option>
+          <option value="kesson_m1" data-dealer="40800.0" data-retail="68000.0" data-name="Кессон Мишка 1 (2000х1050)" selected>Кессон Мишка 1 (2000х1050) — Розн. 68 000 ₽ | Дилер 40 800 ₽</option>
+          <option value="kesson_m1_long_no_cuff" data-dealer="42900.0" data-retail="71500.0" data-name="Кессон Мишка 1 - Long без муфты (2500х1050)">Кессон Мишка 1 - Long без муфты (2500х1050) — Розн. 71 500 ₽ | Дилер 42 900 ₽</option>
+          <option value="kesson_m1_long" data-dealer="55200.0" data-retail="92000.0" data-name="Кессон Мишка 1 - Long (2500х1050)">Кессон Мишка 1 - Long (2500х1050) — Розн. 92 000 ₽ | Дилер 55 200 ₽</option>
+          <option value="kesson_m1_159" data-dealer="57840.0" data-retail="96400.0" data-name="Кессон Мишка 1 (муфта 159, 2000х1050)">Кессон Мишка 1 (муфта 159, 2000х1050) — Розн. 96 400 ₽ | Дилер 57 840 ₽</option>
+          <option value="kesson_m1_long_159" data-dealer="60000.0" data-retail="100000.0" data-name="Кессон Мишка 1 - Long (муфта 159, 2500х1050)">Кессон Мишка 1 - Long (муфта 159, 2500х1050) — Розн. 100 000 ₽ | Дилер 60 000 ₽</option>
+          <option value="kesson_m2_no_cuff" data-dealer="53400.0" data-retail="89000.0" data-name="Кессон Мишка 2 без муфты (2000х1300)">Кессон Мишка 2 без муфты (2000х1300) — Розн. 89 000 ₽ | Дилер 53 400 ₽</option>
+          <option value="kesson_m2" data-dealer="55200.0" data-retail="92000.0" data-name="Кессон Мишка 2 (2000х1300)">Кессон Мишка 2 (2000х1300) — Розн. 92 000 ₽ | Дилер 55 200 ₽</option>
+          <option value="kesson_m2_long_no_cuff" data-dealer="57600.0" data-retail="96000.0" data-name="Кессон Мишка 2 - Long без муфты (2500х1300)">Кессон Мишка 2 - Long без муфты (2500х1300) — Розн. 96 000 ₽ | Дилер 57 600 ₽</option>
+          <option value="kesson_m2_long" data-dealer="72000.0" data-retail="120000.0" data-name="Кессон Мишка 2 - Long (2500х1300)">Кессон Мишка 2 - Long (2500х1300) — Розн. 120 000 ₽ | Дилер 72 000 ₽</option>
+          <option value="kesson_m2_159" data-dealer="75000.0" data-retail="125000.0" data-name="Кессон Мишка 2 (муфта 159, 2000х1300)">Кессон Мишка 2 (муфта 159, 2000х1300) — Розн. 125 000 ₽ | Дилер 75 000 ₽</option>
+          <option value="kesson_m2_219" data-dealer="77400.0" data-retail="129000.0" data-name="Кессон Мишка 2 (муфта 219, 2000х1300)">Кессон Мишка 2 (муфта 219, 2000х1300) — Розн. 129 000 ₽ | Дилер 77 400 ₽</option>
+          <option value="kesson_m2_long_159" data-dealer="78600.0" data-retail="131000.0" data-name="Кессон Мишка 2 - Long (муфта 159, 2500х1300)">Кессон Мишка 2 - Long (муфта 159, 2500х1300) — Розн. 131 000 ₽ | Дилер 78 600 ₽</option>
+          <option value="kesson_m3_no_cuff" data-dealer="81000.0" data-retail="135000.0" data-name="Кессон Мишка 3 без муфты (2000х1600)">Кессон Мишка 3 без муфты (2000х1600) — Розн. 135 000 ₽ | Дилер 81 000 ₽</option>
+          <option value="kesson_m3" data-dealer="83400.0" data-retail="139000.0" data-name="Кессон Мишка 3 (2000х1600)">Кессон Мишка 3 (2000х1600) — Розн. 139 000 ₽ | Дилер 83 400 ₽</option>
+          <option value="kesson_m3_long_no_cuff" data-dealer="96600.0" data-retail="161000.0" data-name="Кессон Мишка 3 - Long без муфты (2500х1600)">Кессон Мишка 3 - Long без муфты (2500х1600) — Розн. 161 000 ₽ | Дилер 96 600 ₽</option>
+          <option value="kesson_m3_long" data-dealer="99000.0" data-retail="165000.0" data-name="Кессон Мишка 3 - Long (2500х1600)">Кессон Мишка 3 - Long (2500х1600) — Розн. 165 000 ₽ | Дилер 99 000 ₽</option>
+          <option value="kesson_m3_159" data-dealer="101400.0" data-retail="169000.0" data-name="Кессон Мишка 3 (муфта 159, 2000х1600)">Кессон Мишка 3 (муфта 159, 2000х1600) — Розн. 169 000 ₽ | Дилер 101 400 ₽</option>
+          <option value="kesson_m3_long_159" data-dealer="138600.0" data-retail="231000.0" data-name="Кессон Мишка 3 - Long (муфта 159, 2500х1600)">Кессон Мишка 3 - Long (муфта 159, 2500х1600) — Розн. 231 000 ₽ | Дилер 138 600 ₽</option>
+          <option value="kesson_m4" data-dealer="141360.0" data-retail="235600.0" data-name="Кессон Мишка 4 (2000х2100)">Кессон Мишка 4 (2000х2100) — Розн. 235 600 ₽ | Дилер 141 360 ₽</option>
+          <option value="kesson_m4_long_no_cuff" data-dealer="143400.0" data-retail="239000.0" data-name="Кессон Мишка 4 - Long без муфты (2500х2100)">Кессон Мишка 4 - Long без муфты (2500х2100) — Розн. 239 000 ₽ | Дилер 143 400 ₽</option>
+          <option value="kesson_m4_long" data-dealer="170400.0" data-retail="284000.0" data-name="Кессон Мишка 4 - Long (2500х2100)">Кессон Мишка 4 - Long (2500х2100) — Розн. 284 000 ₽ | Дилер 170 400 ₽</option>
+          <option value="kesson_m4_159" data-dealer="172560.0" data-retail="287600.0" data-name="Кессон Мишка 4 (муфта 159, 2000х2100)">Кессон Мишка 4 (муфта 159, 2000х2100) — Розн. 287 600 ₽ | Дилер 172 560 ₽</option>
+          <option value="kesson_m4_long_159" data-dealer="174600.0" data-retail="291000.0" data-name="Кессон Мишка 4 - Long (муфта 159, 2500х2100)">Кессон Мишка 4 - Long (муфта 159, 2500х2100) — Розн. 291 000 ₽ | Дилер 174 600 ₽</option>
+        </select>
+        <div id="kesson_price_info" style="font-size:0.75rem; color:#4ade80; margin-top:-4px; margin-bottom:8px;">
+          Розн. 68 000 ₽ | Дилер (скидка 40%): 40 800 ₽
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:#1a2432; padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
+          <span style="font-size:0.8rem; color:#e2e8f0;">🔧 Сгон 32 мм (экструдерная пайка)<br><small style="color:#94a3b8;">Розн. 380 ₽ | Дилер: По согласованию</small></span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:0.78rem; color:#93c5fd;">Кол-во:</span>
+            <input type="number" id="sgon_32_qty" value="0" min="0" style="width:56px; margin-bottom:0; padding:5px 6px; text-align:center;" oninput="calcWell()">
+          </div>
+        </div>
+      </div>
+
+      <div id="pump_model_box" style="margin-top:10px;">
+        <label>Скважинный / погружной насос:</label>
+        <select id="chosen_pump" onchange="calcWell()" style="font-size:0.84rem;">
+          <option value="pump_none" data-price="0" data-name="Без насоса (свой или покупается отдельно)" selected>Без насоса (свой или покупается отдельно)</option>
+          <option value="pump_waterstry_3_90" data-price="19484.72" data-name="Скважинный насос WATERSTRY 3&quot; 3ST 3-90 (Н=108м, 5.4м3/час, каб. 1м, 1.5kW, 230V)">Скважинный насос WATERSTRY 3" 3ST 3-90 (Н=108м, 5.4м3/час, каб. 1м, 1.5kW, 230V) — 19 484,72 ₽</option>
+          <option value="pump_waterstry_2_50" data-price="12327.42" data-name="Скважинный насос WATERSTRY 3&quot; 3ST 2-50 (Н=64м, 3.6м3/час, 0.55kW, 230V)">Скважинный насос WATERSTRY 3" 3ST 2-50 (Н=64м, 3.6м3/час, 0.55kW, 230V) — 12 327,42 ₽</option>
+          <option value="pump_waterstry_2_120" data-price="19092.00" data-name="Скважинный насос WATERSTRY 3&quot; 3ST 2-120 тм (1.5kW, 230V)">Скважинный насос WATERSTRY 3" 3ST 2-120 тм (1.5kW, 230V) — 19 092,00 ₽</option>
+          <option value="pump_waterstry_2_85" data-price="13800.00" data-name="Скважинный насос WATERSTRY 3&quot; 3ST 2-85 (0.92kW, 230V)">Скважинный насос WATERSTRY 3" 3ST 2-85 (0.92kW, 230V) — 13 800,00 ₽</option>
+          <option value="pump_waterstry_1_60" data-price="11084.56" data-name="Скважинный насос WATERSTRY 3&quot; 3ST 1-60 тм (Н=64м, 2.7м3/ч, каб. 1м, 0.37kW, 230V)">Скважинный насос WATERSTRY 3" 3ST 1-60 тм (Н=64м, 2.7м3/ч, каб. 1м, 0.37kW, 230V) — 11 084,56 ₽</option>
+          <option value="pump_waterstry_2_100" data-price="16574.72" data-name="Скважинный насос WATERSTRY 3&quot; 3ST 2-100 тм (1.1kW, 230V)">Скважинный насос WATERSTRY 3" 3ST 2-100 тм (1.1kW, 230V) — 16 574,72 ₽</option>
+          <option value="pump_pw_tf3_80" data-price="14292.09" data-name="Насос скважинный Power Water PW TF3-80 2.0 (каб. 50м, 85м, 3м3/час)">Насос скважинный Power Water PW TF3-80 2.0 (каб. 50м, 85м, 3м3/час) — 14 292,09 ₽</option>
+          <option value="pump_pw_tf3_60" data-price="11806.14" data-name="Насос скважинный Power Water PW TF3-60 2.0 (каб. 35м, 65м, 3м3/час)">Насос скважинный Power Water PW TF3-60 2.0 (каб. 35м, 65м, 3м3/час) — 11 806,14 ₽</option>
+          <option value="pump_pw_tf3_40" data-price="9427.50" data-name="Насос скважинный Power Water PW TF3-40 2.0 (каб. 20м, 45м, 3м3/час)">Насос скважинный Power Water PW TF3-40 2.0 (каб. 20м, 45м, 3м3/час) — 9 427,50 ₽</option>
+          <option value="pump_pw_tf3_110" data-price="18435.00" data-name="Насос скважинный Power Water PW TF3-110 2.0 (каб. 65м, 110м, 3м3/час)">Насос скважинный Power Water PW TF3-110 2.0 (каб. 65м, 110м, 3м3/час) — 18 435,00 ₽</option>
+          <option value="pump_belamos_tf3_80_50m" data-price="14695.20" data-name="Насос скважинный Belamos TF3-80 (2.7 м3/час, 45 л/мин, Н-80 м, d-78 мм, каб. 50 м)">Насос скважинный Belamos TF3-80 (2.7 м3/час, 45 л/мин, Н-80 м, d-78 мм, каб. 50 м) — 14 695,20 ₽</option>
+          <option value="pump_belamos_tf3_80_1_5m" data-price="11152.80" data-name="Насос скважинный Belamos TF3-80 (2.7 м3/час, 45 л/мин, Н-80 м, d-78 мм, каб. 1.5 м)">Насос скважинный Belamos TF3-80 (2.7 м3/час, 45 л/мин, Н-80 м, d-78 мм, каб. 1.5 м) — 11 152,80 ₽</option>
+          <option value="pump_belamos_tf3_60" data-price="20350.00" data-name="Насос скважинный Belamos TF3-60 (2.7 м3/час, 45 л/мин, Н-60 м, d-78 мм, каб. 35м)">Насос скважинный Belamos TF3-60 (2.7 м3/час, 45 л/мин, Н-60 м, d-78 мм, каб. 35м) — 20 350,00 ₽</option>
+          <option value="pump_belamos_tf3_40" data-price="9771.60" data-name="Насос скважинный Belamos TF3-40 (2.7 м3/час, 45 л/мин, Н-40 м, d-78 мм, каб. 20 м)">Насос скважинный Belamos TF3-40 (2.7 м3/час, 45 л/мин, Н-40 м, d-78 мм, каб. 20 м) — 9 771,60 ₽</option>
+          <option value="pump_belamos_tf3_200" data-price="35043.60" data-name="Насос скважинный Belamos TF3-200 (2.7 м3/час, 45 л/мин, Н-200 м, d-78 мм, каб. 80 м)">Насос скважинный Belamos TF3-200 (2.7 м3/час, 45 л/мин, Н-200 м, d-78 мм, каб. 80 м) — 35 043,60 ₽</option>
+          <option value="pump_belamos_tf3_150" data-price="25555.20" data-name="Насос скважинный Belamos TF3-150 (2.7 м3/час, 45 л/мин, Н-150 м, d-78 мм, каб. 80м)">Насос скважинный Belamos TF3-150 (2.7 м3/час, 45 л/мин, Н-150 м, d-78 мм, каб. 80м) — 25 555,20 ₽</option>
+          <option value="pump_belamos_tf3_110_65m" data-price="18363.60" data-name="Насос скважинный Belamos TF3-110 (2.7 м3/час, 45 л/мин, Н-110 м, d-78 мм, каб. 65 м)">Насос скважинный Belamos TF3-110 (2.7 м3/час, 45 л/мин, Н-110 м, d-78 мм, каб. 65 м) — 18 363,60 ₽</option>
+          <option value="pump_belamos_tf3_110_1_5m" data-price="12730.80" data-name="Насос скважинный Belamos TF3-110 (2.7 м3/час, 45 л/мин, Н-110 м, d-78 мм, каб. 1.5 м)">Насос скважинный Belamos TF3-110 (2.7 м3/час, 45 л/мин, Н-110 м, d-78 мм, каб. 1.5 м) — 12 730,80 ₽</option>
+          <option value="pump_aquario_75_1_5m" data-price="14976.00" data-name="Насос скважинный Aquario ASP1E-75-75 (встр. конд., каб. 1.5м, Q-50 л/мин, Н-85м)">Насос скважинный Aquario ASP1E-75-75 (встр. конд., каб. 1.5м, Q-50 л/мин, Н-85м) — 14 976,00 ₽</option>
+          <option value="pump_aquario_125_15m" data-price="22959.73" data-name="Насос скважинный Aquario ASP1E-125-75 (встр. конд., каб. 15м, Q-50 л/мин, Н-135м)">Насос скважинный Aquario ASP1E-125-75 (встр. конд., каб. 15м, Q-50 л/мин, Н-135м) — 22 959,73 ₽</option>
+          <option value="pump_aquario_100_60m" data-price="27251.63" data-name="Насос скважинный Aquario ASP1E-100-75 (встр. конд., каб. 60м, Q-50 л/мин, Н-110м)">Насос скважинный Aquario ASP1E-100-75 (встр. конд., каб. 60м, Q-50 л/мин, Н-110м) — 27 251,63 ₽</option>
+          <option value="pump_aquario_55_35m" data-price="16321.52" data-name="Насос погружной скважинный Aquario ASP1E-55-75 (3 м3/час, 50 л/мин, Н-60 м, d-76 мм, каб. 35 м)">Насос погружной скважинный Aquario ASP1E-55-75 (3 м3/час, 50 л/мин, Н-60 м, d-76 мм, каб. 35 м) — 16 321,52 ₽</option>
+          <option value="pump_belamos_dwp_180" data-price="6083.75" data-name="Насос дренажный Belamos DWP 180 (116 л/мин, каб. 10м, Н-6м, с измельчителем для грязной воды)">Насос дренажный Belamos DWP 180 (116 л/мин, каб. 10м, Н-6м, с измельчителем для грязной воды) — 6 083,75 ₽</option>
+          <option value="pump_belamos_omega_25" data-price="3064.80" data-name="Насос погружной Belamos Omega 25 (83 л/мин, Н-6м, каб. 6м)">Насос погружной Belamos Omega 25 (83 л/мин, Н-6м, каб. 6м) — 3 064,80 ₽</option>
+        </select>
+      </div>
+
+      <!-- Выбор количества домов (1 дом или 2 дома) -->
+      <div style="margin-top:10px;">
+        <label id="lblHousesCount">Количество подключаемых объектов (домов):</label>
+        <select id="houses_count" onchange="onHousesCountChanged()">
+          <option value="1" selected>🏠 1 дом (стандартное подключение)</option>
+          <option value="2">🏘 2 дома (разводка на два объекта + фитинги)</option>
+        </select>
+      </div>
+
+      <!-- Поля: Глубина насоса и Трасса до Дома 1 / Дома 2 -->
+      <div class="grid-2" style="margin-top:6px;">
+        <div>
+          <label>Глубина насоса (м):</label>
+          <input type="number" id="pump_depth" value="40" min="1" oninput="calcWell()">
+          <div id="depth_round_hint" style="font-size:0.72rem; color:#93c5fd; margin-top:-4px; margin-bottom:6px;">В расчёт: 40 м</div>
+        </div>
+        <div>
+          <label id="lblDist1">Трасса до Дома №1 (м):</label>
+          <input type="number" id="trench_distance" value="15" min="0" oninput="calcWell()">
+          <div id="dist1_round_hint" style="font-size:0.72rem; color:#93c5fd; margin-top:-4px; margin-bottom:6px;">В расчёт: 15 м</div>
+        </div>
+      </div>
+
+      <div id="house2_distance_box" style="display:none; margin-top:4px;">
+        <label id="lblDist2">Трасса от скважины до Дома №2 (м):</label>
+        <input type="number" id="trench_distance_2" value="15" min="0" oninput="calcWell()">
+        <div id="dist2_round_hint" style="font-size:0.72rem; color:#93c5fd; margin-top:-4px; margin-bottom:6px;">В расчёт: 15 м (добавлены тройник 32х32х32 и переход 32х20)</div>
+      </div>
+
+      <!-- Опция: Греющий кабель + обязательный Монтажный набор (1400 ₽/ввод) -->
+      <div style="margin-top:8px; padding:10px 12px; background:#1a2432; border:1px solid rgba(113,177,255,0.22); border-radius:9px;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:0;">
+          <input type="checkbox" id="include_heat_cable" style="width:18px; height:18px; margin:0;" onchange="calcWell()">
+          <span style="font-size:0.84rem; font-weight:600; color:#e2e8f0;">🔥 Добавить греющий кабель для защиты трубы (+ Монтажный набор 1 400 ₽)</span>
+        </label>
+        <div id="heat_cable_len_box" style="display:none; margin-top:8px;">
+          <label style="font-size:0.78rem; color:#93c5fd;">Длина греющего кабеля (м):</label>
+          <input type="number" id="heat_cable_length" value="3" min="1" style="margin-bottom:2px;" oninput="calcWell()">
+          <div style="font-size:0.72rem; color:#4ade80;">* Автоматически включён обязательный «Монтажный набор для греющего кабеля» (1 400 ₽ / шт. на каждый дом)</div>
+        </div>
+      </div>
+
+      <!-- Опция для Скважинного адаптера: Незамерзающие гидранты / краны -->
+      <div id="adapter_hydrants_box" style="display:none; margin-top:8px; padding:10px 12px; background:#1c2d27; border:1px solid #2e8b57; border-radius:9px;">
+        <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; margin-bottom:0;">
+          <input type="checkbox" id="include_adapter_hydrants" style="width:18px; height:18px; margin-top:2px;" onchange="calcWell()">
+          <span style="font-size:0.83rem; font-weight:600; color:#86efac; line-height:1.35;">
+            ❄️ Включить комплект незамерзающего оборудования (гидранты/краны):<br>
+            <span style="font-size:0.76rem; color:#cbd5e1; font-weight:400;">
+              • Гидрант незамерзающий GDR " 1900 мм Беламос (5 902,80 ₽)<br>
+              • Кран незамерзающий, 2.2м Гидрант W-HF0122 TIM (7 381,20 ₽)
+            </span>
+          </span>
+        </label>
+      </div>
+
+      <div id="tank_model_box" style="margin-top:10px;">
+        <label id="lblTankModel">Гидроаккумулятор:</label>
+        <select id="chosen_tank" onchange="calcWell()">
+          <option value="tank_8bw">8л BELAMOS 8BW (подвесной) — 1 183.20 ₽</option>
+          <option value="tank_24">24л BELAMOS 24СТ2 синий — 1 906.80 ₽</option>
+          <option value="tank_50_hit">50л Джилекс Г 50 «ХИТ» — 3 783.00 ₽</option>
+          <option value="tank_50vt">50л BELAMOS 50VT — 3 940.80 ₽</option>
+          <option value="tank_80vt">80л BELAMOS 80VT — 7 566.00 ₽</option>
+          <option value="tank_100vt" selected>100л BELAMOS 100VT — 8 747.70 ₽</option>
+          <option value="tank_300_dzhileks">300л Джилекс 300 В — 23 049.00 ₽</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="tSpec">2. Спецификация оборудования (можно изменить любое кол-во)</div>
+      <div id="spec-list"></div>
+
+      <!-- Блок ручного добавления позиции со склада -->
+      <div class="add-item-card">
+        <label id="lblAddExtra" style="color:#71b1ff;">➕ Добавить дополнительную позицию со склада:</label>
+        <div style="display:flex; gap:6px;">
+          <select id="extraCatalogSelect" style="flex:1; margin-bottom:0; font-size:0.85rem;">
+            <option value="pipe_pnd_32">Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)</option>
+            <option value="pipe_pnd_20">Труба ПНД 20х2.0 под кабель (42.54 ₽/м)</option>
+            <option value="cable_pvs_3x2_5">Кабель ПВС 3х2.5 белый гибкий (84.89 ₽/м)</option>
+            <option value="rope_3mm_304">Трос нержавеющая сталь 7x7 AISI 304, 3мм</option>
+            <option value="cable_clamp_4mm">Зажим троса нерж. 4мм (40.80 ₽/шт)</option>
+            <option value="vfd_fil10">Частотный преобразователь FIL-10 (7 708.80 ₽)</option>
+            <option value="tank_8bw">Гидроаккумулятор 8BW подвесной (1 832 ₽)</option>
+            <option value="tank_50">Гидроаккумулятор 50VT BELAMOS (5 420 ₽)</option>
+            <option value="tank_100">Гидроаккумулятор 100VT BELAMOS (8 747.70 ₽)</option>
+            <option value="pressure_switch">Реле давления AQUARIO PS-5-2 (782.40 ₽)</option>
+            <option value="manometer">Манометр 0-10 бар (181.31 ₽)</option>
+            <option value="check_valve_1">Обратный клапан 1" с металл. седлом (750 ₽)</option>
+            <option value="well_head_osp">Оголовок скваж. ОСП 110-133/32 (1 916.39 ₽)</option>
+            <option value="valve_watering_1_2">Кран поливочный 1/2' с носиком (436.13 ₽)</option>
+            <option value="valve_brass_1">Кран шаровой 1' латунь (874.43 ₽)</option>
+            <option value="valve_ppr_32">Кран шаровой ППР 32мм (180.93 ₽)</option>
+            <option value="ppr_union_32_1">Муфта разъемная ППР 32-1' американка (648.03 ₽)</option>
+            <option value="sgon_32_extruder">Сгон 32 мм (экструдерная пайка) — Розн. 380 ₽ | Дилер: По согласованию</option>
+            <option value="heat_cable">Кабель греющий саморегулирующийся (350 ₽/м + Монтажный набор 1 400 ₽)</option>
+            <option value="heat_cable_kit">Монтажный набор для греющего кабеля (1 400 ₽/шт)</option>
+            <option value="pnd_tee_32">Тройник компрессионный ПНД 32х32х32 Unidelta (645 ₽)</option>
+            <option value="pnd_reduct_32_20">Переход/фитинг ПНД 32х20 Unidelta (435.20 ₽)</option>
+            <option value="hydrant_gdr_1900">Гидрант незамерзающий GDR " 1900 мм Беламос (5 902.80 ₽)</option>
+            <option value="tap_non_freezing_tim">Кран незамерзающий, 2.2м Гидрант W-HF0122 TIM (7 381.20 ₽)</option>
+            <option value="pump_waterstry_3_90">Скважинный насос WATERSTRY 3" 3ST 3-90 (Н=108м, 5.4м3/час, каб. 1м, 1.5kW, 230V) (19 484,72 ₽)</option>
+            <option value="pump_waterstry_2_50">Скважинный насос WATERSTRY 3" 3ST 2-50 (Н=64м, 3.6м3/час, 0.55kW, 230V) (12 327,42 ₽)</option>
+            <option value="pump_waterstry_2_120">Скважинный насос WATERSTRY 3" 3ST 2-120 тм (1.5kW, 230V) (19 092,00 ₽)</option>
+            <option value="pump_waterstry_2_85">Скважинный насос WATERSTRY 3" 3ST 2-85 (0.92kW, 230V) (13 800,00 ₽)</option>
+            <option value="pump_waterstry_1_60">Скважинный насос WATERSTRY 3" 3ST 1-60 тм (Н=64м, 2.7м3/ч, каб. 1м, 0.37kW, 230V) (11 084,56 ₽)</option>
+            <option value="pump_waterstry_2_100">Скважинный насос WATERSTRY 3" 3ST 2-100 тм (1.1kW, 230V) (16 574,72 ₽)</option>
+            <option value="pump_pw_tf3_80">Насос скважинный Power Water PW TF3-80 2.0 (каб. 50м, 85м, 3м3/час) (14 292,09 ₽)</option>
+            <option value="pump_pw_tf3_60">Насос скважинный Power Water PW TF3-60 2.0 (каб. 35м, 65м, 3м3/час) (11 806,14 ₽)</option>
+            <option value="pump_pw_tf3_40">Насос скважинный Power Water PW TF3-40 2.0 (каб. 20м, 45м, 3м3/час) (9 427,50 ₽)</option>
+            <option value="pump_pw_tf3_110">Насос скважинный Power Water PW TF3-110 2.0 (каб. 65м, 110м, 3м3/час) (18 435,00 ₽)</option>
+            <option value="pump_belamos_tf3_80_50m">Насос скважинный Belamos TF3-80 (2.7 м3/час, 45 л/мин, Н-80 м, d-78 мм, каб. 50 м) (14 695,20 ₽)</option>
+            <option value="pump_belamos_tf3_80_1_5m">Насос скважинный Belamos TF3-80 (2.7 м3/час, 45 л/мин, Н-80 м, d-78 мм, каб. 1.5 м) (11 152,80 ₽)</option>
+            <option value="pump_belamos_tf3_60">Насос скважинный Belamos TF3-60 (2.7 м3/час, 45 л/мин, Н-60 м, d-78 мм, каб. 35м) (20 350,00 ₽)</option>
+            <option value="pump_belamos_tf3_40">Насос скважинный Belamos TF3-40 (2.7 м3/час, 45 л/мин, Н-40 м, d-78 мм, каб. 20 м) (9 771,60 ₽)</option>
+            <option value="pump_belamos_tf3_200">Насос скважинный Belamos TF3-200 (2.7 м3/час, 45 л/мин, Н-200 м, d-78 мм, каб. 80 м) (35 043,60 ₽)</option>
+            <option value="pump_belamos_tf3_150">Насос скважинный Belamos TF3-150 (2.7 м3/час, 45 л/мин, Н-150 м, d-78 мм, каб. 80м) (25 555,20 ₽)</option>
+            <option value="pump_belamos_tf3_110_65m">Насос скважинный Belamos TF3-110 (2.7 м3/час, 45 л/мин, Н-110 м, d-78 мм, каб. 65 м) (18 363,60 ₽)</option>
+            <option value="pump_belamos_tf3_110_1_5m">Насос скважинный Belamos TF3-110 (2.7 м3/час, 45 л/мин, Н-110 м, d-78 мм, каб. 1.5 м) (12 730,80 ₽)</option>
+            <option value="pump_aquario_75_1_5m">Насос скважинный Aquario ASP1E-75-75 (встр. конд., каб. 1.5м, Q-50 л/мин, Н-85м) (14 976,00 ₽)</option>
+            <option value="pump_aquario_125_15m">Насос скважинный Aquario ASP1E-125-75 (встр. конд., каб. 15м, Q-50 л/мин, Н-135м) (22 959,73 ₽)</option>
+            <option value="pump_aquario_100_60m">Насос скважинный Aquario ASP1E-100-75 (встр. конд., каб. 60м, Q-50 л/мин, Н-110м) (27 251,63 ₽)</option>
+            <option value="pump_aquario_55_35m">Насос погружной скважинный Aquario ASP1E-55-75 (3 м3/час, 50 л/мин, Н-60 м, d-76 мм, каб. 35 м) (16 321,52 ₽)</option>
+            <option value="pump_belamos_dwp_180">Насос дренажный Belamos DWP 180 (116 л/мин, каб. 10м, Н-6м, с измельчителем для грязной воды) (6 083,75 ₽)</option>
+            <option value="pump_belamos_omega_25">Насос погружной Belamos Omega 25 (83 л/мин, Н-6м, каб. 6м) (3 064,80 ₽)</option>
+          </select>
+          <button class="qty-btn" type="button" style="width:auto; padding:0 14px; background:var(--accent);" onclick="addCatalogItem()">+ Добавить</button>
+        </div>
+      </div>
+
+      <div id="personalDiscountBanner" style="display:none; margin-top:10px; padding:8px 12px; border-radius:8px; background:#143325; border:1px solid #22c55e; color:#86efac; font-size:0.8rem; font-weight:600; text-align:center;"></div>
+      <div class="total-box">
+        <span id="lblTotalText">ИТОГО К ОПЛАТЕ:</span>
+        <span id="kesson-total">0.00 ₽</span>
+      </div>
+    </div>
+  </div>
+
+
+
+  </div><!-- /containerMaterials -->
+
+  <!-- ==================== БЛОК: ТОЛЬКО РАБОТЫ ==================== -->
+  <div id="containerWorks" style="display: none;">
+    <div class="card">
+      <div class="card-title" style="color:#f59e0b;">🔨 Корзина монтажных и земляных работ (Лето 2026)</div>
+      
+      <!-- Фильтр по видам работ -->
+      <div style="display:flex; overflow-x:auto; gap:6px; padding-bottom:8px; margin-bottom:8px;">
+        <button class="tab-btn active" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('all', this)">Все работы</button>
+        <button class="tab-btn" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('kesson', this)">Кессоны / Скважины</button>
+        <button class="tab-btn" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('earth', this)">Земляные работы</button>
+        <button class="tab-btn" style="white-space:nowrap; padding:6px 12px; font-size:0.78rem;" onclick="filterWorks('plumbing', this)">Сантехника в доме</button>
+      </div>
+
+      <div id="worksListContainer"></div>
+
+      <div class="total-box" style="background:#262013; border-color:#854d0e;">
+        <span style="color:#fde047;">ИТОГО РАБОТЫ:</span>
+        <span id="worksTotalSum" style="color:#fde047;">0.00 ₽</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ЛОГИСТИКА: ДЛЯ МАТЕРИАЛОВ (СКЛАД/ДОСТАВКА) ИЛИ ДЛЯ РАБОТ (ТОЛЬКО АДРЕС ОБЪЕКТА) -->
+  <div class="card highlight-card" id="cardLogistics">
+    <div class="card-title" id="tLogistics">🚚 Получение заказа</div>
+    
+    <!-- Варианты для материалов: склад или доставка -->
+    <div id="materialsLogisticsWrapper">
+      <label id="lblLogType">Способ получения:</label>
+      <select id="logisticsType" onchange="toggleLogisticsFields()">
+        <option value="pickup" id="optPickup" selected>📦 Самовывоз со склада (п. Некрасовский)</option>
+        <option value="delivery" id="optDelivery">🚛 Доставка на объект заказчика</option>
+      </select>
+
+      <div id="pickupBox">
+        <label id="lblPickupTime">Дата и время приезда на склад:</label>
+        <input type="text" id="pickupDateTime" placeholder="Сегодня к 15:30 или завтра утром">
+        <a class="btn-maps" id="btnNavMaps" href="https://yandex.ru/navi?text=56.047416,37.538633&si=vuyt53qweyhyb7h2vyjb16pg04" target="_blank">
+          📍 Открыть склад в Яндекс Навигаторе
+        </a>
+      </div>
+    </div>
+
+    <!-- Блок адреса: в материалах при доставке, а в РАБОТАХ - ВСЕГДА (без поля склада!) -->
+    <div id="deliveryBox" style="display: none;">
+      <label id="lblDeliveryAddress">Точный адрес проведения работ / доставки:</label>
+      <input type="text" id="deliveryAddress" placeholder="МО, Дмитровский р-н, д. Подосинки, уч. 12...">
+      <label id="lblDeliveryTime">Желаемая дата и время выезда бригады:</label>
+      <input type="text" id="deliveryTime" placeholder="Завтра с 10:00 до 14:00">
+      <div id="worksDistanceHint" style="display:none; font-size:0.75rem; color:#94a3b8; margin-top:2px;">
+        * Выезд бригады до 150 км от базы (туда и обратно) входит в стоимость, далее 15 ₽/км.
+      </div>
+    </div>
+  </div>
+
+  <!-- ДАННЫЕ КЛИЕНТА -->
+  <div class="card highlight-card">
+    <div class="card-title" id="tContact">📞 Контактные данные</div>
+    <label id="lblContactName">Имя клиента / монтажника:</label>
+    <input type="text" id="contactName" placeholder="Например: Федор (Королев)">
+    <label id="lblCompany">Компания / Организация:</label>
+    <input type="text" id="contactCompany" placeholder="Например: ООО АкваСтрой / Частный монтаж">
+    <label id="lblContactPhone">Телефон для связи:</label>
+    <input type="tel" id="contactPhone" placeholder="+7 (___) ___-__-__">
+  </div>
+
+  <button class="btn-submit" id="btnSubmit" onclick="sendOrder()">Отправить заказ на склад</button>
+  <button class="btn-submit" style="background: #334155; margin-top: -4px; margin-bottom: 20px;" id="btnOpenHistoryMain" onclick="openOrderHistory()">
+    📜 Ваши заказы (история и статусы)
+  </button>
+
+  <!-- КРАСИВОЕ ТАБЛО С ЗАКАЗОМ (ЧЕК ДЛЯ КЛИЕНТА) -->
+  <div id="receipt-modal" class="receipt-screen" style="border: 1.5px solid #3b82f6; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+    <div style="text-align: center; margin-bottom: 14px;">
+      <div class="receipt-badge" id="badgeSuccess" style="background: #1e3a8a; color: #93c5fd; font-size: 13px; padding: 6px 16px;">
+        🎉 Наряд-заказ успешно зарегистрирован!
+      </div>
+      <h3 id="receipt-id" style="font-size: 22px; font-weight: 800; margin: 8px 0; color: #ffffff;">Заказ #...</h3>
+      <p style="color: #94a3b8; font-size: 13px;" id="receiptSub">
+        Менеджеры завода «МИШКА» уже получили наряд в работу.
+      </p>
+    </div>
+
+    <div id="receipt-details" style="font-size: 13px; margin-bottom: 14px; background: #1a222d; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);"></div>
+    
+    <div class="total-box" style="margin-bottom: 16px; background: #132a1e; border-color: #22c55e;">
+      <span id="lblReceiptTotal" style="color: #86efac;">Сумма к оплате:</span>
+      <span id="receipt-total" style="color: #4ade80; font-size: 1.25rem;">0 ₽</span>
+    </div>
+
+    <!-- КНОПКИ ДЕЙСТВИЯ: СОБРАТЬ ЕЩЁ ИЛИ ПОСМОТРЕТЬ ВСЕ ЗАКАЗЫ -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+      <button class="btn-submit" style="background: #2563eb; margin: 0; padding: 12px;" id="btnNewCalc" onclick="resetOrder()">
+        ➕ Собрать ещё
+      </button>
+      <button class="btn-submit" style="background: #334155; margin: 0; padding: 12px;" id="btnViewHistory" onclick="openOrderHistory()">
+        📜 Мои заказы
+      </button>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ИСТОРИИ: ВСЕ ЗАКАЗЫ ЗА ВСЁ ВРЕМЯ -->
+  <div id="history-modal" class="receipt-screen" style="display: none; border: 1.5px solid #475569;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+      <h3 style="font-size: 17px; margin: 0; color: #71b1ff;">📜 История всех ваших заказов</h3>
+      <button onclick="closeOrderHistory()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.3rem; cursor: pointer;">✖</button>
+    </div>
+    
+    <div id="history-list-box" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+      <!-- Динамический список заказов -->
+    </div>
+
+    <button class="btn-submit" style="background: #2563eb; margin-top: 14px; margin-bottom: 0;" onclick="closeOrderHistory()">
+      🔙 Вернуться к калькулятору
+    </button>
+  </div>
+
+  <script>
+
+    let currentOrderMode = 'materials';
+    let selectedWorks = {};
+    let currentWorkFilter = 'all';
+    let activeTab = 'well';
+    let currentItems = [];
+    let currentTotal = 0;
+
+    const ALL_WORKS = [
+      {code: 'work_kesson_std', cat: 'kesson', name: 'Монтаж кессона (обвязка, ПНР, выход под кабель и магистраль)', price: 23000.0, unit: 'усл.'},
+      {code: 'work_kesson_weld', cat: 'kesson', name: 'Монтаж кессона со сваркой (обвязка, ПНР, кабель, магистраль)', price: 26000.0, unit: 'усл.'},
+      {code: 'work_kesson_extra_outlet', cat: 'kesson', name: 'Дополнительный выход из кессона', price: 1500.0, unit: 'шт.'},
+      {code: 'work_kesson_demount_mount', cat: 'kesson', name: 'Демонтаж и повторный монтаж кессона', price: 55000.0, unit: 'компл.'},
+      {code: 'work_adapter_turnkey', cat: 'kesson', name: 'Монтаж скважинного адаптера «под ключ»', price: 17000.0, unit: 'усл.'},
+      {code: 'work_well_turnkey', cat: 'kesson', name: 'Монтаж колодца «под ключ»', price: 17000.0, unit: 'усл.'},
+      {code: 'work_summer_tap', cat: 'kesson', name: 'Монтаж узла летнего полива', price: 12000.0, unit: 'усл.'},
+      {code: 'work_pump_change_50', cat: 'kesson', name: 'Замена скважинного насоса до 50 м (труба 32 мм)', price: 35000.0, unit: 'усл.'},
+      {code: 'work_pump_change_100', cat: 'kesson', name: 'Замена скважинного насоса от 50 до 100 м (труба 32 мм)', price: 45000.0, unit: 'усл.'},
+      {code: 'work_pump_demount', cat: 'kesson', name: 'Демонтаж скважинного насоса (отдельно)', price: 12000.0, unit: 'усл.'},
+      {code: 'work_self_overflow_3', cat: 'kesson', name: 'Монтаж самоизливной скважины с кессоном (до 3 м³/ч)', price: 45000.0, unit: 'усл.'},
+      {code: 'work_self_overflow_10', cat: 'kesson', name: 'Монтаж самоизливной скважины с кессоном (от 3 до 10 м³/ч)', price: 75000.0, unit: 'усл.'},
+      {code: 'work_self_overflow_30', cat: 'kesson', name: 'Монтаж самоизливной скважины с кессоном (от 10 до 30 м³/ч)', price: 100000.0, unit: 'усл.'},
+      {code: 'work_dig_trench_50', cat: 'earth', name: 'Земляные работы (траншея глубиной до 50 см)', price: 650.0, unit: 'м.п.'},
+      {code: 'work_dig_trench_100', cat: 'earth', name: 'Земляные работы (траншея глубиной до 100 см)', price: 800.0, unit: 'м.п.'},
+      {code: 'work_dig_trench_150', cat: 'earth', name: 'Земляные работы (траншея глубиной до 150 см)', price: 1100.0, unit: 'м.п.'},
+      {code: 'work_dig_trench_200', cat: 'earth', name: 'Земляные работы (траншея глубиной до 200 см)', price: 1600.0, unit: 'м.п.'},
+      {code: 'work_dig_kesson_type2', cat: 'earth', name: 'Копка котлована под кессон Тип 2 (1.2 м)', price: 9000.0, unit: 'усл.'},
+      {code: 'work_dig_kesson_type3', cat: 'earth', name: 'Копка котлована под кессон Тип 3 (1.2–2.0 м)', price: 12000.0, unit: 'усл.'},
+      {code: 'work_dig_kesson_type4', cat: 'earth', name: 'Копка котлована под кессон Тип 4 (1.5–2.0 м)', price: 15000.0, unit: 'усл.'},
+      {code: 'work_undermine_2m', cat: 'earth', name: 'Подкоп под фундаментом / препятствием (до 2 м)', price: 3000.0, unit: 'усл.'},
+      {code: 'work_undermine_5m', cat: 'earth', name: 'Подкоп под фундаментом / препятствием (от 2 до 5 м)', price: 5000.0, unit: 'усл.'},
+      {code: 'work_trench_under_stilts', cat: 'earth', name: 'Копка траншеи под домом на сваях (глубина до 1 м)', price: 2000.0, unit: 'м.п.'},
+      {code: 'work_min_digger_shift', cat: 'earth', name: 'Минимальный выезд землекопа', price: 5000.0, unit: 'выход'},
+      {code: 'work_formwork_mount', cat: 'earth', name: 'Монтаж опалубки в траншее / котловане', price: 10000.0, unit: 'усл.'},
+      {code: 'work_jackhammer_rent', cat: 'earth', name: 'Аренда отбойного молотка (за 1 день)', price: 2000.0, unit: 'день'},
+      {code: 'work_soil_move_20m', cat: 'earth', name: 'Перенос грунта по участку (до 20 м)', price: 2500.0, unit: 'м³'},
+      {code: 'work_sand_move_20m', cat: 'earth', name: 'Перевозка песка по участку (до 20 м)', price: 1500.0, unit: 'м³'},
+      {code: 'work_sand_move_50m', cat: 'earth', name: 'Перевозка песка по участку (от 20 до 50 м)', price: 2500.0, unit: 'м³'},
+      {code: 'work_equip_carry_40m', cat: 'earth', name: 'Перенос оборудования по участку (от 20 до 40 м)', price: 2500.0, unit: 'усл.'},
+      {code: 'work_boiler_mount', cat: 'plumbing', name: 'Монтаж водонагревателя (бойлера)', price: 3000.0, unit: 'шт.'},
+      {code: 'work_boiler_bypass', cat: 'plumbing', name: 'Сборка байпаса водонагревателя', price: 1500.0, unit: 'шт.'},
+      {code: 'work_water_point', cat: 'plumbing', name: 'Монтаж точки водоснабжения (ХВС / ГВС)', price: 750.0, unit: 'точка'},
+      {code: 'work_pipe_water_lay', cat: 'plumbing', name: 'Укладка трубы водопровода внутри дома', price: 200.0, unit: 'м.п.'},
+      {code: 'work_sewer_point_110', cat: 'plumbing', name: 'Монтаж точки канализации D=110 мм', price: 1500.0, unit: 'точка'},
+      {code: 'work_sewer_point_50', cat: 'plumbing', name: 'Монтаж точки канализации D=50 мм', price: 1000.0, unit: 'точка'},
+      {code: 'work_toilet_mount', cat: 'plumbing', name: 'Установка и подключение унитаза', price: 1500.0, unit: 'шт.'},
+      {code: 'work_sink_mount', cat: 'plumbing', name: 'Установка и подключение раковины / мойки', price: 1500.0, unit: 'шт.'},
+      {code: 'work_shower_cabin', cat: 'plumbing', name: 'Сборка душевой кабины (стандарт)', price: 7000.0, unit: 'шт.'},
+      {code: 'work_wall_hole_50', cat: 'plumbing', name: 'Отверстие в стене диаметром до 50 мм', price: 2500.0, unit: 'шт.'},
+      {code: 'work_wall_hole_110', cat: 'plumbing', name: 'Отверстие в стене диаметром 50–110 мм', price: 4000.0, unit: 'шт.'},
+      {code: 'work_diamond_drilling', cat: 'plumbing', name: 'Алмазное бурение технологических отверстий', price: 15000.0, unit: 'усл.'}
+    ];
+
+    let isUserEdited = false;
+
+    function selectTab(mode) {
+      activeTab = mode;
+      const tabMap = {
+        well: { btn: 'btnTabWell', sec: 'secWell' },
+        septic: { btn: 'btnTabSeptic', sec: 'secSeptic' },
+        drainage: { btn: 'btnTabDrain', sec: 'secDrain' },
+        storm: { btn: 'btnTabStorm', sec: 'secStorm' }
+      };
+
+      for (let k in tabMap) {
+        const b = document.getElementById(tabMap[k].btn);
+        const s = document.getElementById(tabMap[k].sec);
+        if (b) b.classList.toggle('active', k === mode);
+        if (s) s.style.display = (k === mode) ? 'block' : 'none';
+      }
+      document.getElementById('receipt-modal').style.display = 'none';
+      if (mode === 'well') calcWell();
+      if (currentOrderMode === 'works') {
+        renderWorksList();
+      }
+    }
+
+    function toggleLogisticsFields() {
+      const isDelivery = document.getElementById('logisticsType').value === 'delivery';
+      document.getElementById('pickupBox').style.display = isDelivery ? 'none' : 'block';
+      document.getElementById('deliveryBox').style.display = isDelivery ? 'block' : 'none';
+    }
+
+    function onLanguageChanged() {
+      const lang = document.getElementById('langSelect').value || 'ru';
+      const t = DICT[lang] || DICT.ru;
+
+      const setT = (id, text) => {
+        const el = document.getElementById(id);
+        if (el && text) el.innerText = text;
+      };
+
+      setT('uiTitle', t.title);
+      setT('btnTabWell', t.tabWell);
+      setT('btnTabSeptic', t.tabSeptic);
+      setT('btnTabDrain', t.tabDrain);
+      setT('btnTabStorm', t.tabStorm);
+      setT('lblLang', t.lblLang);
+      setT('tEquip', t.tEquip);
+      setT('lblEquipType', t.lblEquipType);
+      setT('optVfd', t.optVfd);
+      setT('optGa', t.optGa);
+      setT('lblKessonModel', t.lblKessonModel);
+      setT('tParams', t.tParams);
+      setT('tSpec', t.tSpec);
+      setT('lblAddExtra', t.lblAddExtra);
+      setT('lblTotalText', t.lblTotalText);
+      setT('tLogistics', t.tLogistics);
+      setT('lblLogType', t.lblLogType);
+      setT('optPickup', t.optPickup);
+      setT('optDelivery', t.optDelivery);
+      setT('lblPickupTime', t.lblPickupTime);
+      setT('btnNavMaps', t.btnNavMaps);
+      setT('lblDeliveryAddress', t.lblDeliveryAddress);
+      setT('lblDeliveryTime', t.lblDeliveryTime);
+      setT('tContact', t.tContact);
+      setT('lblContactName', t.lblContactName);
+      setT('lblCompany', t.lblCompany);
+      const compInp = document.getElementById('contactCompany');
+      if (compInp && t.phCompany) compInp.placeholder = t.phCompany;
+      setT('lblContactPhone', t.lblContactPhone);
+      setT('btnSubmit', t.btnSubmit);
+      setT('badgeSuccess', t.badgeSuccess);
+      setT('receiptSub', t.receiptSub);
+      setT('lblReceiptTotal', t.lblReceiptTotal);
+      setT('btnNewCalc', t.btnNewCalc);
+
+      calcWell(true);
+      if (currentOrderMode === 'works') {
+        renderWorksList();
+      }
+    }
+
+
+    const SCHEME_DATA = {
+      kesson_ga: {
+        badge: "Вариант 1 • Классическая система",
+        title: "Кессон с гидробаком (реле давления)",
+        essence: "Все ключевое оборудование (гидроаккумулятор, реле давления, манометры) находится в подземном герметичном кессоне. Насос работает по принципу «вкл/выкл» по достижении давления в баке.",
+        visual: "На разрезе грунта показана скважина глубиной 60 м и пластиковый кессон с утепленной крышкой. Погружный насос подает воду из скважины через трубу в кессон. Внутри кессона установлен большой гидробак (расширительный бак) и блок автоматики с манометрами.",
+        animText: "При открытии крана в доме вода сначала расходуется из гидробака. Когда давление падает до минимума, стрелка на реле давления смещается, и насос в скважине включается на полную мощность, наполняя бак заново. Вода поступает в дом (на кухню и в ванную).",
+        svg: `
+          <svg viewBox="0 0 420 190" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+            <!-- Небо и грунт -->
+            <rect x="0" y="0" width="420" height="58" fill="#16222f"/>
+            <rect x="0" y="58" width="420" height="132" fill="#1e293b"/>
+            <line x1="0" y1="58" x2="420" y2="58" stroke="#2e8b57" stroke-width="3"/>
+            <text x="10" y="72" fill="#64748b" font-size="9">Уровень грунта (разрез)</text>
+
+            <!-- Скважина 60м -->
+            <rect x="68" y="65" width="20" height="120" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+            <text x="12" y="175" fill="#94a3b8" font-size="9">Скважина 60 м</text>
+
+            <!-- Насос в скважине -->
+            <rect x="72" y="150" width="12" height="26" rx="3" fill="#38bdf8"/>
+            <circle cx="78" cy="163" r="3" fill="#ffffff"/>
+
+            <!-- Кессон МИШКА с утепленной крышкой -->
+            <rect x="48" y="62" width="60" height="62" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="2"/>
+            <rect x="58" y="52" width="40" height="10" rx="2" fill="#22c55e" stroke="#15803d" stroke-width="1.5"/>
+            <text x="48" y="47" fill="#86efac" font-size="9" font-weight="bold">Кессон «МИШКА»</text>
+
+            <!-- Большой красный/синий гидробак и манометр/реле внутри кессона -->
+            <rect x="82" y="82" width="20" height="34" rx="6" fill="#ef4444" stroke="#fca5a5" stroke-width="1.2"/>
+            <text x="85" y="102" fill="#fff" font-size="7" font-weight="bold">ГА</text>
+            <circle cx="62" cy="84" r="6" fill="#f8fafc" stroke="#f59e0b" stroke-width="1.5"/>
+            <line x1="62" y1="84" x2="65" y2="80" stroke="#ef4444" stroke-width="1.5"/>
+            <text x="53" y="74" fill="#fde047" font-size="7">Реле/Бар</text>
+
+            <!-- Дом (на поверхности над зеленой линией) -->
+            <polygon points="290,58 345,58 345,24 317,6 290,24" fill="#273549" stroke="#94a3b8" stroke-width="1.5"/>
+            <rect x="300" y="32" width="14" height="12" fill="#38bdf8" opacity="0.7"/>
+            <rect x="322" y="32" width="14" height="12" fill="#38bdf8" opacity="0.7"/>
+            <text x="295" y="21" fill="#e2e8f0" font-size="8" font-weight="bold">Кухня / Ванная</text>
+
+            <!-- Труба от насоса в кессон и под землей в дом -->
+            <path d="M 78 150 L 78 98 L 318 98 L 318 45" fill="none" stroke="#1d4ed8" stroke-width="5" stroke-linecap="round"/>
+            <path class="water-pipe-anim" d="M 78 150 L 78 98 L 318 98 L 318 45" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+
+            <!-- Подписи узлов -->
+            <text x="145" y="92" fill="#71b1ff" font-size="9" font-weight="bold">Большой гидробак + Реле давления</text>
+            <text x="145" y="114" fill="#94a3b8" font-size="8">Насос: режим «ВКЛ / ВЫКЛ» (100% мощность)</text>
+          </svg>
+        `
+      },
+      kesson_vfd: {
+        badge: "Вариант 2 • Современная система",
+        title: "Кессон с частотным преобразователем (ЧРП)",
+        essence: "Похожа на первый вариант (оборудование в кессоне или доме), но вместо стандартного реле давления используется частотный преобразователь. Насос плавно регулирует обороты в зависимости от того, сколько кранов открыто в доме.",
+        visual: "На схеме показан кессон, скважина и дом, но ключевой элемент — блок Частотного преобразователя (ЧРП) с цифровым дисплеем (частота тока плавно меняется от 35 до 50 Гц). Гидробак при этом используется компактный.",
+        animText: "Когда вы открываете один кран, насос в скважине крутится на малых оборотах, поддерживая идеальное постоянное давление без скачков. Если открыть второй кран (душ + кухня), частотный преобразователь автоматически увеличивает обороты насоса, обеспечивая стабильный напор воды без просадок.",
+        svg: `
+          <svg viewBox="0 0 420 190" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+            <!-- Небо и грунт -->
+            <rect x="0" y="0" width="420" height="58" fill="#16222f"/>
+            <rect x="0" y="58" width="420" height="132" fill="#1e293b"/>
+            <line x1="0" y1="58" x2="420" y2="58" stroke="#2e8b57" stroke-width="3"/>
+            <text x="10" y="72" fill="#64748b" font-size="9">Уровень грунта (разрез)</text>
+
+            <!-- Скважина 60м -->
+            <rect x="68" y="65" width="20" height="120" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+            <text x="12" y="175" fill="#94a3b8" font-size="9">Скважина 60 м</text>
+
+            <!-- Насос с плавными оборотами -->
+            <rect x="72" y="150" width="12" height="26" rx="3" fill="#22d3ee"/>
+            <circle cx="78" cy="163" r="3" fill="#ffffff"/>
+
+            <!-- Кессон МИШКА -->
+            <rect x="48" y="62" width="60" height="62" rx="4" fill="#1e3a5f" stroke="#22d3ee" stroke-width="2"/>
+            <rect x="58" y="52" width="40" height="10" rx="2" fill="#22c55e" stroke="#15803d" stroke-width="1.5"/>
+            <text x="48" y="47" fill="#86efac" font-size="9" font-weight="bold">Кессон «МИШКА»</text>
+
+            <!-- Блок ЧРП с цифровым дисплеем 35-50 Гц и компактный бак 8л -->
+            <rect x="53" y="72" width="26" height="20" rx="3" fill="#0f172a" stroke="#4ade80" stroke-width="1.5"/>
+            <text x="56" y="85" fill="#4ade80" font-size="7" font-weight="bold">42Hz</text>
+            <circle cx="93" cy="90" r="8" fill="#3b82f6" stroke="#93c5fd" stroke-width="1.2"/>
+            <text x="89" y="93" fill="#fff" font-size="6" font-weight="bold">8л</text>
+
+            <!-- Дом (на поверхности над зеленой линией) -->
+            <polygon points="290,58 345,58 345,24 317,6 290,24" fill="#273549" stroke="#94a3b8" stroke-width="1.5"/>
+            <rect x="300" y="32" width="14" height="12" fill="#22d3ee" opacity="0.8"/>
+            <rect x="322" y="32" width="14" height="12" fill="#22d3ee" opacity="0.8"/>
+            <text x="295" y="21" fill="#e2e8f0" font-size="8" font-weight="bold">Душ + Кухня</text>
+
+            <!-- Труба от насоса в кессон и в дом -->
+            <path d="M 78 150 L 78 98 L 318 98 L 318 45" fill="none" stroke="#0e7490" stroke-width="5" stroke-linecap="round"/>
+            <path class="water-pipe-anim" d="M 78 150 L 78 98 L 318 98 L 318 45" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"/>
+
+            <!-- Подписи узлов -->
+            <text x="135" y="82" fill="#4ade80" font-size="9" font-weight="bold">ЧРП (35–50 Гц) + компактный бак</text>
+            <text x="135" y="94" fill="#e2e8f0" font-size="8">Плавная регулировка оборотов насоса</text>
+            <text x="135" y="114" fill="#94a3b8" font-size="8">Идеальное давление без скачков и просадок</text>
+          </svg>
+        `
+      },
+      adapter: {
+        badge: "Вариант 3 • Бюджетная и скрытая схема",
+        title: "Скважинный адаптер (оборудование в доме)",
+        essence: "На поверхности нет громоздкого кессона — только аккуратный люк или оголовок. Соединение трубы со скважиной происходит под землей ниже глубины промерзания через специальный адаптер, а вся автоматика и гидробак выносятся в теплое помещение (в подвал или котельную дома).",
+        visual: "На поверхности земли видна лишь небольшая крышка скважины. Ниже уровня промерзания грунта на обсадной трубе смонтирован скважинный адаптер, от которого отходит подземная труба прямо в дом.",
+        animText: "Внутри отапливаемого помещения дома аккуратно размещены: большой гидробак, коллектор, фильтры и блок управления. При расходе воды сигнал поступает на погружный насос в скважине, вода по подземной трубе поступает в домовой узел и распределяется по точкам водоразбора (кухня, ванная). Это решение экономит место на участке и защищает оборудование от сырости.",
+        svg: `
+          <svg viewBox="0 0 420 190" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+            <!-- Небо и грунт -->
+            <rect x="0" y="0" width="420" height="58" fill="#16222f"/>
+            <rect x="0" y="58" width="420" height="132" fill="#1e293b"/>
+            <line x1="0" y1="58" x2="420" y2="58" stroke="#2e8b57" stroke-width="3"/>
+            <text x="10" y="72" fill="#64748b" font-size="8">Ниже глубины промерзания</text>
+
+            <!-- Скважина с аккуратной крышкой на поверхности -->
+            <rect x="68" y="58" width="20" height="127" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+            <rect x="64" y="52" width="28" height="6" rx="2" fill="#f59e0b"/>
+            <text x="38" y="46" fill="#fde047" font-size="8" font-weight="bold">Крышка скважины</text>
+
+            <!-- Насос в скважине -->
+            <rect x="72" y="150" width="12" height="26" rx="3" fill="#38bdf8"/>
+            <circle cx="78" cy="163" r="3" fill="#ffffff"/>
+
+            <!-- Латунный скважинный адаптер на обсадной трубе -->
+            <rect x="82" y="92" width="12" height="12" rx="2" fill="#f59e0b" stroke="#fef08a" stroke-width="1.2"/>
+            <text x="98" y="90" fill="#fde047" font-size="8" font-weight="bold">Адаптер TIM 1"</text>
+
+            <!-- Дом с котельной/подвалом -->
+            <polygon points="275,58 375,58 375,20 325,4 275,20" fill="#273549" stroke="#94a3b8" stroke-width="1.5"/>
+            <rect x="275" y="58" width="100" height="56" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+            <text x="283" y="28" fill="#e2e8f0" font-size="8" font-weight="bold">Дом (Кухня / Ванная)</text>
+            <text x="282" y="70" fill="#93c5fd" font-size="7" font-weight="bold">Котельная / Подвал:</text>
+
+            <!-- Гидробак, реле и фильтр внутри дома -->
+            <rect x="338" y="76" width="22" height="32" rx="5" fill="#3b82f6" stroke="#93c5fd" stroke-width="1.2"/>
+            <text x="342" y="95" fill="#fff" font-size="7" font-weight="bold">ГА</text>
+            <circle cx="318" cy="86" r="5" fill="#f8fafc" stroke="#f59e0b" stroke-width="1.2"/>
+
+            <!-- Труба от насоса через адаптер в дом -->
+            <path d="M 78 150 L 78 98 L 338 98 L 338 42" fill="none" stroke="#1d4ed8" stroke-width="5" stroke-linecap="round"/>
+            <path class="water-pipe-anim" d="M 78 150 L 78 98 L 338 98 L 338 42" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+
+            <text x="100" y="114" fill="#94a3b8" font-size="8">Экономит место на участке • Автоматика в тепле</text>
+          </svg>
+        `
+      }
+    };
+
+    let showFullSchemeDetails = true;
+
+    function toggleSchemeDetails() {
+      showFullSchemeDetails = !showFullSchemeDetails;
+      const equip_type = document.getElementById('equip_type')?.value || 'kesson_vfd';
+      renderSchemeInfo(equip_type);
+    }
+
+    function renderSchemeInfo(equip_type) {
+      const box = document.getElementById('scheme_info_container');
+      if (!box) return;
+      const d = SCHEME_DATA[equip_type] || SCHEME_DATA.kesson_vfd;
+
+      box.innerHTML = `
+        <div class="scheme-badge">${d.badge}</div>
+        <div class="scheme-title">${d.title}</div>
+        <div class="scheme-svg-wrap">${d.svg}</div>
+        <div class="scheme-desc">
+          <div style="margin-bottom:6px;"><b>Суть схемы:</b> ${d.essence}</div>
+          ${showFullSchemeDetails ? `
+            <div style="margin-bottom:6px;"><b>На схеме:</b> ${d.visual}</div>
+            <div><b>Как работает система:</b> ${d.animText}</div>
+          ` : ''}
+        </div>
+        <button type="button" class="scheme-toggle-btn" onclick="toggleSchemeDetails()">
+          ${showFullSchemeDetails ? '🔼 Скрыть подробное описание схемы' : '🔽 Подробнее о работе этой схемы'}
+        </button>
+      `;
+    }
+
+    function roundLengthCustom(val) {
+      const v = parseFloat(val);
+      if (isNaN(v) || v <= 15) return 15;
+      return Math.ceil(v / 5) * 5;
+    }
+
+    function onHousesCountChanged() {
+      const housesCount = parseInt(document.getElementById('houses_count')?.value || '1', 10);
+      const box2 = document.getElementById('house2_distance_box');
+      if (box2) box2.style.display = (housesCount === 2) ? 'block' : 'none';
+      const hcInput = document.getElementById('heat_cable_length');
+      if (hcInput && (!hcInput.dataset.userTouched)) {
+        hcInput.value = housesCount * 3;
+      }
+      calcWell();
+    }
+
+    function calcWell(forceReset = false) {
+      if (isUserEdited && !forceReset) {
+         // Optionally warn user
+      }
+      isUserEdited = false;
+
+      const rawDepth = parseFloat(document.getElementById('pump_depth')?.value || 40) || 0;
+      const rawDist1 = parseFloat(document.getElementById('trench_distance')?.value || 15) || 0;
+      const housesCount = parseInt(document.getElementById('houses_count')?.value || '1', 10);
+      const rawDist2 = (housesCount === 2) ? (parseFloat(document.getElementById('trench_distance_2')?.value || 15) || 0) : 0;
+
+      // 1. Правило округления (<= 15 м -> 15 м; > 15 м -> вверх кратно 5)
+      const depth = roundLengthCustom(rawDepth);
+      const dist1 = roundLengthCustom(rawDist1);
+      const dist2 = (housesCount === 2) ? roundLengthCustom(rawDist2) : 0;
+      const distance = dist1 + dist2;
+
+      // Обновляем подсказки округления в UI
+      const depthHint = document.getElementById('depth_round_hint');
+      if (depthHint) depthHint.innerText = `С учётом округления: ${depth} м`;
+      const dist1Hint = document.getElementById('dist1_round_hint');
+      if (dist1Hint) dist1Hint.innerText = `С учётом округления: ${dist1} м`;
+      const dist2Hint = document.getElementById('dist2_round_hint');
+      if (dist2Hint) dist2Hint.innerText = `С учётом округления: ${dist2} м (суммарная трасса: ${distance} м)`;
+
+      const equip_type = document.getElementById('equip_type').value;
+      renderSchemeInfo(equip_type);
+      const kessonBox = document.getElementById('kesson_model_box');
+      const adapterHydrantsBox = document.getElementById('adapter_hydrants_box');
+      
+      if (equip_type === 'adapter') {
+          kessonBox.style.display = 'none';
+          if (adapterHydrantsBox) adapterHydrantsBox.style.display = 'block';
+      } else {
+          kessonBox.style.display = 'block';
+          if (adapterHydrantsBox) adapterHydrantsBox.style.display = 'none';
+      }
+
+      const includeHeatCable = document.getElementById('include_heat_cable')?.checked || false;
+      const heatCableBox = document.getElementById('heat_cable_len_box');
+      if (heatCableBox) heatCableBox.style.display = includeHeatCable ? 'block' : 'none';
+      const heatCableLen = parseFloat(document.getElementById('heat_cable_length')?.value || (3 * housesCount)) || (3 * housesCount);
+
+      const includeAdapterHydrants = (equip_type === 'adapter') && (document.getElementById('include_adapter_hydrants')?.checked || false);
+
+      const kessonSelect = document.getElementById('chosen_kesson');
+      const selectedOpt = kessonSelect.options[kessonSelect.selectedIndex];
+      const kessonKey = kessonSelect.value;
+      const priceTier = document.getElementById('kesson_price_tier')?.value || 'dealer';
+      const dealerPrice = parseFloat(selectedOpt.getAttribute('data-dealer') || '40800');
+      const retailPrice = parseFloat(selectedOpt.getAttribute('data-retail') || '68000');
+      const baseKessonName = selectedOpt.getAttribute('data-name') || selectedOpt.text.split(' — ')[0];
+      const kessonPrice = (priceTier === 'retail') ? retailPrice : dealerPrice;
+      const tierBadge = (priceTier === 'retail') ? `Розн. ${retailPrice.toLocaleString('ru-RU')} ₽` : `Дилер ${dealerPrice.toLocaleString('ru-RU')} ₽ (Розн. ${retailPrice.toLocaleString('ru-RU')} ₽)`;
+      const kessonName = `${baseKessonName} [${tierBadge}]`;
+
+      const priceInfoEl = document.getElementById('kesson_price_info');
+      if (priceInfoEl) {
+        priceInfoEl.innerText = `Розн. ${retailPrice.toLocaleString('ru-RU')} ₽ | Дилер (скидка 40%): ${dealerPrice.toLocaleString('ru-RU')} ₽`;
+      }
+      const sgon32Qty = parseInt(document.getElementById('sgon_32_qty')?.value || '0', 10) || 0;
+
+      const pumpSelect = document.getElementById('chosen_pump');
+      const pumpOpt = pumpSelect.options[pumpSelect.selectedIndex];
+      const pumpKey = pumpSelect.value;
+      const pumpName = pumpOpt.getAttribute('data-name') || pumpOpt.text.split(' — ')[0];
+      const pumpPriceAttr = pumpOpt.getAttribute('data-price');
+      const pumpPriceText = pumpOpt.text.split(' — ')[1];
+      const pumpPrice = (pumpPriceAttr !== null) ? parseFloat(pumpPriceAttr) : (pumpPriceText ? parseFloat(pumpPriceText.replace(/,/g, '.').replace(/[^0-9.]/g, '')) : 0);
+
+      const tankSelect = document.getElementById('chosen_tank');
+      const tankKey = tankSelect.value;
+      const tankName = tankSelect.options[tankSelect.selectedIndex].text.split(' — ')[0];
+      const tankPriceText = tankSelect.options[tankSelect.selectedIndex].text.split(' — ')[1];
+      const tankPrice = tankPriceText ? parseFloat(tankPriceText.replace(/[^0-9.]/g, '')) : 0;
+
+      const isVFD = (equip_type === 'kesson_vfd');
+      currentItems = [];
+
+      if (pumpPrice > 0) {
+          currentItems.push({ item_key: pumpKey, name: pumpName, price: pumpPrice, qty: 1, unit: 'шт' });
+      }
+
+      const totalPipePnd32 = depth + distance;
+      const reductQty = (housesCount === 2) ? 2 : 1;
+
+      if (equip_type === 'adapter') {
+          currentItems.push({ item_key: 'adapter_tim_1', name: 'Адаптер скважинный со сливным клапаном 1" TIM', price: 3627.31, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'cover_adapter', name: 'Крышка скважины Джилекс КС 110-133', price: 3351.60, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'pnd_coupling_32_1_hp', name: 'Муфта ПНД 32x1" HP Unidelta', price: 263.84, qty: 4 + (housesCount - 1), unit: 'шт' });
+          currentItems.push({ item_key: tankKey, name: tankName + ' (в дом)', price: tankPrice, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'pressure_switch', name: 'Реле давления AQUARIO PS-5-2 (вращ. гайка) Акварио', price: 782.40, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'manometer', name: 'Манометр радиальный 0-10 бар D53мм 1/4', price: 181.31, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'hose_giant_1_80cm', name: 'Подводка для воды угловая 1" 80см г/г ГИГАНТ', price: 761.93, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'valve_brass_1', name: 'Кран шаровой Вн/Нр (бабочка) 1"', price: 874.43, qty: housesCount, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_tee_1_bbb', name: 'Тройник для труб с внутренней резьбой ВВВ 1" латунь Millenium', price: 640.17, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_tee_1_2_bbb', name: 'Тройник ВВВ 1/2" (латунь)', price: 192.42, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_nipple_1', name: 'Ниппель НН 1" (латунь)', price: 196.76, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_nipple_1_2', name: 'Ниппель НН 1/2" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+
+          // 4. Незамерзающее оборудование для Скважинного адаптера
+          if (includeAdapterHydrants) {
+              currentItems.push({ item_key: 'hydrant_gdr_1900', name: 'Гидрант незамерзающий GDR " 1900 мм Беламос', price: 5902.80, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'tap_non_freezing_tim', name: 'Кран незамерзающий, 2.2м Гидрант W-HF0122 TIM', price: 7381.20, qty: 1, unit: 'шт' });
+          }
+
+          currentItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7x7 AISI 304, 3мм', price: 19.20, qty: depth, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: totalPipePnd32, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_20', name: 'Труба ПНД 20x2,0 SDR 11 (под кабель)', price: 42.54, qty: distance, unit: 'м' });
+          currentItems.push({ item_key: 'cable_pvs_3x2_5', name: 'Кабель ПВС 3х2,5 белый гибкий', price: 84.89, qty: distance, unit: 'м' });
+          currentItems.push({ item_key: 'pnd_coupling_32_32', name: 'Муфта ПНД 32x32 Unidelta', price: 472.60, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'pnd_reduct_32_20', name: 'Муфта ПНД редукц. 32х20 Unidelta', price: 435.20, qty: reductQty, unit: 'шт' });
+      } else {
+          currentItems.push({ item_key: kessonKey, name: kessonName, price: kessonPrice, qty: 1, unit: 'шт' });
+          if (sgon32Qty > 0) {
+              currentItems.push({ item_key: 'sgon_32_extruder', name: 'Сгон 32 мм (экструдерная пайка) [Дилер: По согласованию / Розн. 380 ₽]', price: 380.00, qty: sgon32Qty, unit: 'шт' });
+          }
+          currentItems.push({ item_key: 'pipe_ppr_32', name: 'Труба полипропиленовая 32х5,4мм PN20 (цвет белый)', price: 151.42, qty: 4, unit: 'м' });
+          
+          if (!isVFD) {
+              currentItems.push({ item_key: tankKey, name: tankName, price: tankPrice, qty: 1, unit: 'шт' });
+          }
+          
+          currentItems.push({ item_key: 'ppr_elbow_90_32', name: 'Отвод 90* PP-R Millennium 32мм (цвет белый)', price: 48.33, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_elbow_45_32', name: 'Отвод 45* PP-R Millennium 32мм (цвет белый)', price: 38.20, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_plug_32', name: 'Заглушка PP-R Millennium 32мм (цвет белый)', price: 37.50, qty: 3, unit: 'шт' });
+          currentItems.push({ item_key: 'valve_ppr_32', name: 'Кран шаровой PP-R VALFEX OPTIMA 32мм (цвет белый)', price: 180.93, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'valve_watering_1_2', name: 'Кран шаровый VALFEX 1/2" водоразборный, ручка рычаг, с носиком под шланг', price: 436.13, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_union_32_1', name: 'Муфта разъемная PP-R с внутренней резьбой Millennium 32-1" (цвет белый), американка', price: 648.03, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_comb_coupling_32_1_hp', name: 'Муфта комб. PP-R с наружной резьбой Millennium 32-1" (цвет белый), неразъемная', price: 99.88, qty: 4, unit: 'шт' });
+          
+          if (isVFD) {
+              currentItems.push({ item_key: 'ppr_trans_tee_32_1_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 190.46, qty: 1, unit: 'шт' });
+          } else {
+              currentItems.push({ item_key: 'ppr_trans_tee_32_1_hp', name: 'Тройник переходной комб. с наружной резьбой PP-R Millennium 32x1"x32 (цвет белый)', price: 305.00, qty: 1, unit: 'шт' });
+          }
+
+          currentItems.push({ item_key: 'ppr_tee_32', name: 'Тройник PP-R Millennium 32мм (цвет белый)', price: 74.70, qty: 3, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_coupling_32', name: 'Муфта PP-R Millennium 32мм (цвет белый)', price: 29.83, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_comb_elbow_32_1_2_bp', name: 'Отвод комб. с внутренней резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 169.35, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'ppr_comb_elbow_32_1_2_hp', name: 'Отвод комб. с наружной резьбой 90* PP-R Millennium 32-1/2" (цвет белый)', price: 274.83, qty: 1, unit: 'шт' });
+          
+          if (isVFD) {
+              currentItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'vfd_fil10', name: 'Частотный преобразователь FIL-10 2.2KW 220V', price: 7708.80, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: tankKey, name: tankName, price: tankPrice, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'ppr_trans_tee_32_1_2_bp', name: 'Тройник переходной комб. с внутренней резьбой PP-R Millennium 32x1/2"x32 (цвет белый)', price: 174.15, qty: 1, unit: 'шт' });
+          } else {
+              currentItems.push({ item_key: 'hose_giant_1_80cm', name: 'Подводка для воды угловая 1" 80см г/г ГИГАНТ', price: 761.93, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'hose_straight_1_2_60cm', name: 'Подводка для воды прямая 1/2" 60см г/г', price: 160.00, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'pressure_switch', name: 'Реле давления AQUARIO PS-5-2 (вращ. гайка) Акварио', price: 782.40, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'manometer', name: 'Манометр радиальный 0-10 бар D53мм 1/4', price: 181.31, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_tee_1_2_bbb', name: 'Тройник ВВВ 1/2" (латунь)', price: 192.42, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_nipple_1_2_3_8', name: 'Ниппель переходной НН 1/2"x3/8" (латунь)', price: 66.54, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_nipple_1_2_1_4', name: 'Ниппель перех. НН 1/2"x1/4" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_bushing_1_2_1_4', name: 'Футорка НВ 1/2"x1/4" (латунь)', price: 75.23, qty: 1, unit: 'шт' });
+              currentItems.push({ item_key: 'brass_nipple_1_2', name: 'Ниппель НН 1/2" (латунь)', price: 70.88, qty: 1, unit: 'шт' });
+          }
+          currentItems.push({ item_key: 'check_valve_1', name: 'Обратный клапан с металлическим седлом 1" г/ш Millennium', price: 750.00, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'well_head_osp', name: 'Оголовок для скважины Джилекс ОСП 110-133/32', price: 1916.39, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'cable_clamp_4mm', name: 'Зажим для троса, AISI 316 (А4), 4мм', price: 40.80, qty: 4, unit: 'шт' });
+          currentItems.push({ item_key: 'rope_3mm_304', name: 'Трос нержавеющая сталь 7x7 AISI 304, 3мм', price: 19.20, qty: depth, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_32', name: 'Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)', price: 78.00, qty: totalPipePnd32, unit: 'м' });
+          currentItems.push({ item_key: 'pipe_pnd_20', name: 'Труба ПНД 20x2,0 SDR 11 (под кабель)', price: 42.54, qty: distance, unit: 'м' });
+          currentItems.push({ item_key: 'cable_pvs_3x2_5', name: 'Кабель ПВС 3х2,5 белый гибкий', price: 84.89, qty: distance, unit: 'м' });
+          currentItems.push({ item_key: 'pnd_coupling_32_32', name: 'Муфта ПНД 32x32 Unidelta', price: 472.60, qty: 1, unit: 'шт' });
+          currentItems.push({ item_key: 'pnd_reduct_32_20', name: 'Муфта ПНД редукц. 32х20 Unidelta', price: 435.20, qty: reductQty, unit: 'шт' });
+      }
+
+      // 2. При выборе 2 домов автоматически добавляем Тройник компрессионный ПНД 32х32х32
+      if (housesCount === 2) {
+          currentItems.push({
+              item_key: 'pnd_tee_32',
+              name: 'Тройник компрессионный ПНД 32х32х32 Unidelta (разветвитель на 2 дома)',
+              price: 645.00,
+              qty: 1,
+              unit: 'шт'
+          });
+      }
+
+      // 3. При выборе греющего кабеля в обязательном порядке добавляем Монтажный набор (1400 ₽)
+      if (includeHeatCable && heatCableLen > 0) {
+          currentItems.push({
+              item_key: 'heat_cable',
+              name: 'Кабель греющий саморегулирующийся (защита от замерзания)',
+              price: 350.00,
+              qty: heatCableLen,
+              unit: 'м'
+          });
+          currentItems.push({
+              item_key: 'heat_cable_kit',
+              name: 'Монтажный набор для греющего кабеля (обязательный комплект)',
+              price: 1400.00,
+              qty: housesCount,
+              unit: 'шт'
+          });
+      }
+
+      // Применяем актуальные цены из админ-конфига (SERVER_CONFIG.prices) и добавляем новые позиции из CUSTOM_BUNDLE_ITEMS
+      if (window.SERVER_CONFIG) {
+        if (window.SERVER_CONFIG.prices) {
+          currentItems.forEach(it => {
+            if (it.item_key && !(it.item_key.startsWith('kesson_')) && window.SERVER_CONFIG.prices[it.item_key] !== undefined) {
+              it.price = parseFloat(window.SERVER_CONFIG.prices[it.item_key]);
+            }
+          });
+        }
+        if (Array.isArray(window.SERVER_CONFIG.custom_bundle_items)) {
+          window.SERVER_CONFIG.custom_bundle_items.forEach(cb => {
+            if (cb.target === 'all_well' || cb.target === equip_type) {
+              currentItems.push({
+                item_key: cb.code,
+                name: cb.name,
+                price: parseFloat(cb.price) || 0,
+                qty: parseFloat(cb.qty) || 1,
+                unit: cb.unit || 'шт'
+              });
+            }
+          });
+        }
+      }
+
+      recalcAndRender();
+    }
+
+    function ensureMandatoryHeatCableKit() {
+      const hasHeatCable = currentItems.some(it => it.item_key === 'heat_cable' && it.qty > 0);
+      if (hasHeatCable) {
+        const housesCount = parseInt(document.getElementById('houses_count')?.value || '1', 10);
+        let kitItem = currentItems.find(it => it.item_key === 'heat_cable_kit');
+        if (!kitItem) {
+          currentItems.push({
+            item_key: 'heat_cable_kit',
+            name: 'Монтажный набор для греющего кабеля (обязательный комплект)',
+            price: 1400.00,
+            qty: housesCount,
+            unit: 'шт'
+          });
+        } else if (kitItem.qty < 1) {
+          kitItem.qty = housesCount;
+        }
+      }
+    }
+
+    function modifyItemQty(idx, delta) {
+      if (!currentItems[idx]) return;
+      isUserEdited = true;
+      currentItems[idx].qty = Math.max(0, (parseFloat(currentItems[idx].qty) || 0) + delta);
+      if (currentItems[idx].qty === 0) {
+        if (currentItems[idx].item_key === 'heat_cable_kit' && currentItems.some(it => it.item_key === 'heat_cable' && it.qty > 0)) {
+          alert('«Монтажный набор для греющего кабеля» (1 400 ₽) является обязательным при наличии греющего кабеля в смете!');
+          currentItems[idx].qty = 1;
+          recalcAndRender();
+          return;
+        }
+        if (confirm(`Удалить «${currentItems[idx].name}» из сметы?`)) {
+          currentItems.splice(idx, 1);
+        }
+      }
+      ensureMandatoryHeatCableKit();
+      recalcAndRender();
+    }
+
+    function setItemQtyManual(idx, val) {
+      if (!currentItems[idx]) return;
+      isUserEdited = true;
+      const parsed = parseFloat(val);
+      currentItems[idx].qty = (!isNaN(parsed) && parsed >= 0) ? parsed : 0;
+      ensureMandatoryHeatCableKit();
+      recalcAndRender();
+    }
+
+    function removeItem(idx) {
+      if (!currentItems[idx]) return;
+      if (currentItems[idx].item_key === 'heat_cable_kit' && currentItems.some(it => it.item_key === 'heat_cable' && it.qty > 0)) {
+        alert('«Монтажный набор для греющего кабеля» (1 400 ₽) обязательно входит в смету при выборе греющего кабеля!');
+        return;
+      }
+      isUserEdited = true;
+      currentItems.splice(idx, 1);
+      recalcAndRender();
+    }
+
+    function addCatalogItem() {
+      const select = document.getElementById('extraCatalogSelect');
+      const val = select.value;
+      const text = select.options[select.selectedIndex].text;
+
+      const catalogPrices = {
+        "pipe_pnd_32": { name: "Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)", price: 78.00, unit: "м" },
+        "pipe_pnd_20": { name: "Труба ПНД 20x2,0 SDR 11 (под кабель)", price: 42.54, unit: "м" },
+        "cable_pvs_3x2_5": { name: "Кабель ПВС 3х2,5 белый гибкий", price: 84.89, unit: "м" },
+        "rope_3mm_304": { name: "Трос нержавеющая сталь 7x7 AISI 304, 3мм", price: 19.20, unit: "м" },
+        "cable_clamp_4mm": { name: "Зажим для троса AISI 316 4мм", price: 40.80, unit: "шт" },
+        "vfd_fil10": { name: "Частотный преобразователь FIL-10 2.2KW 220V", price: 7708.80, unit: "шт" },
+        "tank_8bw": { name: "Гидроаккумулятор BELAMOS 8BW синий (подвесной)", price: 1832.00, unit: "шт" },
+        "tank_50": { name: "Гидроаккумулятор 50VT BELAMOS", price: 5420.00, unit: "шт" },
+        "tank_100": { name: "Гидроаккумулятор 100VT BELAMOS", price: 8747.70, unit: "шт" },
+        "pressure_switch": { name: "Реле давления AQUARIO PS-5-2", price: 782.40, unit: "шт" },
+        "manometer": { name: "Манометр радиальный 0-10 бар D53мм 1/4", price: 181.31, unit: "шт" },
+        "check_valve_1": { name: "Обратный клапан 1' Millennium с металл. седлом", price: 750.00, unit: "шт" },
+        "well_head_osp": { name: "Оголовок для скважины Джилекс ОСП 110-133/32", price: 1916.39, unit: "шт" },
+        "valve_watering_1_2": { name: "Кран шаровый VALFEX 1/2' с носиком под шланг", price: 436.13, unit: "шт" },
+        "valve_brass_1": { name: "Кран шаровой Вн/Нр (бабочка) 1'", price: 874.43, unit: "шт" },
+        "valve_ppr_32": { name: "Кран шаровой PP-R VALFEX OPTIMA 32мм", price: 180.93, unit: "шт" },
+        "ppr_union_32_1": { name: "Муфта разъемная PP-R 32-1' ВР (американка)", price: 648.03, unit: "шт" },
+        "sgon_32_extruder": { name: "Сгон 32 мм (экструдерная пайка) [Дилер: По согласованию / Розн. 380 ₽]", price: 380.00, unit: "шт" },
+        "heat_cable": { name: "Кабель греющий саморегулирующийся (защита от замерзания)", price: 350.00, unit: "м" },
+        "heat_cable_kit": { name: "Монтажный набор для греющего кабеля (обязательный комплект)", price: 1400.00, unit: "шт" },
+        "pnd_tee_32": { name: "Тройник компрессионный ПНД 32х32х32 Unidelta", price: 645.00, unit: "шт" },
+        "pnd_reduct_32_20": { name: "Муфта ПНД редукц. 32х20 Unidelta", price: 435.20, unit: "шт" },
+        "hydrant_gdr_1900": { name: 'Гидрант незамерзающий GDR " 1900 мм Беламос', price: 5902.80, unit: "шт" },
+        "tap_non_freezing_tim": { name: "Кран незамерзающий, 2.2м Гидрант W-HF0122 TIM", price: 7381.20, unit: "шт" },
+        "pump_waterstry_3_90": { name: "Скважинный насос WATERSTRY 3\" 3ST 3-90 (Н=108м, 5.4м3/час, каб. 1м, 1.5kW, 230V)", price: 19484.72, unit: "шт" },
+        "pump_waterstry_2_50": { name: "Скважинный насос WATERSTRY 3\" 3ST 2-50 (Н=64м, 3.6м3/час, 0.55kW, 230V)", price: 12327.42, unit: "шт" },
+        "pump_waterstry_2_120": { name: "Скважинный насос WATERSTRY 3\" 3ST 2-120 тм (1.5kW, 230V)", price: 19092.00, unit: "шт" },
+        "pump_waterstry_2_85": { name: "Скважинный насос WATERSTRY 3\" 3ST 2-85 (0.92kW, 230V)", price: 13800.00, unit: "шт" },
+        "pump_waterstry_1_60": { name: "Скважинный насос WATERSTRY 3\" 3ST 1-60 тм (Н=64м, 2.7м3/ч, каб. 1м, 0.37kW, 230V)", price: 11084.56, unit: "шт" },
+        "pump_waterstry_2_100": { name: "Скважинный насос WATERSTRY 3\" 3ST 2-100 тм (1.1kW, 230V)", price: 16574.72, unit: "шт" },
+        "pump_pw_tf3_80": { name: "Насос скважинный Power Water PW TF3-80 2.0 (каб. 50м, 85м, 3м3/час)", price: 14292.09, unit: "шт" },
+        "pump_pw_tf3_60": { name: "Насос скважинный Power Water PW TF3-60 2.0 (каб. 35м, 65м, 3м3/час)", price: 11806.14, unit: "шт" },
+        "pump_pw_tf3_40": { name: "Насос скважинный Power Water PW TF3-40 2.0 (каб. 20м, 45м, 3м3/час)", price: 9427.50, unit: "шт" },
+        "pump_pw_tf3_110": { name: "Насос скважинный Power Water PW TF3-110 2.0 (каб. 65м, 110м, 3м3/час)", price: 18435.00, unit: "шт" },
+        "pump_belamos_tf3_80_50m": { name: "Насос скважинный Belamos TF3-80 (2.7 м3/час, 45 л/мин, Н-80 м, d-78 мм, каб. 50 м)", price: 14695.20, unit: "шт" },
+        "pump_belamos_tf3_80_1_5m": { name: "Насос скважинный Belamos TF3-80 (2.7 м3/час, 45 л/мин, Н-80 м, d-78 мм, каб. 1.5 м)", price: 11152.80, unit: "шт" },
+        "pump_belamos_tf3_60": { name: "Насос скважинный Belamos TF3-60 (2.7 м3/час, 45 л/мин, Н-60 м, d-78 мм, каб. 35м)", price: 20350.00, unit: "шт" },
+        "pump_belamos_tf3_40": { name: "Насос скважинный Belamos TF3-40 (2.7 м3/час, 45 л/мин, Н-40 м, d-78 мм, каб. 20 м)", price: 9771.60, unit: "шт" },
+        "pump_belamos_tf3_200": { name: "Насос скважинный Belamos TF3-200 (2.7 м3/час, 45 л/мин, Н-200 м, d-78 мм, каб. 80 м)", price: 35043.60, unit: "шт" },
+        "pump_belamos_tf3_150": { name: "Насос скважинный Belamos TF3-150 (2.7 м3/час, 45 л/мин, Н-150 м, d-78 мм, каб. 80м)", price: 25555.20, unit: "шт" },
+        "pump_belamos_tf3_110_65m": { name: "Насос скважинный Belamos TF3-110 (2.7 м3/час, 45 л/мин, Н-110 м, d-78 мм, каб. 65 м)", price: 18363.60, unit: "шт" },
+        "pump_belamos_tf3_110_1_5m": { name: "Насос скважинный Belamos TF3-110 (2.7 м3/час, 45 л/мин, Н-110 м, d-78 мм, каб. 1.5 м)", price: 12730.80, unit: "шт" },
+        "pump_aquario_75_1_5m": { name: "Насос скважинный Aquario ASP1E-75-75 (встр. конд., каб. 1.5м, Q-50 л/мин, Н-85м)", price: 14976.00, unit: "шт" },
+        "pump_aquario_125_15m": { name: "Насос скважинный Aquario ASP1E-125-75 (встр. конд., каб. 15м, Q-50 л/мин, Н-135м)", price: 22959.73, unit: "шт" },
+        "pump_aquario_100_60m": { name: "Насос скважинный Aquario ASP1E-100-75 (встр. конд., каб. 60м, Q-50 л/мин, Н-110м)", price: 27251.63, unit: "шт" },
+        "pump_aquario_55_35m": { name: "Насос погружной скважинный Aquario ASP1E-55-75 (3 м3/час, 50 л/мин, Н-60 м, d-76 мм, каб. 35 м)", price: 16321.52, unit: "шт" },
+        "pump_belamos_dwp_180": { name: "Насос дренажный Belamos DWP 180 (116 л/мин, каб. 10м, Н-6м, с измельчителем для грязной воды)", price: 6083.75, unit: "шт" },
+        "pump_belamos_omega_25": { name: "Насос погружной Belamos Omega 25 (83 л/мин, Н-6м, каб. 6м)", price: 3064.80, unit: "шт" }
+      };
+
+      let info = catalogPrices[val];
+      if (window.SERVER_CONFIG && Array.isArray(window.SERVER_CONFIG.extra_catalog)) {
+        const foundExtra = window.SERVER_CONFIG.extra_catalog.find(x => x.code === val);
+        if (foundExtra) {
+          info = { name: foundExtra.name, price: parseFloat(foundExtra.price) || 0, unit: foundExtra.unit || "шт" };
+        }
+      }
+      if (info && window.SERVER_CONFIG && window.SERVER_CONFIG.prices && window.SERVER_CONFIG.prices[val] !== undefined) {
+        info.price = parseFloat(window.SERVER_CONFIG.prices[val]);
+      }
+      if (!info) info = { name: text, price: 500, unit: "шт" };
+      
+      const existing = currentItems.find(it => it.item_key === val || it.name === info.name);
+      if (existing) {
+        existing.qty += 1;
+        isUserEdited = true;
+      } else {
+        currentItems.push({
+          item_key: val,
+          name: info.name,
+          price: info.price,
+          unit: info.unit,
+          qty: 1
+        });
+        isUserEdited = true;
+      }
+      // 3. Если добавили греющий кабель вручную из каталога — обязательно добавляем Монтажный набор (1400 ₽)
+      ensureMandatoryHeatCableKit();
+      recalcAndRender();
+    }
+
+    function recalcAndRender() {
+      const modPct = parseFloat(window.USER_PERSONAL_MODIFIER || 0);
+      const factor = Math.max(0, 1.0 + (modPct / 100.0));
+
+      const banner = document.getElementById('personalDiscountBanner');
+      if (banner) {
+        if (modPct < 0) {
+          banner.style.display = 'block';
+          banner.style.background = '#143325';
+          banner.style.borderColor = '#22c55e';
+          banner.style.color = '#86efac';
+          banner.innerText = `🏷 Для вашего аккаунта действует персональная скидка ${modPct}% (цены пересчитаны автоматически)`;
+        } else {
+          banner.style.display = 'none';
+        }
+      }
+
+      currentTotal = 0;
+      let html = '<div style="display:flex; flex-direction:column; gap:2px;">';
+      currentItems.forEach((it, idx) => {
+        if (it.base_price === undefined) {
+          it.base_price = parseFloat(it.price) || 0;
+        }
+        it.price = Math.round(it.base_price * factor * 100) / 100;
+        it._modifier_applied = true;
+
+        const itemSum = it.qty * it.price;
+        currentTotal += itemSum;
+        const qtyFormatted = (typeof it.qty === 'number') ? it.qty : parseFloat(it.qty || 0);
+
+        const curLang = document.getElementById('langSelect').value || 'ru';
+        let displayName = it.name;
+        if (it.item_key && typeof ITEM_NAMES !== 'undefined' && ITEM_NAMES[it.item_key] && ITEM_NAMES[it.item_key][curLang]) {
+          displayName = ITEM_NAMES[it.item_key][curLang];
+        }
+
+        const unitMap = {
+          'м': { ru: 'м', tj: 'м', uz: 'm', hy: 'մ', ky: 'м' },
+          'шт': { ru: 'шт', tj: 'дона', uz: 'dona', hy: 'հատ', ky: 'даана' },
+          'компл.': { ru: 'компл.', tj: 'маҷм.', uz: "to'plam", hy: 'հավաք.', ky: 'компл.' }
+        };
+        const curUnit = it.unit || 'шт';
+        const displayUnit = (unitMap[curUnit] && unitMap[curUnit][curLang]) ? unitMap[curUnit][curLang] : curUnit;
+
+        html += `
+        <div class="spec-item">
+          <div class="spec-header">
+            <div class="spec-name">
+              ${idx+1}. ${displayName}
+              <div class="spec-unit-price">${it.price.toFixed(2)} ₽ / ${displayUnit}</div>
+            </div>
+            <button class="del-btn" title="Убрать" onclick="removeItem(${idx})">✖</button>
+          </div>
+          <div class="spec-controls-row">
+            <div class="qty-ctrl">
+              <button class="qty-btn" type="button" onclick="modifyItemQty(${idx}, -1)">−</button>
+              <input class="qty-input" type="number" min="0" step="any" value="${qtyFormatted}" oninput="setItemQtyManual(${idx}, this.value)">
+              <button class="qty-btn" type="button" onclick="modifyItemQty(${idx}, 1)">+</button>
+              <span style="font-size:0.82rem; color:var(--hint); margin-left:4px;">${displayUnit}</span>
+            </div>
+            <div class="spec-subtotal">${itemSum.toFixed(2)} ₽</div>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+
+      document.getElementById('spec-list').innerHTML = html;
+      document.getElementById('kesson-total').innerText = currentTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+    }
+
+    async function sendOrder() {
+      const btn = document.getElementById('btnSubmit');
+      try {
+        const lang = document.getElementById('langSelect').value || 'ru';
+        const t = DICT[lang] || DICT.ru;
+
+        const phone = document.getElementById('contactPhone').value.trim();
+        if (!phone || phone.length < 6) {
+          alert(t.errPhone);
+          document.getElementById('contactPhone').focus();
+          return;
+        }
+
+        const name = document.getElementById('contactName').value.trim() || 'Монтажник';
+        const contactCompanyEl = document.getElementById('contactCompany');
+        const company = contactCompanyEl ? contactCompanyEl.value.trim() : '';
+
+        let deliveryDetails = '';
+        let deliveryType = '';
+        let itemsToOrder = [];
+        let totalAmount = 0;
+
+        if (currentOrderMode === 'works') {
+          deliveryType = 'Выезд монтажной бригады на объект';
+          const addr = document.getElementById('deliveryAddress').value.trim();
+          if (!addr) {
+            alert('Пожалуйста, укажите точный адрес объекта для выезда бригады!');
+            document.getElementById('deliveryAddress').focus();
+            return;
+          }
+          const dTime = document.getElementById('deliveryTime').value.trim() || 'В согласованное время';
+          deliveryDetails = `Объект: ${addr} | Время: ${dTime}`;
+
+          const modPct = parseFloat(window.USER_PERSONAL_MODIFIER || 0);
+          const factor = Math.max(0, 1.0 + (modPct / 100.0));
+          ALL_WORKS.forEach(w => {
+            const q = selectedWorks[w.code] || 0;
+            if (q > 0) {
+              const adjPrice = Math.round(w.price * factor * 100) / 100;
+              itemsToOrder.push({
+                item_key: w.code,
+                name: w.name,
+                qty: q,
+                unit: w.unit,
+                base_price: w.price,
+                price: adjPrice,
+                _modifier_applied: true
+              });
+              totalAmount += q * adjPrice;
+            }
+          });
+
+          if (itemsToOrder.length === 0) {
+            alert('Пожалуйста, выберите хотя бы одну услугу из списка работ!');
+            return;
+          }
+
+        } else {
+          const logisticsType = document.getElementById('logisticsType').value;
+          if (logisticsType === 'pickup') {
+            deliveryType = 'Самовывоз со склада';
+            const pTime = document.getElementById('pickupDateTime').value.trim();
+            deliveryDetails = pTime ? pTime : 'Самовывоз со склада';
+          } else {
+            deliveryType = 'Доставка на объект';
+            const addr = document.getElementById('deliveryAddress').value.trim();
+            if (!addr) {
+              alert(t.errDelivery);
+              document.getElementById('deliveryAddress').focus();
+              return;
+            }
+            const dTime = document.getElementById('deliveryTime').value.trim() || 'В течение дня';
+            deliveryDetails = `Адрес: ${addr} | Время: ${dTime}`;
+          }
+          itemsToOrder = currentItems.filter(it => it.qty > 0);
+          totalAmount = currentTotal;
+        }
+
+        const tgApp = window.Telegram ? window.Telegram.WebApp : null;
+        let tgUserId = getCurrentTelegramUserId() || 0;
+        let tgUserTag = '';
+        if (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user) {
+            tgUserId = tgApp.initDataUnsafe.user.id || tgUserId;
+            tgUserTag = tgApp.initDataUnsafe.user.username ? '@' + tgApp.initDataUnsafe.user.username : '';
+        }
+
+        const equipEl = document.getElementById('equip_type');
+        const kessonEl = document.getElementById('chosen_kesson');
+        const tankEl = document.getElementById('chosen_tank');
+        const pumpEl = document.getElementById('chosen_pump');
+
+        const payload = {
+          mode: currentOrderMode === 'works' ? 'works' : activeTab,
+          lang: lang,
+          client_name: name,
+          worker_name: name,
+          company: company,
+          phone: phone,
+          delivery_type: deliveryType,
+          delivery_info: deliveryDetails,
+          user_id: tgUserId,
+          worker_tag: tgUserTag,
+          equip_type: equipEl ? equipEl.value : 'kesson_vfd',
+          chosen_kesson: kessonEl ? kessonEl.value : 'kesson_m1',
+          price_tier: document.getElementById('kesson_price_tier')?.value || 'dealer',
+          chosen_tank: tankEl ? tankEl.value : 'tank_100vt',
+          chosen_pump: pumpEl ? pumpEl.value : 'pump_none',
+          houses_count: parseInt(document.getElementById('houses_count')?.value || '1', 10),
+          depth: roundLengthCustom(document.getElementById('pump_depth')?.value || 40),
+          distance: roundLengthCustom(document.getElementById('trench_distance')?.value || 15),
+          distances: (parseInt(document.getElementById('houses_count')?.value || '1', 10) === 2)
+            ? [roundLengthCustom(document.getElementById('trench_distance')?.value || 15), roundLengthCustom(document.getElementById('trench_distance_2')?.value || 15)]
+            : [roundLengthCustom(document.getElementById('trench_distance')?.value || 15)],
+          include_heat_cable: document.getElementById('include_heat_cable')?.checked || false,
+          heat_cable_length: parseFloat(document.getElementById('heat_cable_length')?.value || 3) || 3,
+          include_adapter_hydrants: document.getElementById('include_adapter_hydrants')?.checked || false,
+          items: itemsToOrder,
+          total: totalAmount
+        };
+
+        if (btn) {
+            btn.innerText = t.sending || "Отправка...";
+            btn.disabled = true;
+        }
+
+        const res = await fetch('/api/miniapp_order', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const resp = await res.json();
+        
+        if (resp.status === 'ok') {
+          document.getElementById('containerMaterials').style.display = 'none';
+          document.getElementById('containerWorks').style.display = 'none';
+          
+          const receipt = document.getElementById('receipt-modal');
+          receipt.style.display = 'block';
+          document.getElementById('receipt-id').innerText = 'Заказ #' + resp.order_id;
+          document.getElementById('receipt-total').innerText = (resp.total || totalAmount).toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+
+          let detHtml = `<p><b>👤 Заказчик:</b> ${name}</p><p><b>🆔 Telegram ID:</b> <code>${tgUserId || 'Не определен'}</code></p><p><b>📞 Телефон:</b> ${phone}</p>`;
+          if (company) detHtml += `<p><b>Компания:</b> ${company}</p>`;
+          detHtml += `<p><b>Тип заказа:</b> ${deliveryType}</p>`;
+          if (deliveryDetails && deliveryDetails !== '-') {
+            detHtml += `<p><b>Детали логистики:</b> ${deliveryDetails}</p>`;
+          }
+          detHtml += '<div style="margin-top:10px; max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:6px;">';
+          
+          const curLang = lang;
+          const unitMap = {
+            'м': { ru: 'м', tj: 'м', uz: 'm', hy: 'մ', ky: 'м' },
+            'м.п.': { ru: 'м.п.', tj: 'м.п.', uz: 'm.p.', hy: 'գծ․մ', ky: 'м.п.' },
+            'шт': { ru: 'шт', tj: 'дона', uz: 'dona', hy: 'հատ', ky: 'даана' },
+            'шт.': { ru: 'шт.', tj: 'дона', uz: 'dona', hy: 'հատ', ky: 'даана' },
+            'усл.': { ru: 'усл.', tj: 'хизм.', uz: 'xizm.', hy: 'ծառ.', ky: 'кызм.' },
+            'точка': { ru: 'точка', tj: 'нуқта', uz: 'nuqta', hy: 'կետ', ky: 'чекит' },
+            'компл.': { ru: 'компл.', tj: 'маҷм.', uz: "to'plam", hy: 'հավաք.', ky: 'компл.' }
+          };
+          
+          (resp.items || itemsToOrder).forEach((x, i) => {
+            let rName = x.name;
+            if (x.item_key && typeof ITEM_NAMES !== 'undefined' && ITEM_NAMES[x.item_key] && ITEM_NAMES[x.item_key][curLang]) {
+              rName = ITEM_NAMES[x.item_key][curLang];
+            }
+            const rUnit = (unitMap[x.unit] && unitMap[x.unit][curLang]) ? unitMap[x.unit][curLang] : (x.unit || 'усл.');
+            detHtml += `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px;">${i+1}. ${rName} — <b>${x.qty} ${rUnit}</b> (${(x.qty*x.price).toFixed(2)} ₽)</div>`;
+          });
+          detHtml += '</div>';
+          document.getElementById('receipt-details').innerHTML = detHtml;
+        } else {
+          alert('Ошибка оформления заказа: ' + (resp.error || 'попробуйте позже'));
+        }
+      } catch (err) {
+        alert('Сбой при отправке: ' + err.message);
+        console.error(err);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          const lang = document.getElementById('langSelect').value || 'ru';
+          btn.innerText = (DICT[lang] && DICT[lang].btnSubmit) ? DICT[lang].btnSubmit : "Отправить заказ на склад";
+        }
+      }
+    }
+
+    function saveOrderToLocalHistory(orderRecord) {
+      try {
+        let history = JSON.parse(localStorage.getItem('mishka_orders_history') || '[]');
+        history.unshift(orderRecord);
+        localStorage.setItem('mishka_orders_history', JSON.stringify(history.slice(0, 50)));
+      } catch(e) {
+        console.error('Ошибка сохранения истории:', e);
+      }
+    }
+
+    async function openOrderHistory() {
+      document.getElementById('receipt-modal').style.display = 'none';
+      document.getElementById('containerMaterials').style.display = 'none';
+      document.getElementById('containerWorks').style.display = 'none';
+      document.getElementById('cardLogistics').style.display = 'none';
+      document.querySelector('.highlight-card:not(#cardLogistics)').style.display = 'none';
+      document.getElementById('btnSubmit').style.display = 'none';
+
+      const historyModal = document.getElementById('history-modal');
+      historyModal.style.display = 'block';
+
+      const listContainer = document.getElementById('history-list-box');
+      listContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:13px;">⏳ Загрузка ваших заказов...</p>';
+
+      const curLang = document.getElementById('langSelect').value || 'ru';
+      let orders = [];
+
+      const tgApp = window.Telegram ? window.Telegram.WebApp : null;
+      let uid = 0;
+      if (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user) {
+          uid = tgApp.initDataUnsafe.user.id || 0;
+      }
+      
+      const phoneEl = document.getElementById('contactPhone');
+      const phone = phoneEl ? phoneEl.value.trim() : '';
+      try {
+        const res = await fetch(`/api/user_orders?user_id=${uid}&phone=${encodeURIComponent(phone)}`);
+        if (res.ok) {
+          const srvData = await res.json();
+          if (srvData.orders && srvData.orders.length > 0) {
+            orders = srvData.orders;
+          }
+        }
+      } catch(err) {
+        console.log('Сервер заказов недоступен, читаем из памяти устройства...');
+      }
+
+      if (orders.length === 0) {
+        try {
+          orders = JSON.parse(localStorage.getItem('mishka_orders_history') || '[]');
+        } catch(e) {
+          orders = [];
+        }
+      }
+
+      if (orders.length === 0) {
+        listContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:13px; padding:20px 0;">У вас пока нет оформленных заказов.<br>Соберите свою первую смету!</p>';
+        return;
+      }
+
+      let html = '';
+      orders.forEach((ord, idx) => {
+        const isWorks = ord.is_works || (ord.mode === 'works');
+        const typeLabel = isWorks ? '🔨 Монтажные работы' : '📦 Оборудование и материалы';
+        const totalFormatted = (ord.total || 0).toLocaleString('ru-RU', {minimumFractionDigits: 2});
+
+        let statusText = 'В сборке';
+        let statusBg = '#2563eb'; 
+        const st = (ord.status || 'active').toLowerCase();
+        
+        if (st === 'cancelled') {
+          statusText = 'Отменен';
+          statusBg = '#dc2626'; 
+        } else if (st === 'paid') {
+          statusText = 'Оплачен';
+          statusBg = '#16a34a'; 
+        } else if (st === 'completed') {
+          statusText = isWorks ? 'Согласован' : 'Собран';
+          statusBg = '#22c55e'; 
+        } else {
+          statusText = isWorks ? 'На согласовании' : 'В сборке';
+          statusBg = isWorks ? '#d97706' : '#2563eb'; 
+        }
+
+        html += `
+        <div style="background:#17212b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-weight:700; color:#fff; font-size:14px;">Заказ #${ord.order_id}</span>
+            <span style="background:${statusBg}; color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px;">${statusText}</span>
+          </div>
+          <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;">
+            <b>Тип:</b> ${typeLabel}
+          </div>
+          <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;">
+            <b>Адрес/Получение:</b> ${ord.delivery_type || ''} (${ord.delivery_info || '-'})
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:700;">
+            <span style="color:#4ade80;">Сумма: ${totalFormatted} ₽</span>
+          </div>
+        </div>`;
+      });
+
+      listContainer.innerHTML = html;
+    }
+
+    function closeOrderHistory() {
+      document.getElementById('history-modal').style.display = 'none';
+      document.getElementById('cardLogistics').style.display = 'block';
+      document.querySelector('.highlight-card:not(#cardLogistics)').style.display = 'block';
+      document.getElementById('btnSubmit').style.display = 'block';
+      switchOrderMode(currentOrderMode);
+    }
+
+    function resetOrder() {
+      document.getElementById('receipt-modal').style.display = 'none';
+      document.getElementById('cardLogistics').style.display = 'block';
+      document.querySelector('.highlight-card:not(#cardLogistics)').style.display = 'block';
+      document.getElementById('btnSubmit').style.display = 'block';
+      selectTab('well');
+      switchOrderMode('materials');
+    }
+
+    function switchOrderMode(mode) {
+      currentOrderMode = mode;
+      const btnMat = document.getElementById('btnModeMaterials');
+      const btnWorks = document.getElementById('btnModeWorks');
+      if (btnMat) btnMat.classList.toggle('active', mode === 'materials');
+      if (btnWorks) btnWorks.classList.toggle('active', mode === 'works');
+      
+      const receiptModal = document.getElementById('receipt-modal');
+      const historyModal = document.getElementById('history-modal');
+      if (receiptModal) receiptModal.style.display = 'none';
+      if (historyModal) historyModal.style.display = 'none';
+
+      if (mode === 'materials') {
+        const contMat = document.getElementById('containerMaterials');
+        const contWorks = document.getElementById('containerWorks');
+        if (contMat) contMat.style.display = 'block';
+        if (contWorks) contWorks.style.display = 'none';
+        
+        const matLogWrapper = document.getElementById('materialsLogisticsWrapper');
+        if (matLogWrapper) matLogWrapper.style.display = 'block';
+        
+        const tLog = document.getElementById('tLogistics');
+        if (tLog) tLog.innerText = '🚚 Получение заказа';
+        
+        const lDelv = document.getElementById('lblDeliveryAddress');
+        if (lDelv) lDelv.innerText = 'Точный адрес доставки (МО / район / дом):';
+        
+        const lTime = document.getElementById('lblDeliveryTime');
+        if (lTime) lTime.innerText = 'Желаемое время доставки:';
+        
+        const hint = document.getElementById('worksDistanceHint');
+        if (hint) hint.style.display = 'none';
+        
+        toggleLogisticsFields();
+        calcWell(true);
+        if (currentOrderMode === 'works') {
+          renderWorksList();
+        }
+      } else {
+        const contMat = document.getElementById('containerMaterials');
+        const contWorks = document.getElementById('containerWorks');
+        if (contMat) contMat.style.display = 'none';
+        if (contWorks) contWorks.style.display = 'block';
+        
+        const matLogWrapper = document.getElementById('materialsLogisticsWrapper');
+        if (matLogWrapper) matLogWrapper.style.display = 'none';
+        
+        const delBox = document.getElementById('deliveryBox');
+        if (delBox) delBox.style.display = 'block';
+        
+        const tLog = document.getElementById('tLogistics');
+        if (tLog) tLog.innerText = '📍 Адрес проведения монтажных работ';
+        
+        const lDelv = document.getElementById('lblDeliveryAddress');
+        if (lDelv) lDelv.innerText = 'Точный адрес проведения работ (МО / район / дом):';
+        
+        const lTime = document.getElementById('lblDeliveryTime');
+        if (lTime) lTime.innerText = 'Желаемая дата и время выезда бригады:';
+        
+        const hint = document.getElementById('worksDistanceHint');
+        if (hint) hint.style.display = 'block';
+        
+        renderWorksList();
+      }
+    }
+
+    function filterWorks(cat, btn) {
+      currentWorkFilter = cat;
+      btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderWorksList();
+    }
+
+    function renderWorksList() {
+      const curLang = document.getElementById('langSelect').value || 'ru';
+      const container = document.getElementById('worksListContainer');
+      let html = '<div style="display:flex; flex-direction:column; gap:4px;">';
+
+      const filtered = ALL_WORKS.filter(w => currentWorkFilter === 'all' || w.cat === currentWorkFilter);
+
+      filtered.forEach(w => {
+        const qty = selectedWorks[w.code] || 0;
+        let displayName = w.name;
+        if (typeof ITEM_NAMES !== 'undefined' && ITEM_NAMES[w.code] && ITEM_NAMES[w.code][curLang]) {
+          displayName = ITEM_NAMES[w.code][curLang];
+        }
+
+        const isChecked = (qty > 0) ? 'checked' : '';
+
+        html += `
+        <div style="padding:10px 4px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <input type="checkbox" style="width:20px; height:20px; margin-bottom:0;" ${isChecked} onchange="toggleWorkCheck('${w.code}', this.checked)">
+          <div style="flex:1;">
+            <div style="font-size:0.86rem; font-weight:600; color:#fff; line-height:1.3;">${displayName}</div>
+            <div style="font-size:0.78rem; color:#94a3b8; margin-top:2px;">${w.price.toLocaleString('ru-RU')} ₽ / ${w.unit}</div>
+          </div>
+          <div class="qty-ctrl">
+            <button class="qty-btn" type="button" onclick="modifyWorkQty('${w.code}', -1)">−</button>
+            <input class="qty-input" type="number" min="0" value="${qty}" oninput="setWorkQtyManual('${w.code}', this.value)">
+            <button class="qty-btn" type="button" onclick="modifyWorkQty('${w.code}', 1)">+</button>
+          </div>
+        </div>`;
+      });
+
+      html += '</div>';
+      if (container) container.innerHTML = html;
+      recalcWorksTotal();
+    }
+
+    function toggleWorkCheck(code, checked) {
+      if (checked) {
+        if (!selectedWorks[code] || selectedWorks[code] <= 0) {
+          selectedWorks[code] = 1;
+        }
+      } else {
+        selectedWorks[code] = 0;
+      }
+      renderWorksList();
+    }
+
+    function modifyWorkQty(code, delta) {
+      const cur = selectedWorks[code] || 0;
+      selectedWorks[code] = Math.max(0, cur + delta);
+      renderWorksList();
+    }
+
+    function setWorkQtyManual(code, val) {
+      const parsed = parseFloat(val);
+      selectedWorks[code] = (!isNaN(parsed) && parsed >= 0) ? parsed : 0;
+      recalcWorksTotal();
+    }
+
+    function recalcWorksTotal() {
+      const modPct = parseFloat(window.USER_PERSONAL_MODIFIER || 0);
+      const factor = Math.max(0, 1.0 + (modPct / 100.0));
+      let sum = 0;
+      ALL_WORKS.forEach(w => {
+        const q = selectedWorks[w.code] || 0;
+        const adjPrice = Math.round(w.price * factor * 100) / 100;
+        sum += q * adjPrice;
+      });
+      const el = document.getElementById('worksTotalSum');
+      if (el) el.innerText = sum.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+    }
+
+    const DICT = window.DICT || {
+      ru: {
+        title: "📦 Склад и Монтаж «МИШКА»",
+        tabWell: "💧 Скважина / Кессон",
+        lblLang: "🌐 Язык интерфейса",
+        tEquip: "1. Вариант обустройства скважины",
+        lblEquipType: "Тип системы:",
+        optVfd: "Кессон с Частотным Преобразователем (ЧП)",
+        optGa: "Кессон с гидробаком",
+        lblKessonModel: "Модель кессона «МИШКА»:",
+        tSpec: "2. Спецификация оборудования (можно изменить любое кол-во)",
+        lblAddExtra: "➕ Добавить дополнительную позицию со склада:",
+        lblTotalText: "ИТОГО К ОПЛАТЕ:",
+        tLogistics: "🚚 Получение заказа",
+        lblLogType: "Способ получения:",
+        optPickup: "📦 Самовывоз со склада (п. Некрасовский)",
+        optDelivery: "🚛 Доставка на объект заказчика",
+        lblPickupTime: "Дата и время приезда на склад:",
+        btnNavMaps: "📍 Открыть склад в Яндекс Навигаторе",
+        lblDeliveryAddress: "Точный адрес проведения работ / доставки:",
+        lblDeliveryTime: "Желаемая дата и время:",
+        tContact: "📞 Контактные данные",
+        lblContactName: "Имя клиента / монтажника:",
+        lblCompany: "Компания / Организация:",
+        phCompany: "Например: ООО АкваСтрой / Частный монтаж",
+        lblContactPhone: "Телефон для связи:",
+        btnSubmit: "Отправить заказ на склад",
+        badgeSuccess: "🎉 Наряд-заказ успешно зарегистрирован!",
+        receiptSub: "Менеджеры завода «МИШКА» уже получили наряд в работу.",
+        lblReceiptTotal: "Сумма к оплате:",
+        btnNewCalc: "➕ Собрать ещё",
+        errPhone: "Пожалуйста, укажите корректный номер телефона!",
+        errDelivery: "Пожалуйста, укажите адрес доставки!",
+        sending: "Отправка..."
+      }
+    };
+
+    const OWNER_ADMIN_ID = 551209811;
+    window.SERVER_CONFIG = null;
+    let secretTapCounter = 0;
+    let secretTapTimer = null;
+
+    const COMPONENT_LABELS = {
+      "adapter_tim_1": 'Адаптер скважинный со сливным клапаном 1" TIM',
+      "cover_adapter": "Крышка скважины Джилекс КС 110-133",
+      "well_head_osp": "Оголовок для скважины Джилекс ОСП 110-133/32",
+      "vfd_fil10": "Частотный преобразователь FIL-10 2.2KW 220V",
+      "pressure_switch": "Реле давления AQUARIO PS-5-2",
+      "manometer": "Манометр радиальный 0-10 бар D53мм 1/4",
+      "pipe_ppr_32": "Труба полипропиленовая 32х5,4мм PN20 (1 м)",
+      "pipe_pnd_32": "Труба ПНД 32х3,0 SDR 11 синяя (1 м)",
+      "pipe_pnd_20": "Труба ПНД 20x2,0 SDR 11 под кабель (1 м)",
+      "cable_pvs_3x2_5": "Кабель ПВС 3х2,5 белый гибкий (1 м)",
+      "rope_3mm_304": "Трос нержавеющая сталь 3мм AISI 304 (1 м)",
+      "heat_cable": "Кабель греющий саморегулирующийся (1 м)",
+      "heat_cable_kit": "Монтажный набор для греющего кабеля (обязательный)",
+      "hydrant_gdr_1900": 'Гидрант незамерзающий GDR " 1900 мм Беламос',
+      "tap_non_freezing_tim": "Кран незамерзающий, 2.2м Гидрант W-HF0122 TIM",
+      "sgon_32_extruder": "Сгон 32 мм (экструдерная пайка)",
+      "pnd_tee_32": "Тройник компрессионный ПНД 32х32х32 Unidelta",
+      "pnd_reduct_32_20": "Муфта ПНД редукц. 32х20 Unidelta",
+      "pnd_coupling_32_32": "Муфта ПНД 32x32 Unidelta",
+      "pnd_coupling_32_1_hp": 'Муфта ПНД 32x1" HP Unidelta',
+      "pnd_elbow_32_1_hp": 'Угол ПНД 32x1" HP Unidelta',
+      "check_valve_1": 'Обратный клапан 1" с металл. седлом Millennium',
+      "valve_brass_1": 'Кран шаровой Вн/Нр (бабочка) 1" латунь',
+      "valve_ppr_32": "Кран шаровой PP-R VALFEX OPTIMA 32мм",
+      "valve_watering_1_2": 'Кран шаровый VALFEX 1/2" с носиком под шланг',
+      "ppr_union_32_1": 'Муфта разъемная PP-R 32-1" (американка)',
+      "ppr_comb_coupling_32_1_hp": 'Муфта комб. PP-R 32-1" HP неразъемная',
+      "ppr_elbow_90_32": "Отвод 90* PP-R Millennium 32мм",
+      "ppr_elbow_45_32": "Отвод 45* PP-R Millennium 32мм",
+      "ppr_tee_32": "Тройник PP-R Millennium 32мм",
+      "ppr_plug_32": "Заглушка PP-R Millennium 32мм",
+      "ppr_coupling_32": "Муфта PP-R Millennium 32мм",
+      "ppr_comb_elbow_32_1_2_bp": 'Отвод комб. ВР 90* PP-R 32-1/2"',
+      "ppr_comb_elbow_32_1_2_hp": 'Отвод комб. НР 90* PP-R 32-1/2"',
+      "ppr_trans_tee_32_1_2_bp": 'Тройник переходной ВР PP-R 32x1/2"x32',
+      "ppr_trans_tee_32_1_bp": 'Тройник переходной ВР PP-R 32x1"x32',
+      "ppr_trans_tee_32_1_hp": 'Тройник переходной НР PP-R 32x1"x32',
+      "hose_giant_1_80cm": 'Подводка угловая 1" 80см ГИГАНТ',
+      "hose_straight_1_2_60cm": 'Подводка прямая 1/2" 60см',
+      "brass_tee_1_bbb": 'Тройник ВВВ 1" латунь',
+      "brass_tee_1_2_bbb": 'Тройник ВВВ 1/2" латунь',
+      "brass_nipple_1": 'Ниппель НН 1" латунь',
+      "brass_nipple_1_2": 'Ниппель НН 1/2" латунь',
+      "brass_nipple_1_2_1_4": 'Ниппель перех. НН 1/2"x1/4"',
+      "brass_nipple_1_2_3_8": 'Ниппель перех. НН 1/2"x3/8"',
+      "brass_bushing_1_2_1_4": 'Футорка НВ 1/2"x1/4"',
+      "cable_clamp_4mm": "Зажим для троса AISI 316 4мм",
+      "plug_16a": "Вилка электрическая 16A 250B"
+    };
+
+    function buildDefaultConfigFromDOM() {
+      const cfg = {
+        prices: {
+          adapter_tim_1: 3627.31, cover_adapter: 3351.60, well_head_osp: 1916.39,
+          vfd_fil10: 7708.80, pressure_switch: 782.40, manometer: 181.31,
+          pipe_ppr_32: 151.42, pipe_pnd_32: 78.00, pipe_pnd_20: 42.54,
+          cable_pvs_3x2_5: 84.89, rope_3mm_304: 19.20, heat_cable: 350.00,
+          heat_cable_kit: 1400.00, hydrant_gdr_1900: 5902.80, tap_non_freezing_tim: 7381.20,
+          sgon_32_extruder: 380.00, pnd_tee_32: 645.00, pnd_reduct_32_20: 435.20,
+          pnd_coupling_32_32: 472.60, pnd_coupling_32_1_hp: 263.84, pnd_elbow_32_1_hp: 319.60,
+          check_valve_1: 750.00, valve_brass_1: 874.43, valve_ppr_32: 180.93,
+          valve_watering_1_2: 436.13, ppr_union_32_1: 648.03, ppr_comb_coupling_32_1_hp: 99.88,
+          ppr_elbow_90_32: 48.33, ppr_elbow_45_32: 38.20, ppr_tee_32: 74.70,
+          ppr_plug_32: 37.50, ppr_coupling_32: 29.83, ppr_comb_elbow_32_1_2_bp: 169.35,
+          ppr_comb_elbow_32_1_2_hp: 274.83, ppr_trans_tee_32_1_2_bp: 174.15,
+          ppr_trans_tee_32_1_bp: 190.46, ppr_trans_tee_32_1_hp: 305.00,
+          hose_giant_1_80cm: 761.93, hose_straight_1_2_60cm: 160.00,
+          brass_tee_1_bbb: 640.17, brass_tee_1_2_bbb: 192.42, brass_nipple_1: 196.76,
+          brass_nipple_1_2: 70.88, brass_nipple_1_2_1_4: 70.88, brass_nipple_1_2_3_8: 66.54,
+          brass_bushing_1_2_1_4: 75.23, cable_clamp_4mm: 40.80, plug_16a: 64.42
+        },
+        kesson_models: {},
+        pump_catalog: {},
+        tank_catalog: {},
+        extra_catalog: [],
+        services_catalog: JSON.parse(JSON.stringify(ALL_WORKS)),
+        custom_bundle_items: [],
+        users_discounts: {},
+        schemes: {
+          kesson_ga: { badge: SCHEME_DATA.kesson_ga.badge, title: SCHEME_DATA.kesson_ga.title, essence: SCHEME_DATA.kesson_ga.essence, visual: SCHEME_DATA.kesson_ga.visual, animText: SCHEME_DATA.kesson_ga.animText },
+          kesson_vfd: { badge: SCHEME_DATA.kesson_vfd.badge, title: SCHEME_DATA.kesson_vfd.title, essence: SCHEME_DATA.kesson_vfd.essence, visual: SCHEME_DATA.kesson_vfd.visual, animText: SCHEME_DATA.kesson_vfd.animText },
+          adapter: { badge: SCHEME_DATA.adapter.badge, title: SCHEME_DATA.adapter.title, essence: SCHEME_DATA.adapter.essence, visual: SCHEME_DATA.adapter.visual, animText: SCHEME_DATA.adapter.animText }
+        }
+      };
+
+      const kSel = document.getElementById('chosen_kesson');
+      if (kSel) {
+        Array.from(kSel.options).forEach(opt => {
+          const dp = parseFloat(opt.getAttribute('data-dealer') || 0);
+          const rp = parseFloat(opt.getAttribute('data-retail') || 0);
+          const nm = opt.getAttribute('data-name') || opt.text.split(' — ')[0];
+          cfg.kesson_models[opt.value] = { name: nm, price: dp, dealer_price: dp, retail_price: rp };
+          cfg.prices[opt.value] = dp;
+        });
+      }
+
+      const pSel = document.getElementById('chosen_pump');
+      if (pSel) {
+        Array.from(pSel.options).forEach(opt => {
+          const pr = parseFloat(opt.getAttribute('data-price') || 0);
+          const nm = opt.getAttribute('data-name') || opt.text.split(' — ')[0];
+          cfg.pump_catalog[opt.value] = { name: nm, price: pr };
+          if (pr > 0) cfg.prices[opt.value] = pr;
+        });
+      }
+
+      const tSel = document.getElementById('chosen_tank');
+      if (tSel) {
+        Array.from(tSel.options).forEach(opt => {
+          const parts = opt.text.split(' — ');
+          const nm = parts[0] || opt.text;
+          const pr = parts[1] ? parseFloat(parts[1].replace(/,/g, '.').replace(/[^0-9.]/g, '')) : 0;
+          cfg.tank_catalog[opt.value] = { name: nm, price: pr };
+          cfg.prices[opt.value] = pr;
+        });
+      }
+
+      const exSel = document.getElementById('extraCatalogSelect');
+      if (exSel) {
+        Array.from(exSel.options).forEach(opt => {
+          const code = opt.value;
+          const pr = cfg.prices[code] || 500;
+          cfg.extra_catalog.push({ code: code, name: opt.text.split(' (')[0], price: pr, unit: 'шт' });
+        });
+      }
+
+      return cfg;
+    }
+
+    function getCurrentTelegramUserId() {
+      try {
+        const tgApp = window.Telegram ? window.Telegram.WebApp : null;
+        if (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user && tgApp.initDataUnsafe.user.id) {
+          return parseInt(tgApp.initDataUnsafe.user.id, 10);
+        }
+      } catch (e) {}
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('uid')) return parseInt(urlParams.get('uid'), 10);
+      const savedDebugId = sessionStorage.getItem('mishka_owner_id');
+      if (savedDebugId) return parseInt(savedDebugId, 10);
+      return 0;
+    }
+
+    function onTitleSecretTap() {
+      // 5 быстрых нажатий на заголовок открывают панель ввода ID для отладки с ПК
+      secretTapCounter += 1;
+      if (secretTapTimer) clearTimeout(secretTapTimer);
+      secretTapTimer = setTimeout(() => { secretTapCounter = 0; }, 2500);
+
+      if (secretTapCounter >= 5) {
+        secretTapCounter = 0;
+        const dbgBox = document.getElementById('secretDebugAuthBox');
+        if (dbgBox) {
+          dbgBox.style.display = 'block';
+          const inp = document.getElementById('secretDebugAdminIdInput');
+          if (inp) inp.focus();
+        }
+      }
+    }
+
+    function confirmSecretDebugAuth() {
+      const inp = document.getElementById('secretDebugAdminIdInput');
+      const enteredId = inp ? parseInt(inp.value.trim(), 10) : 0;
+      if (enteredId === OWNER_ADMIN_ID) {
+        window.FORCED_OWNER_ID = OWNER_ADMIN_ID;
+        sessionStorage.setItem('mishka_owner_id', String(OWNER_ADMIN_ID));
+        document.getElementById('secretDebugAuthBox').style.display = 'none';
+        document.getElementById('ownerAdminTopBar').style.display = 'block';
+        openOwnerAdminPanel();
+      } else {
+        alert('Неверный ID! Доступ разрешён только для администратора 551209811.');
+      }
+    }
+
+    function getEffectiveAdminId() {
+      return window.FORCED_OWNER_ID || getCurrentTelegramUserId();
+    }
+
+    function toggleOwnerAdminPanel(evt) {
+      if (evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+      }
+      const modal = document.getElementById('ownerAdminModal');
+      if (modal && modal.style.display === 'block') {
+        closeOwnerAdminPanel();
+      } else {
+        openOwnerAdminPanel();
+      }
+    }
+
+    function openOwnerAdminPanel() {
+      const uid = getEffectiveAdminId();
+      if (uid !== OWNER_ADMIN_ID) {
+        alert('Доступ запрещён! Только для владельца (ID 551209811).');
+        return;
+      }
+      if (!window.SERVER_CONFIG) {
+        window.SERVER_CONFIG = buildDefaultConfigFromDOM();
+      }
+      // Переключаем экран внутри Mini App на админ-панель без закрытия WebApp!
+      document.getElementById('ownerAdminModal').style.display = 'block';
+      document.getElementById('containerMaterials').style.display = 'none';
+      document.getElementById('containerWorks').style.display = 'none';
+      document.getElementById('cardLogistics').style.display = 'none';
+      const contactCard = document.querySelector('.highlight-card:not(#cardLogistics)');
+      if (contactCard) contactCard.style.display = 'none';
+      document.getElementById('btnSubmit').style.display = 'none';
+      const histBtn = document.getElementById('btnOpenHistoryMain');
+      if (histBtn) histBtn.style.display = 'none';
+
+      const topBtn = document.getElementById('btnToggleOwnerAdmin');
+      if (topBtn) topBtn.innerHTML = '<span>🔙 Вернуться к калькулятору заказа</span>';
+
+      renderAdminPricesEditor();
+      onAdmNewTargetChange();
+      renderAdminSchemeEditor();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function closeOwnerAdminPanel() {
+      document.getElementById('ownerAdminModal').style.display = 'none';
+      document.getElementById('cardLogistics').style.display = 'block';
+      const contactCard = document.querySelector('.highlight-card:not(#cardLogistics)');
+      if (contactCard) contactCard.style.display = 'block';
+      document.getElementById('btnSubmit').style.display = 'block';
+      const histBtn = document.getElementById('btnOpenHistoryMain');
+      if (histBtn) histBtn.style.display = 'block';
+
+      const topBtn = document.getElementById('btnToggleOwnerAdmin');
+      if (topBtn) topBtn.innerHTML = '<span>👑 Управление ботом</span>';
+
+      switchOrderMode(currentOrderMode);
+      syncDOMFromServerConfig(window.SERVER_CONFIG);
+    }
+
+    function switchAdminSubTab(sub) {
+      ['prices', 'discounts', 'add', 'schemes', 'backup'].forEach(k => {
+        const btn = document.getElementById('admTabBtn_' + k);
+        const sec = document.getElementById('admSec_' + k);
+        if (btn) btn.classList.toggle('active', k === sub);
+        if (sec) sec.style.display = (k === sub) ? 'block' : 'none';
+      });
+      if (sub === 'prices') renderAdminPricesEditor();
+      if (sub === 'discounts') renderAdminDiscountsList();
+      if (sub === 'schemes') renderAdminSchemeEditor();
+    }
+
+    function syncDOMFromServerConfig(cfg) {
+      if (!cfg) return;
+      window.SERVER_CONFIG = cfg;
+
+      // 1. Обновляем описания схем
+      if (cfg.schemes) {
+        for (let k in cfg.schemes) {
+          if (SCHEME_DATA[k]) {
+            if (cfg.schemes[k].badge) SCHEME_DATA[k].badge = cfg.schemes[k].badge;
+            if (cfg.schemes[k].title) SCHEME_DATA[k].title = cfg.schemes[k].title;
+            if (cfg.schemes[k].essence) SCHEME_DATA[k].essence = cfg.schemes[k].essence;
+            if (cfg.schemes[k].visual) SCHEME_DATA[k].visual = cfg.schemes[k].visual;
+            if (cfg.schemes[k].animText) SCHEME_DATA[k].animText = cfg.schemes[k].animText;
+          }
+        }
+      }
+
+      // 2. Обновляем список Кессонов
+      if (cfg.kesson_models) {
+        const kSel = document.getElementById('chosen_kesson');
+        if (kSel) {
+          const prevVal = kSel.value || 'kesson_m1';
+          let kHtml = '';
+          Object.keys(cfg.kesson_models).forEach(code => {
+            if (code === 'kesson_long') return;
+            const m = cfg.kesson_models[code];
+            const dp = parseFloat(m.dealer_price ?? m.price ?? 0);
+            const rp = parseFloat(m.retail_price ?? Math.round(dp / 0.6));
+            const sel = (code === prevVal) ? ' selected' : '';
+            kHtml += `<option value="${code}" data-dealer="${dp}" data-retail="${rp}" data-name="${m.name.replace(/"/g, '&quot;')}"${sel}>${m.name} — Розн. ${rp.toLocaleString('ru-RU')} ₽ | Дилер ${dp.toLocaleString('ru-RU')} ₽</option>`;
+          });
+          if (kHtml) kSel.innerHTML = kHtml;
+        }
+      }
+
+      // 3. Обновляем список Насосов
+      if (cfg.pump_catalog) {
+        const pSel = document.getElementById('chosen_pump');
+        if (pSel) {
+          const prevVal = pSel.value || 'pump_none';
+          let pHtml = '';
+          Object.keys(cfg.pump_catalog).forEach(code => {
+            if (code === 'pump_belamos_tf3_80') return;
+            const p = cfg.pump_catalog[code];
+            const pr = parseFloat(p.price || 0);
+            const sel = (code === prevVal) ? ' selected' : '';
+            const label = pr > 0 ? `${p.name} — ${pr.toLocaleString('ru-RU', {minimumFractionDigits: 2})} ₽` : p.name;
+            pHtml += `<option value="${code}" data-price="${pr}" data-name="${p.name.replace(/"/g, '&quot;')}"${sel}>${label}</option>`;
+          });
+          if (pHtml) pSel.innerHTML = pHtml;
+        }
+      }
+
+      // 4. Обновляем список Гидробаков
+      if (cfg.tank_catalog) {
+        const tSel = document.getElementById('chosen_tank');
+        if (tSel) {
+          const prevVal = tSel.value || 'tank_100vt';
+          let tHtml = '';
+          Object.keys(cfg.tank_catalog).forEach(code => {
+            const t = cfg.tank_catalog[code];
+            const pr = parseFloat(t.price || 0);
+            const sel = (code === prevVal) ? ' selected' : '';
+            tHtml += `<option value="${code}"${sel}>${t.name} — ${pr.toLocaleString('ru-RU', {minimumFractionDigits: 2})} ₽</option>`;
+          });
+          if (tHtml) tSel.innerHTML = tHtml;
+        }
+      }
+
+      // 5. Обновляем список Доп. товаров со склада
+      if (Array.isArray(cfg.extra_catalog) && cfg.extra_catalog.length > 0) {
+        const exSel = document.getElementById('extraCatalogSelect');
+        if (exSel) {
+          let exHtml = '';
+          cfg.extra_catalog.forEach(it => {
+            const pr = parseFloat(it.price || 0);
+            exHtml += `<option value="${it.code}">${it.name} (${pr.toLocaleString('ru-RU')} ₽/${it.unit || 'шт'})</option>`;
+          });
+          exSel.innerHTML = exHtml;
+        }
+      }
+
+      // 6. Обновляем список Работ
+      if (Array.isArray(cfg.services_catalog) && cfg.services_catalog.length > 0) {
+        ALL_WORKS.length = 0;
+        cfg.services_catalog.forEach(w => ALL_WORKS.push(w));
+        if (currentOrderMode === 'works') renderWorksList();
+      }
+
+      calcWell(true);
+    }
+
+    async function loadServerConfigAndInit() {
+      try {
+        if (window.Telegram && window.Telegram.WebApp) {
+          window.Telegram.WebApp.ready();
+          window.Telegram.WebApp.expand();
+        }
+      } catch (e) {}
+
+      if (!window.SERVER_CONFIG) {
+        window.SERVER_CONFIG = buildDefaultConfigFromDOM();
+      }
+
+      const uid = getEffectiveAdminId();
+      if (uid === OWNER_ADMIN_ID) {
+        const topBar = document.getElementById('ownerAdminTopBar');
+        if (topBar) topBar.style.display = 'block';
+      }
+
+      try {
+        const res = await fetch(`/api/config?user_id=${uid}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.is_owner || uid === OWNER_ADMIN_ID) {
+            const topBar = document.getElementById('ownerAdminTopBar');
+            if (topBar) topBar.style.display = 'block';
+          }
+          if (data.personal_modifier !== undefined) {
+            window.USER_PERSONAL_MODIFIER = parseFloat(data.personal_modifier) || 0;
+          }
+          if (data.config) {
+            syncDOMFromServerConfig(data.config);
+          }
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('admin') === '1' && (data.is_owner || uid === OWNER_ADMIN_ID)) {
+            openOwnerAdminPanel();
+          }
+        }
+      } catch (e) {
+        console.log('Используем локальный каталог:', e);
+      }
+    }
+
+    function renderAdminPricesEditor() {
+      const box = document.getElementById('admPricesListBox');
+      if (!box) return;
+      if (!window.SERVER_CONFIG) window.SERVER_CONFIG = buildDefaultConfigFromDOM();
+      const cat = document.getElementById('admPriceCatFilter').value;
+      const searchVal = (document.getElementById('admSearchInput')?.value || '').trim().toLowerCase();
+      const cfg = window.SERVER_CONFIG;
+      let html = '';
+
+      if (cat === 'kessons') {
+        Object.keys(cfg.kesson_models || {}).forEach(code => {
+          if (code === 'kesson_long') return;
+          const m = cfg.kesson_models[code];
+          if (searchVal && !m.name.toLowerCase().includes(searchVal)) return;
+          html += `
+          <div style="background:#131b24; padding:10px; border-radius:9px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.08);">
+            <label style="font-size:0.72rem; color:#94a3b8;">Название модели кессона:</label>
+            <input type="text" value="${m.name.replace(/"/g, '&quot;')}" style="margin-bottom:6px; font-size:0.84rem; font-weight:700;" oninput="window.SERVER_CONFIG.kesson_models['${code}'].name = this.value">
+            <div class="grid-2">
+              <div>
+                <label style="font-size:0.74rem; color:#4ade80;">Дилерская цена (-40%), ₽:</label>
+                <input type="number" step="any" value="${m.dealer_price ?? m.price}" style="margin-bottom:0; padding:7px;" oninput="window.SERVER_CONFIG.kesson_models['${code}'].dealer_price = parseFloat(this.value)||0; window.SERVER_CONFIG.kesson_models['${code}'].price = parseFloat(this.value)||0; window.SERVER_CONFIG.prices['${code}'] = parseFloat(this.value)||0;">
+              </div>
+              <div>
+                <label style="font-size:0.74rem; color:#93c5fd;">Розничная цена, ₽:</label>
+                <input type="number" step="any" value="${m.retail_price ?? Math.round((m.price||0)/0.6)}" style="margin-bottom:0; padding:7px;" oninput="window.SERVER_CONFIG.kesson_models['${code}'].retail_price = parseFloat(this.value)||0;">
+              </div>
+            </div>
+          </div>`;
+        });
+      } else if (cat === 'pumps') {
+        Object.keys(cfg.pump_catalog || {}).forEach(code => {
+          if (code === 'pump_none' || code === 'pump_belamos_tf3_80') return;
+          const p = cfg.pump_catalog[code];
+          if (searchVal && !p.name.toLowerCase().includes(searchVal)) return;
+          html += `
+          <div style="background:#131b24; padding:10px; border-radius:9px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.08);">
+            <label style="font-size:0.72rem; color:#94a3b8;">Название и характеристики насоса:</label>
+            <input type="text" value="${p.name.replace(/"/g, '&quot;')}" style="margin-bottom:6px; font-size:0.82rem; font-weight:600;" oninput="window.SERVER_CONFIG.pump_catalog['${code}'].name = this.value">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+              <span style="font-size:0.78rem; color:#4ade80; font-weight:600;">Цена (₽):</span>
+              <input type="number" step="any" value="${p.price}" style="width:140px; margin-bottom:0; padding:7px; font-weight:700;" oninput="window.SERVER_CONFIG.pump_catalog['${code}'].price = parseFloat(this.value)||0; window.SERVER_CONFIG.prices['${code}'] = parseFloat(this.value)||0;">
+            </div>
+          </div>`;
+        });
+      } else if (cat === 'tanks') {
+        Object.keys(cfg.tank_catalog || {}).forEach(code => {
+          const t = cfg.tank_catalog[code];
+          if (searchVal && !t.name.toLowerCase().includes(searchVal)) return;
+          html += `
+          <div style="background:#131b24; padding:10px; border-radius:9px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.08);">
+            <input type="text" value="${t.name.replace(/"/g, '&quot;')}" style="margin-bottom:6px; font-size:0.84rem; font-weight:600;" oninput="window.SERVER_CONFIG.tank_catalog['${code}'].name = this.value">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+              <span style="font-size:0.78rem; color:#4ade80; font-weight:600;">Цена (₽):</span>
+              <input type="number" step="any" value="${t.price}" style="width:140px; margin-bottom:0; padding:7px; font-weight:700;" oninput="window.SERVER_CONFIG.tank_catalog['${code}'].price = parseFloat(this.value)||0; window.SERVER_CONFIG.prices['${code}'] = parseFloat(this.value)||0;">
+            </div>
+          </div>`;
+        });
+      } else if (cat === 'components') {
+        Object.keys(COMPONENT_LABELS).forEach(code => {
+          const label = COMPONENT_LABELS[code];
+          if (searchVal && !label.toLowerCase().includes(searchVal) && !code.toLowerCase().includes(searchVal)) return;
+          const curP = (cfg.prices && cfg.prices[code] !== undefined) ? cfg.prices[code] : 0;
+          html += `
+          <div style="background:#131b24; padding:9px 10px; border-radius:9px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; gap:8px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:0.82rem; color:#e2e8f0; flex:1; font-weight:600;">${label}</div>
+            <input type="number" step="any" value="${curP}" style="width:115px; margin-bottom:0; padding:7px; font-weight:700;" oninput="window.SERVER_CONFIG.prices['${code}'] = parseFloat(this.value)||0;">
+          </div>`;
+        });
+      } else if (cat === 'custom_bundle') {
+        const list = cfg.custom_bundle_items || [];
+        if (list.length === 0) {
+          html = '<div style="text-align:center; padding:18px; color:#94a3b8; font-size:0.82rem;">В базовые комплекты пока не добавлено новых позиций. Перейдите во вкладку «➕ Добавить позицию», чтобы включить товар в комплектацию.</div>';
+        } else {
+          list.forEach((b, i) => {
+            html += `
+            <div style="background:#131b24; padding:10px; border-radius:9px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.08);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span style="font-size:0.74rem; color:#fde047; font-weight:700;">Комплект: ${b.target}</span>
+                <button type="button" class="del-btn" onclick="window.SERVER_CONFIG.custom_bundle_items.splice(${i},1); renderAdminPricesEditor();">✖ Удалить</button>
+              </div>
+              <input type="text" value="${b.name.replace(/"/g, '&quot;')}" style="margin-bottom:6px; font-size:0.82rem;" oninput="window.SERVER_CONFIG.custom_bundle_items[${i}].name = this.value">
+              <div class="grid-2">
+                <div>
+                  <label style="font-size:0.72rem;">Цена (₽):</label>
+                  <input type="number" step="any" value="${b.price}" style="margin-bottom:0; padding:6px;" oninput="window.SERVER_CONFIG.custom_bundle_items[${i}].price = parseFloat(this.value)||0;">
+                </div>
+                <div>
+                  <label style="font-size:0.72rem;">Кол-во (${b.unit}):</label>
+                  <input type="number" step="any" value="${b.qty}" style="margin-bottom:0; padding:6px;" oninput="window.SERVER_CONFIG.custom_bundle_items[${i}].qty = parseFloat(this.value)||1;">
+                </div>
+              </div>
+            </div>`;
+          });
+        }
+      } else if (cat === 'extra_catalog') {
+        (cfg.extra_catalog || []).forEach((it, i) => {
+          if (searchVal && !it.name.toLowerCase().includes(searchVal)) return;
+          html += `
+          <div style="background:#131b24; padding:10px; border-radius:9px; margin-bottom:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:6px;">
+              <input type="text" value="${it.name.replace(/"/g, '&quot;')}" style="margin-bottom:0; font-size:0.82rem; flex:1;" oninput="window.SERVER_CONFIG.extra_catalog[${i}].name = this.value">
+              <button type="button" class="del-btn" onclick="window.SERVER_CONFIG.extra_catalog.splice(${i},1); renderAdminPricesEditor();">✖</button>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+              <span style="font-size:0.75rem; color:#94a3b8;">Ед. изм.: ${it.unit}</span>
+              <input type="number" step="any" value="${it.price}" style="width:125px; margin-bottom:0; padding:6px; font-weight:700;" oninput="window.SERVER_CONFIG.extra_catalog[${i}].price = parseFloat(this.value)||0; window.SERVER_CONFIG.prices['${it.code}'] = parseFloat(this.value)||0;">
+            </div>
+          </div>`;
+        });
+      } else if (cat === 'works') {
+        (cfg.services_catalog || []).forEach((w, i) => {
+          if (searchVal && !w.name.toLowerCase().includes(searchVal)) return;
+          html += `
+          <div style="background:#131b24; padding:10px; border-radius:9px; margin-bottom:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:6px;">
+              <input type="text" value="${w.name.replace(/"/g, '&quot;')}" style="margin-bottom:0; font-size:0.82rem; flex:1;" oninput="window.SERVER_CONFIG.services_catalog[${i}].name = this.value">
+              <button type="button" class="del-btn" onclick="window.SERVER_CONFIG.services_catalog.splice(${i},1); renderAdminPricesEditor();">✖</button>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+              <span style="font-size:0.75rem; color:#94a3b8;">Категория: ${w.cat} (${w.unit})</span>
+              <input type="number" step="any" value="${w.price}" style="width:125px; margin-bottom:0; padding:6px; font-weight:700;" oninput="window.SERVER_CONFIG.services_catalog[${i}].price = parseFloat(this.value)||0;">
+            </div>
+          </div>`;
+        });
+      }
+
+      box.innerHTML = html || '<div style="text-align:center; padding:14px; color:#94a3b8;">Ничего не найдено</div>';
+    }
+
+    function onAdmNewTargetChange() {
+      const t = document.getElementById('admNewTarget').value;
+      document.getElementById('admNewRetailBox').style.display = (t === 'kesson') ? 'block' : 'none';
+      document.getElementById('admNewQtyBox').style.display = t.startsWith('bundle_') ? 'block' : 'none';
+      document.getElementById('admNewWorkCatBox').style.display = (t === 'work') ? 'block' : 'none';
+      document.getElementById('lblAdmNewPrice1').innerText = (t === 'kesson') ? 'Дилерская цена (-40%), ₽:' : 'Цена за ед., ₽:';
+    }
+
+    async function addAdminNewItem() {
+      if (!window.SERVER_CONFIG) window.SERVER_CONFIG = buildDefaultConfigFromDOM();
+      const target = document.getElementById('admNewTarget').value;
+      const name = document.getElementById('admNewName').value.trim();
+      const price = parseFloat(document.getElementById('admNewPrice').value) || 0;
+      const retailPrice = parseFloat(document.getElementById('admNewRetailPrice').value) || Math.round(price / 0.6);
+      const unit = document.getElementById('admNewUnit').value || 'шт';
+      const qty = parseFloat(document.getElementById('admNewQty').value) || 1;
+      const workCat = document.getElementById('admNewWorkCat').value || 'kesson';
+
+      if (!name) {
+        alert('Пожалуйста, введите название товара или услуги!');
+        return;
+      }
+
+      const code = 'item_' + Date.now();
+      const cfg = window.SERVER_CONFIG;
+
+      if (target === 'kesson') {
+        cfg.kesson_models[code] = { name: name, price: price, dealer_price: price, retail_price: retailPrice };
+        cfg.prices[code] = price;
+        cfg.extra_catalog.unshift({ code: code, name: `${name} (Розн. ${retailPrice} / Дилер ${price} ₽)`, price: price, retail_price: retailPrice, unit: 'шт.' });
+      } else if (target === 'pump') {
+        cfg.pump_catalog[code] = { name: name, price: price };
+        cfg.prices[code] = price;
+        cfg.extra_catalog.push({ code: code, name: name, price: price, unit: 'шт.' });
+      } else if (target === 'tank') {
+        cfg.tank_catalog[code] = { name: name, price: price };
+        cfg.prices[code] = price;
+        cfg.extra_catalog.push({ code: code, name: name, price: price, unit: 'шт.' });
+      } else if (target.startsWith('bundle_')) {
+        const bundleType = target.replace('bundle_', '');
+        if (!Array.isArray(cfg.custom_bundle_items)) cfg.custom_bundle_items = [];
+        cfg.custom_bundle_items.push({ code: code, target: bundleType, name: name, price: price, qty: qty, unit: unit });
+        cfg.prices[code] = price;
+      } else if (target === 'extra_catalog') {
+        cfg.extra_catalog.push({ code: code, name: name, price: price, unit: unit });
+        cfg.prices[code] = price;
+      } else if (target === 'work') {
+        cfg.services_catalog.push({ code: code, cat: workCat, name: name, price: price, unit: unit });
+      }
+
+      document.getElementById('admNewName').value = '';
+      syncDOMFromServerConfig(cfg);
+      await saveOwnerAdminConfig();
+    }
+
+    function renderAdminDiscountsList() {
+      const box = document.getElementById('admDiscountsListBox');
+      if (!box) return;
+      if (!window.SERVER_CONFIG) window.SERVER_CONFIG = buildDefaultConfigFromDOM();
+      const discountsMap = window.SERVER_CONFIG.users_discounts || {};
+      const keys = Object.keys(discountsMap);
+
+      if (keys.length === 0) {
+        box.innerHTML = '<div style="text-align:center; padding:14px; color:#94a3b8; font-size:0.8rem;">Персональные условия ещё не заданы ни для одного клиента.</div>';
+        return;
+      }
+
+      let html = '';
+      keys.forEach(tgId => {
+        const entry = discountsMap[tgId];
+        const pct = parseFloat(entry.percent !== undefined ? entry.percent : entry) || 0;
+        const note = (entry && entry.note) ? entry.note : '';
+        const isDiscount = pct < 0;
+        const badgeColor = isDiscount ? '#14532d' : '#78350f';
+        const textColor = isDiscount ? '#4ade80' : '#fde047';
+        const labelText = isDiscount ? `Скидка ${pct}%` : `Наценка +${pct}%`;
+
+        html += `
+        <div style="background:#17212b; border:1px solid rgba(255,255,255,0.08); border-radius:9px; padding:9px 10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div style="flex:1; cursor:pointer;" onclick="fillAdminDiscountForm('${tgId}')">
+            <div style="font-size:0.84rem; font-weight:700; color:#fff;">🆔 <code>${tgId}</code> ${note ? '— ' + note : ''}</div>
+            <div style="margin-top:3px;">
+              <span style="background:${badgeColor}; color:${textColor}; font-size:0.74rem; font-weight:700; padding:2px 8px; border-radius:6px;">${labelText}</span>
+            </div>
+          </div>
+          <button type="button" class="del-btn" title="Удалить условие" onclick="deleteAdminUserDiscount('${tgId}')">✖</button>
+        </div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function fillAdminDiscountForm(tgId) {
+      const discountsMap = (window.SERVER_CONFIG && window.SERVER_CONFIG.users_discounts) ? window.SERVER_CONFIG.users_discounts : {};
+      const entry = discountsMap[tgId];
+      if (!entry) return;
+      const pct = parseFloat(entry.percent !== undefined ? entry.percent : entry) || 0;
+      document.getElementById('admDiscTgId').value = tgId;
+      document.getElementById('admDiscNote').value = entry.note || '';
+      if (pct < 0) {
+        document.getElementById('admDiscMinusVal').value = Math.abs(pct);
+        document.getElementById('admDiscPlusVal').value = '';
+      } else if (pct > 0) {
+        document.getElementById('admDiscPlusVal').value = pct;
+        document.getElementById('admDiscMinusVal').value = '';
+      }
+    }
+
+    async function saveAdminUserDiscount() {
+      const uid = getEffectiveAdminId();
+      if (uid !== OWNER_ADMIN_ID) {
+        alert('Доступ запрещён! Только для администратора 551209811.');
+        return;
+      }
+      const targetTgId = (document.getElementById('admDiscTgId').value || '').trim();
+      if (!targetTgId || !/^\d+$/.test(targetTgId)) {
+        alert('Введите корректный цифровой Telegram ID клиента (только цифры, например: 123456789)!');
+        document.getElementById('admDiscTgId').focus();
+        return;
+      }
+
+      const minusVal = parseFloat(document.getElementById('admDiscMinusVal').value);
+      const plusVal = parseFloat(document.getElementById('admDiscPlusVal').value);
+      const note = (document.getElementById('admDiscNote').value || '').trim();
+
+      let finalPct = 0;
+      if (!isNaN(minusVal) && minusVal > 0) {
+        finalPct = -Math.abs(minusVal);
+      } else if (!isNaN(plusVal) && plusVal > 0) {
+        finalPct = Math.abs(plusVal);
+      } else {
+        alert('Укажите процент персональной скидки ИЛИ процент персональной наценки!');
+        return;
+      }
+
+      if (!window.SERVER_CONFIG) window.SERVER_CONFIG = buildDefaultConfigFromDOM();
+      if (!window.SERVER_CONFIG.users_discounts) window.SERVER_CONFIG.users_discounts = {};
+      window.SERVER_CONFIG.users_discounts[targetTgId] = {
+        telegram_id: targetTgId,
+        percent: finalPct,
+        note: note
+      };
+
+      // Если админ тестирует скидку на самом себе — сразу обновляем его локальный модификатор
+      if (String(getCurrentTelegramUserId()) === targetTgId) {
+        window.USER_PERSONAL_MODIFIER = finalPct;
+      }
+
+      const tgInitData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp.initData : '';
+      try {
+        const res = await fetch('/api/admin/user_discount', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            user_id: uid,
+            init_data: tgInitData,
+            action: 'set',
+            target_telegram_id: targetTgId,
+            percent: finalPct,
+            note: note
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          window.SERVER_CONFIG.users_discounts = data.users_discounts || window.SERVER_CONFIG.users_discounts;
+          renderAdminDiscountsList();
+          calcWell(true);
+          document.getElementById('admDiscTgId').value = '';
+          document.getElementById('admDiscMinusVal').value = '';
+          document.getElementById('admDiscPlusVal').value = '';
+          document.getElementById('admDiscNote').value = '';
+
+          const st = document.getElementById('admSaveStatus');
+          if (st) {
+            st.style.display = 'block';
+            st.style.background = '#14532d';
+            st.style.color = '#4ade80';
+            st.innerText = `✅ Персональное условие (${finalPct > 0 ? '+' + finalPct : finalPct}%) сохранено для ID ${targetTgId}!`;
+          }
+        } else {
+          alert('Ошибка сохранения: ' + (data.message || 'неизвестная ошибка'));
+        }
+      } catch (e) {
+        alert('Ошибка сети: ' + e.message);
+      }
+    }
+
+    async function deleteAdminUserDiscount(targetTgId) {
+      if (!confirm(`Удалить персональную скидку/наценку для клиента ID ${targetTgId}?`)) return;
+      const uid = getEffectiveAdminId();
+      const tgInitData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp.initData : '';
+      try {
+        const res = await fetch('/api/admin/user_discount', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            user_id: uid,
+            init_data: tgInitData,
+            action: 'delete',
+            target_telegram_id: targetTgId
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          if (window.SERVER_CONFIG && window.SERVER_CONFIG.users_discounts) {
+            delete window.SERVER_CONFIG.users_discounts[targetTgId];
+          }
+          if (String(getCurrentTelegramUserId()) === String(targetTgId)) {
+            window.USER_PERSONAL_MODIFIER = 0;
+          }
+          renderAdminDiscountsList();
+          calcWell(true);
+        }
+      } catch (e) {
+        alert('Ошибка удаления: ' + e.message);
+      }
+    }
+
+    function renderAdminSchemeEditor() {
+      const sk = document.getElementById('admSchemeSelect').value;
+      const d = (window.SERVER_CONFIG && window.SERVER_CONFIG.schemes && window.SERVER_CONFIG.schemes[sk]) ? window.SERVER_CONFIG.schemes[sk] : SCHEME_DATA[sk];
+      if (!d) return;
+      document.getElementById('admSchBadge').value = d.badge || '';
+      document.getElementById('admSchTitle').value = d.title || '';
+      document.getElementById('admSchEssence').value = d.essence || '';
+      document.getElementById('admSchVisual').value = d.visual || '';
+      document.getElementById('admSchAnim').value = d.animText || '';
+    }
+
+    function updateAdminSchemeField(field, val) {
+      const sk = document.getElementById('admSchemeSelect').value;
+      if (SCHEME_DATA[sk]) SCHEME_DATA[sk][field] = val;
+      if (!window.SERVER_CONFIG) window.SERVER_CONFIG = buildDefaultConfigFromDOM();
+      if (!window.SERVER_CONFIG.schemes) window.SERVER_CONFIG.schemes = {};
+      if (!window.SERVER_CONFIG.schemes[sk]) window.SERVER_CONFIG.schemes[sk] = {};
+      window.SERVER_CONFIG.schemes[sk][field] = val;
+      renderSchemeInfo(document.getElementById('equip_type').value);
+    }
+
+    function importAdminConfigFile(inputEl) {
+      const file = inputEl.files && inputEl.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          syncDOMFromServerConfig(parsed);
+          saveOwnerAdminConfig();
+        } catch (err) {
+          alert('Ошибка чтения JSON: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    async function saveOwnerAdminConfig() {
+      const uid = getEffectiveAdminId();
+      if (uid !== OWNER_ADMIN_ID) {
+        alert('Доступ запрещён! Только для администратора 551209811.');
+        return;
+      }
+      const st = document.getElementById('admSaveStatus');
+      if (st) {
+        st.style.display = 'block';
+        st.style.background = '#1e3a8a';
+        st.style.color = '#93c5fd';
+        st.innerText = '⏳ Сохранение на сервере, синхронизация с Google Sheets и отправка бэкапа в Telegram...';
+      }
+      const tgInitData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp.initData : '';
+      try {
+        const res = await fetch('/api/admin/save_config', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            user_id: uid,
+            init_data: tgInitData,
+            config: window.SERVER_CONFIG,
+            send_backup: true
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          syncDOMFromServerConfig(data.config);
+          if (st) {
+            st.style.background = '#14532d';
+            st.style.color = '#4ade80';
+            st.innerText = '✅ Успешно сохранено! База обновлена, синхронизирована с Google Sheets и отправлена вам в личку Telegram.';
+          }
+        } else {
+          if (st) {
+            st.style.background = '#7f1d1d';
+            st.style.color = '#fca5a5';
+            st.innerText = '❌ Ошибка сохранения: ' + (data.message || 'отказ сервера');
+          }
+        }
+      } catch (e) {
+        if (st) {
+          st.style.background = '#7f1d1d';
+          st.style.color = '#fca5a5';
+          st.innerText = '❌ Сбой соединения: ' + e.message;
+        }
+      }
+    }
+
+    function applyServicesConfig() {
+      calcWell(true);
+      loadServerConfigAndInit();
+    }
+
+    // === ЗАПУСК ПРИЛОЖЕНИЯ С УЧЕТОМ НАСТРОЕК ===
+    applyServicesConfig();
+    
+    if (currentOrderMode === 'works') {
+      renderWorksList();
+    }
+  </script>
+</body>
+</html>
