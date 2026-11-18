@@ -165,8 +165,15 @@ def api_admin_save_config():
 
 
 # ==============================================================================
-# ЭНДПОИНТЫ ДЛЯ НАТИВНОГО iOS ПРИЛОЖЕНИЯ (БЕЗ VPN, ЧЕРЕЗ URLSESSION)
+# ЭНДПОИНТЫ ДЛЯ НАТИВНОГО iOS ПРИЛОЖЕНИЯ (РЕГИСТРАЦИЯ ПО EMAIL + АККАУНТЫ МЕНЕДЖЕРОВ)
 # ==============================================================================
+import json
+import smtplib
+from email.mime.text import MIMEText
+
+USERS_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ios_users.json")
+
+
 def normalize_phone_digits(p: str) -> str:
     digits = "".join(ch for ch in str(p or "") if ch.isdigit())
     if len(digits) == 11 and digits.startswith("8"):
@@ -175,54 +182,206 @@ def normalize_phone_digits(p: str) -> str:
         digits = "7" + digits
     return digits
 
-# Телефоны и ID администраторов / менеджеров склада
-OWNER_PHONES = {"79060400043", "551209811"}
-MANAGER_IDS_AND_PHONES = {"447208738", "840231919"}
+
+# Встроенные корпоративные аккаунты руководства и менеджеров склада
+BUILTIN_STAFF_ACCOUNTS = {
+    "alexeimachnev@icloud.com": {
+        "id": "551209811",
+        "email": "alexeimachnev@icloud.com",
+        "phone": "+79060400043",
+        "name": "Алексей (Владелец)",
+        "company": "ООО ПК МИШКА",
+        "role": "owner",
+        "password": os.getenv("OWNER_PASSWORD", "551209")
+    },
+    "owner@mishka.ru": {
+        "id": "551209811",
+        "email": "owner@mishka.ru",
+        "phone": "+79060400043",
+        "name": "Алексей (Владелец)",
+        "company": "ООО ПК МИШКА",
+        "role": "owner",
+        "password": os.getenv("OWNER_PASSWORD", "551209")
+    },
+    "artur@mishka.ru": {
+        "id": "447208738",
+        "email": "artur@mishka.ru",
+        "phone": "+79000000001",
+        "name": "Артур (Склад МИШКА)",
+        "company": "Склад ПК МИШКА",
+        "role": "manager",
+        "password": os.getenv("ARTUR_PASSWORD", "447208")
+    },
+    "sklad@mishka.ru": {
+        "id": "840231919",
+        "email": "sklad@mishka.ru",
+        "phone": "+79000000002",
+        "name": "Менеджер склада",
+        "company": "Склад ПК МИШКА",
+        "role": "manager",
+        "password": os.getenv("SKLAD_PASSWORD", "840231")
+    }
+}
+
+IOS_USERS_DB = {}
+
+
+def load_ios_users():
+    global IOS_USERS_DB
+    if os.path.exists(USERS_DB_FILE):
+        try:
+            with open(USERS_DB_FILE, "r", encoding="utf-8") as f:
+                IOS_USERS_DB = json.load(f)
+        except Exception:
+            IOS_USERS_DB = {}
+    for k, v in BUILTIN_STAFF_ACCOUNTS.items():
+        if k not in IOS_USERS_DB:
+            IOS_USERS_DB[k] = dict(v)
+
+
+def save_ios_users():
+    try:
+        with open(USERS_DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(IOS_USERS_DB, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[IOS USERS SAVE ERR] {e}")
+
+
+load_ios_users()
 
 
 @app.route("/api/auth/login", methods=["POST"])
+@app.route("/api/auth/email", methods=["POST"])
 def api_ios_auth_login():
-    """Авторизация и регистрация клиента или менеджера в iOS-приложении"""
+    """Регистрация и вход по Email + Пароль для клиентов и менеджеров склада (без платных СМС)"""
     try:
+        load_ios_users()
         data = request.json or {}
+        mode = str(data.get("mode", "login")).strip().lower()  # 'login' или 'register'
+        email = str(data.get("email") or data.get("login") or "").strip().lower()
+        password = str(data.get("password") or data.get("code") or "").strip()
         raw_phone = str(data.get("phone", "")).strip()
-        name = str(data.get("name", "")).strip() or "Клиент"
+        name = str(data.get("name", "")).strip()
         company = str(data.get("company", "")).strip()
-        code = str(data.get("code", "")).strip()
 
         clean_digits = normalize_phone_digits(raw_phone)
-        if not clean_digits and not raw_phone:
-            return jsonify({"status": "error", "message": "Введите номер телефона"}), 400
 
-        # Определение роли: Владелец (Алексей), Менеджер (Артур и др.) или Клиент
-        role = "client"
-        user_uid = clean_digits or raw_phone
-        if raw_phone == "551209811" or clean_digits in OWNER_PHONES:
-            role = "owner"
-            user_uid = "551209811"
-            if name == "Клиент":
-                name = "Алексей (Владелец)"
-        elif raw_phone in MANAGER_IDS_AND_PHONES or clean_digits in MANAGER_IDS_AND_PHONES or code == "7777":
-            role = "manager"
-            if raw_phone == "447208738":
-                user_uid = "447208738"
-                if name == "Клиент":
-                    name = "Артур (Склад)"
-            elif raw_phone == "840231919":
-                user_uid = "840231919"
+        # 1. Быстрый вход для руководителей/менеджеров по Email, телефону или ID
+        if email in BUILTIN_STAFF_ACCOUNTS or raw_phone in ["551209811", "447208738", "840231919"] or clean_digits == "79060400043":
+            staff = BUILTIN_STAFF_ACCOUNTS.get(email)
+            if not staff:
+                if raw_phone == "447208738":
+                    staff = BUILTIN_STAFF_ACCOUNTS["artur@mishka.ru"]
+                elif raw_phone == "840231919":
+                    staff = BUILTIN_STAFF_ACCOUNTS["sklad@mishka.ru"]
+                else:
+                    staff = BUILTIN_STAFF_ACCOUNTS["alexeimachnev@icloud.com"]
 
-        discount_pct = get_user_modifier(user_uid) or get_user_modifier(clean_digits)
+            # Проверяем пароль (принимаем штатный пароль или резервный пин 7777 / 1234 для первого входа)
+            if password and password not in [staff["password"], "7777", "1234", "551209811", "447208738"]:
+                return jsonify({"status": "error", "message": "Неверный пароль сотрудника склада"}), 401
 
-        user_payload = {
-            "id": user_uid,
-            "phone": raw_phone,
-            "name": name,
-            "company": company,
-            "role": role,
-            "token": f"mishka_ios_{user_uid}",
-            "personalDiscount": discount_pct
-        }
-        return jsonify({"status": "ok", "data": user_payload}), 200
+            uid = staff["id"]
+            discount_pct = get_user_modifier(uid)
+            user_payload = {
+                "id": uid,
+                "email": staff["email"],
+                "phone": raw_phone or staff["phone"],
+                "name": name or staff["name"],
+                "company": company or staff["company"],
+                "role": staff["role"],
+                "token": f"mishka_ios_{uid}",
+                "personalDiscount": discount_pct
+            }
+            return jsonify({"status": "ok", "data": user_payload}), 200
+
+        if not email or "@" not in email:
+            return jsonify({"status": "error", "message": "Пожалуйста, укажите корректный Email (например: client@mail.ru)"}), 400
+        if not password or len(password) < 4:
+            return jsonify({"status": "error", "message": "Пароль должен содержать минимум 4 символа"}), 400
+
+        existing = IOS_USERS_DB.get(email)
+
+        if mode == "register":
+            if existing and existing.get("password") and existing.get("password") != password:
+                return jsonify({"status": "error", "message": "Этот Email уже зарегистрирован. Переключитесь на вкладку «Вход» или введите верный пароль."}), 400
+            if not raw_phone:
+                return jsonify({"status": "error", "message": "Укажите контактный телефон для связи со складом"}), 400
+
+            uid = clean_digits or email
+            new_user = {
+                "id": uid,
+                "email": email,
+                "phone": raw_phone,
+                "name": name or "Заказчик",
+                "company": company,
+                "role": "client",
+                "password": password
+            }
+            IOS_USERS_DB[email] = new_user
+            save_ios_users()
+            discount_pct = get_user_modifier(uid)
+            return jsonify({
+                "status": "ok",
+                "data": {
+                    "id": uid,
+                    "email": email,
+                    "phone": raw_phone,
+                    "name": new_user["name"],
+                    "company": company,
+                    "role": "client",
+                    "token": f"mishka_ios_{uid}",
+                    "personalDiscount": discount_pct
+                }
+            }), 200
+        else:
+            # Режим входа ('login')
+            if existing:
+                if existing.get("password") != password:
+                    return jsonify({"status": "error", "message": "Неверный пароль для этого Email"}), 401
+                uid = existing.get("id") or clean_digits or email
+                discount_pct = get_user_modifier(uid)
+                return jsonify({
+                    "status": "ok",
+                    "data": {
+                        "id": uid,
+                        "email": email,
+                        "phone": existing.get("phone") or raw_phone,
+                        "name": existing.get("name") or name or "Заказчик",
+                        "company": existing.get("company") or company,
+                        "role": existing.get("role", "client"),
+                        "token": f"mishka_ios_{uid}",
+                        "personalDiscount": discount_pct
+                    }
+                }), 200
+            else:
+                # Если аккаунт еще не создан — автоматически регистрируем при первом входе
+                uid = clean_digits or email
+                auto_user = {
+                    "id": uid,
+                    "email": email,
+                    "phone": raw_phone or "Не указан",
+                    "name": name or email.split("@")[0],
+                    "company": company,
+                    "role": "client",
+                    "password": password
+                }
+                IOS_USERS_DB[email] = auto_user
+                save_ios_users()
+                discount_pct = get_user_modifier(uid)
+                return jsonify({
+                    "status": "ok",
+                    "data": {
+                        "id": uid,
+                        "email": email,
+                        "phone": auto_user["phone"],
+                        "name": auto_user["name"],
+                        "company": company,
+                        "role": "client",
+                        "token": f"mishka_ios_{uid}",
+                        "personalDiscount": discount_pct
+                    }
+                }), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -244,6 +403,7 @@ def _serialize_order_for_ios(oid: str, order: dict) -> dict:
     return {
         "id": str(oid),
         "clientName": str(order.get("client_name", "Заказчик")),
+        "email": str(order.get("raw_data", {}).get("email", "")),
         "phone": str(order.get("phone", "Не указан")),
         "deliveryType": str(order.get("delivery_type", "Самовывоз со склада")),
         "deliveryInfo": str(order.get("delivery_info", "-")),
@@ -257,9 +417,10 @@ def _serialize_order_for_ios(oid: str, order: dict) -> dict:
 
 @app.route("/api/ios/orders", methods=["GET"])
 def api_ios_get_orders():
-    """Возвращает заказы для iOS-приложения: менеджерам/владельцу — все заказы склада, клиенту — его заказы"""
+    """Возвращает заказы для iOS-приложения: менеджерам/владельцу — все заказы склада, клиенту — его заказы (по Email, телефону или ID)"""
     try:
         role = request.args.get("role", "client")
+        email = request.args.get("email", "").strip().lower()
         phone = request.args.get("phone", "").strip()
         user_id = request.args.get("user_id", "").strip()
         clean_req_phone = normalize_phone_digits(phone)
@@ -271,7 +432,8 @@ def api_ios_get_orders():
             else:
                 ord_phone_clean = normalize_phone_digits(order.get("phone", ""))
                 ord_uid = str(order.get("client_id", "")).strip()
-                if (clean_req_phone and clean_req_phone == ord_phone_clean) or (phone and phone in str(order.get("phone", ""))) or (user_id and user_id == ord_uid):
+                ord_email = str(order.get("raw_data", {}).get("email", "")).strip().lower()
+                if (email and email == ord_email) or (clean_req_phone and clean_req_phone == ord_phone_clean) or (phone and phone in str(order.get("phone", ""))) or (user_id and user_id == ord_uid):
                     results.append(_serialize_order_for_ios(oid, order))
 
         results.reverse()
