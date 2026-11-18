@@ -249,6 +249,70 @@ def save_ios_users():
 
 load_ios_users()
 
+EMAIL_OTP_CODES = {}
+
+def send_verification_email_smtp(target_email: str, code: str) -> bool:
+    """Отправляет 4-значный код подтверждения на Email клиента через SMTP (Яндекс / Mail.ru / Gmail)"""
+    smtp_user = os.getenv("SMTP_EMAIL", "").strip()
+    smtp_pass = os.getenv("SMTP_PASSWORD", "").strip()
+    smtp_host = os.getenv("SMTP_HOST", "smtp.yandex.ru").strip()
+    smtp_port = int(os.getenv("SMTP_PORT", "465"))
+
+    if not smtp_user or not smtp_pass:
+        return False
+
+    try:
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        msg = MIMEMultipart()
+        msg["From"] = smtp_user
+        msg["To"] = target_email
+        msg["Subject"] = f"Код подтверждения ПК «МИШКА»: {code}"
+
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px; background: #17212b; color: #ffffff; border-radius: 12px;">
+            <h2 style="color: #2ea6ff; margin-top: 0;">📦 ПК «МИШКА»</h2>
+            <p>Здравствуйте! Ваш код для входа и подтверждения регистрации в мобильном приложении:</p>
+            <div style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #4ade80; padding: 12px 20px; background: #232e3c; display: inline-block; border-radius: 8px;">
+                {code}
+            </div>
+            <p style="color: #94a3b8; font-size: 12px; margin-top: 16px;">Если вы не запрашивали код, просто проигнорируйте это письмо.</p>
+        </div>
+        """
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10) as server:
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, target_email, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"[SMTP SEND ERR] {e}")
+        return False
+
+
+@app.route("/api/auth/send_email_code", methods=["POST"])
+def api_send_email_code():
+    """Генерирует и отправляет 4-значный код на почту клиента (если настроен SMTP_EMAIL/SMTP_PASSWORD)"""
+    try:
+        import random
+        data = request.json or {}
+        email = str(data.get("email", "")).strip().lower()
+        if not email or "@" not in email:
+            return jsonify({"status": "error", "message": "Укажите корректный Email"}), 400
+
+        code = str(random.randint(1000, 9999))
+        EMAIL_OTP_CODES[email] = code
+        sent = send_verification_email_smtp(email, code)
+
+        return jsonify({
+            "status": "ok",
+            "smtp_active": sent,
+            "message": "Код отправлен на вашу почту!" if sent else "Регистрация по паролю (без кода из письма)"
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 
 @app.route("/api/auth/login", methods=["POST"])
 @app.route("/api/auth/email", methods=["POST"])
