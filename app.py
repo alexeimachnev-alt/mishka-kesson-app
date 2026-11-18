@@ -47,72 +47,6 @@ if not BOT_TOKEN:
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__, template_folder="templates", static_folder=".")
 
-@app.after_request
-def add_cors_headers(response):
-    """Разрешает работу приложения внутри нативной оболочки iOS (Xcode) и Android (Google Play)"""
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-User-Id"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    return response
-
-@app.route("/api/delete_my_data", methods=["POST"])
-def api_delete_my_data():
-    """Обязательный эндпоинт для прохождения модерации в App Store и Google Play (Удаление данных)"""
-    try:
-        data = request.json or {}
-        uid = str(data.get("user_id", "")).strip()
-        phone = str(data.get("phone", "")).strip()
-        if uid:
-            remove_user_modifier(uid)
-        to_delete = [
-            oid for oid, ord_data in ACTIVE_ORDERS.items()
-            if (uid and str(ord_data.get("client_id")) == uid) or (phone and phone in str(ord_data.get("phone", "")))
-        ]
-        for oid in to_delete:
-            ACTIVE_ORDERS.pop(oid, None)
-        return jsonify({"status": "ok", "deleted_orders": len(to_delete)}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route("/privacy")
-def privacy_policy():
-    """Страница Политики конфиденциальности (для App Store и Google Play)"""
-    html = """<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Политика конфиденциальности — ПК МИШКА</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #17212b; color: #f5f5f5; padding: 24px; line-height: 1.6; max-width: 720px; margin: 0 auto; }
-    h1 { color: #2ea6ff; font-size: 1.4rem; }
-    h2 { color: #71b1ff; font-size: 1.1rem; margin-top: 20px; }
-    .card { background: #232e3c; padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
-    a { color: #2ea6ff; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Политика конфиденциальности ООО «ПК МИШКА»</h1>
-    <p>Настоящая Политика конфиденциальности регулирует порядок обработки и защиты информации о пользователях мобильного и веб-приложения «Склад и Монтаж МИШКА».</p>
-    <h2>1. Какие данные мы собираем</h2>
-    <p>Приложение запрашивает только те данные, которые пользователь вводит добровольно при оформлении наряд-заказа на оборудование или монтаж скважины:</p>
-    <ul>
-      <li>Имя заказчика или представителя монтажной организации;</li>
-      <li>Контактный номер телефона для связи по заказу;</li>
-      <li>Адрес объекта (в случае выбора доставки или выезда монтажной бригады);</li>
-      <li>Технический идентификатор сессии/устройства для сохранения истории заказов и персональной скидки.</li>
-    </ul>
-    <h2>2. Как используются данные</h2>
-    <p>Данные используются исключительно для расчета инженерной сметы, комплектации оборудования на складе ООО «ПК МИШКА» и связи менеджера с заказчиком. Данные не передаются третьим лицам в рекламных или маркетинговых целях.</p>
-    <h2>3. Удаление данных</h2>
-    <p>Пользователь имеет право в любой момент полностью удалить свои сохраненные данные и историю заказов прямо в интерфейсе приложения, нажав на кнопку «Удалить мои данные» в нижней части экрана.</p>
-    <p style="margin-top:20px;"><a href="/app">← Вернуться в приложение</a></p>
-  </div>
-</body>
-</html>"""
-    return html, 200
-
 WELCOME_BANNER_URL = "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1000&q=80"
 
 @app.route("/")
@@ -226,6 +160,185 @@ def api_admin_save_config():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
+
+
+
+# ==============================================================================
+# ЭНДПОИНТЫ ДЛЯ НАТИВНОГО iOS ПРИЛОЖЕНИЯ (БЕЗ VPN, ЧЕРЕЗ URLSESSION)
+# ==============================================================================
+def normalize_phone_digits(p: str) -> str:
+    digits = "".join(ch for ch in str(p or "") if ch.isdigit())
+    if len(digits) == 11 and digits.startswith("8"):
+        digits = "7" + digits[1:]
+    elif len(digits) == 10:
+        digits = "7" + digits
+    return digits
+
+# Телефоны и ID администраторов / менеджеров склада
+OWNER_PHONES = {"79060400043", "551209811"}
+MANAGER_IDS_AND_PHONES = {"447208738", "840231919"}
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def api_ios_auth_login():
+    """Авторизация и регистрация клиента или менеджера в iOS-приложении"""
+    try:
+        data = request.json or {}
+        raw_phone = str(data.get("phone", "")).strip()
+        name = str(data.get("name", "")).strip() or "Клиент"
+        company = str(data.get("company", "")).strip()
+        code = str(data.get("code", "")).strip()
+
+        clean_digits = normalize_phone_digits(raw_phone)
+        if not clean_digits and not raw_phone:
+            return jsonify({"status": "error", "message": "Введите номер телефона"}), 400
+
+        # Определение роли: Владелец (Алексей), Менеджер (Артур и др.) или Клиент
+        role = "client"
+        user_uid = clean_digits or raw_phone
+        if raw_phone == "551209811" or clean_digits in OWNER_PHONES:
+            role = "owner"
+            user_uid = "551209811"
+            if name == "Клиент":
+                name = "Алексей (Владелец)"
+        elif raw_phone in MANAGER_IDS_AND_PHONES or clean_digits in MANAGER_IDS_AND_PHONES or code == "7777":
+            role = "manager"
+            if raw_phone == "447208738":
+                user_uid = "447208738"
+                if name == "Клиент":
+                    name = "Артур (Склад)"
+            elif raw_phone == "840231919":
+                user_uid = "840231919"
+
+        discount_pct = get_user_modifier(user_uid) or get_user_modifier(clean_digits)
+
+        user_payload = {
+            "id": user_uid,
+            "phone": raw_phone,
+            "name": name,
+            "company": company,
+            "role": role,
+            "token": f"mishka_ios_{user_uid}",
+            "personalDiscount": discount_pct
+        }
+        return jsonify({"status": "ok", "data": user_payload}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+def _serialize_order_for_ios(oid: str, order: dict) -> dict:
+    raw_items = order.get("items", [])
+    collected_flags = order.get("collected", [False] * len(raw_items))
+    ios_items = []
+    for idx, it in enumerate(raw_items):
+        is_col = collected_flags[idx] if idx < len(collected_flags) else False
+        ios_items.append({
+            "itemKey": str(it.get("item_key") or it.get("code") or f"item_{idx}"),
+            "name": str(it.get("name", "Позиция")),
+            "qty": float(it.get("qty", 1)),
+            "unit": str(it.get("unit", "шт")),
+            "price": float(it.get("price", 0)),
+            "isCollected": bool(is_col)
+        })
+    return {
+        "id": str(oid),
+        "clientName": str(order.get("client_name", "Заказчик")),
+        "phone": str(order.get("phone", "Не указан")),
+        "deliveryType": str(order.get("delivery_type", "Самовывоз со склада")),
+        "deliveryInfo": str(order.get("delivery_info", "-")),
+        "totalSum": float(order.get("total_sum", 0)),
+        "status": str(order.get("status", "active")),
+        "paymentMethod": order.get("payment_method"),
+        "cancelReason": order.get("cancel_reason"),
+        "items": ios_items
+    }
+
+
+@app.route("/api/ios/orders", methods=["GET"])
+def api_ios_get_orders():
+    """Возвращает заказы для iOS-приложения: менеджерам/владельцу — все заказы склада, клиенту — его заказы"""
+    try:
+        role = request.args.get("role", "client")
+        phone = request.args.get("phone", "").strip()
+        user_id = request.args.get("user_id", "").strip()
+        clean_req_phone = normalize_phone_digits(phone)
+
+        results = []
+        for oid, order in ACTIVE_ORDERS.items():
+            if role in ["manager", "owner"]:
+                results.append(_serialize_order_for_ios(oid, order))
+            else:
+                ord_phone_clean = normalize_phone_digits(order.get("phone", ""))
+                ord_uid = str(order.get("client_id", "")).strip()
+                if (clean_req_phone and clean_req_phone == ord_phone_clean) or (phone and phone in str(order.get("phone", ""))) or (user_id and user_id == ord_uid):
+                    results.append(_serialize_order_for_ios(oid, order))
+
+        results.reverse()
+        return jsonify({"status": "ok", "data": results}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/admin/toggle_item", methods=["POST"])
+def api_ios_toggle_item():
+    """Отметка позиции в чек-листе сборки из iOS-приложения менеджера"""
+    try:
+        data = request.json or {}
+        order_id = str(data.get("order_id", "")).strip()
+        item_index = data.get("item_index")
+        item_key = str(data.get("item_key", "")).strip()
+        is_collected = bool(data.get("is_collected", True))
+
+        order = ACTIVE_ORDERS.get(order_id)
+        if not order:
+            return jsonify({"status": "error", "message": "Заказ не найден"}), 404
+
+        if item_index is not None and 0 <= int(item_index) < len(order["collected"]):
+            order["collected"][int(item_index)] = is_collected
+        else:
+            for idx, it in enumerate(order["items"]):
+                k = str(it.get("item_key") or it.get("code") or f"item_{idx}")
+                if k == item_key or it.get("name") == item_key:
+                    order["collected"][idx] = is_collected
+                    break
+
+        return jsonify({"status": "ok", "data": _serialize_order_for_ios(order_id, order)}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/admin/update_order", methods=["POST"])
+def api_ios_update_order():
+    """Смена статуса заказа (Собран / Оплачен / Отменен) из iOS-приложения менеджера с синхронизацией в Google Таблицу и ТГ"""
+    try:
+        data = request.json or {}
+        order_id = str(data.get("order_id", "")).strip()
+        new_status = str(data.get("status", "completed")).strip()
+        payment_type = str(data.get("payment_type", "")).strip()
+        cancel_reason = str(data.get("cancel_reason", "")).strip()
+        manager_name = str(data.get("manager_name", "Менеджер (iOS)")).strip()
+
+        order = ACTIVE_ORDERS.get(order_id)
+        if not order:
+            return jsonify({"status": "error", "message": "Заказ не найден"}), 404
+
+        order["status"] = new_status
+        if payment_type:
+            order["payment_method"] = payment_type
+        if cancel_reason:
+            order["cancel_reason"] = cancel_reason
+
+        if new_status == "completed":
+            update_sheet_status(order_id, "Собран на складе", assembler=manager_name, manager=manager_name)
+        elif new_status == "paid":
+            update_sheet_status(order_id, "Оплачен и выдан", payment_type=payment_type or "Оплачено", payment_method=payment_type or "Оплачено", manager=manager_name)
+        elif new_status == "cancelled":
+            update_sheet_status(order_id, "Отменён", cancel_reason=cancel_reason, comment=cancel_reason, manager=manager_name)
+
+        return jsonify({"status": "ok", "data": _serialize_order_for_ios(order_id, order)}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route("/api/user_orders", methods=["GET", "POST"])
