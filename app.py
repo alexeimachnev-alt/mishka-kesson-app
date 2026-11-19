@@ -55,12 +55,14 @@ WELCOME_BANNER_URL = "https://images.unsplash.com/photo-1581092160607-ee22621dd7
 @app.route("/")
 @app.route("/health")
 def health_check():
-    from brevo_mail import brevo_configured, delivery_configured
+    from brevo_mail import brevo_auth_ok, brevo_configured, delivery_configured
+    mode = "brevo" if brevo_configured() else ("smtp" if delivery_configured() else "off")
     return jsonify({
         "status": "ok",
         "service": "Mishka Warehouse",
         "admins": ADMIN_CHAT_IDS,
-        "email_delivery": "brevo" if brevo_configured() else ("smtp" if delivery_configured() else "off"),
+        "email_delivery": mode,
+        "brevo_auth_ok": brevo_auth_ok() if brevo_configured() else None,
         "ios_api_version": 2,
     }), 200
 

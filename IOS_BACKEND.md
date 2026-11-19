@@ -18,7 +18,13 @@ Base URL: `https://mishka-kesson-app.onrender.com`
 curl -s https://mishka-kesson-app.onrender.com/health
 ```
 
-Ожидается `"email_delivery":"brevo"`, `"ios_api_version":2`.
+Ожидается `"email_delivery":"brevo"`, `"brevo_auth_ok":true`, `"ios_api_version":2`.
+
+Если **`brevo_auth_ok":false`** или в приложении ошибка **401**:
+- В Brevo → **Transactional** → **API keys** создайте ключ вида `xkeysib-…` (не SMTP-пароль).
+- Render → **Environment**: `BREVO_API_KEY` — вставить **без кавычек и переносов строк**.
+- `BREVO_SENDER_EMAIL` — адрес **подтверждён** в Brevo (Senders).
+- **Manual Deploy** после сохранения env.
 
 Тест кода:
 
