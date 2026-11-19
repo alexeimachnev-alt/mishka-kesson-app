@@ -28,7 +28,7 @@ PRICES = {
     "garden_tap": 1100,
 
     "vfd_controller": 24500,
-    "tank_small_vfd": 3800,
+    "tank_small_vfd": 3801,
     "well_adapter_1": 4900,
     "cover_adapter": 3200,
 
@@ -62,9 +62,9 @@ PRICES = {
     "pump_85": 32000,
     "pump_110": 39500,
     "pump_120": 48000,
-    "tank_80": 9800,
-    "tank_150": 17500,
-    "tank_200": 24000,
+    "tank_80": 9801,
+    "tank_150": 17501,
+    "tank_200": 24001,
 }
 
 EXTRA_ITEMS = {
