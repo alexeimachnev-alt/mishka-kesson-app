@@ -208,7 +208,7 @@ BUILTIN_STAFF_ACCOUNTS = {
         "name": "Алексей (Владелец)",
         "company": "ООО ПК МИШКА",
         "role": "owner",
-        "password": os.getenv("OWNER_PASSWORD", "551209")
+        "password": os.getenv("ALEXEI_ICLOUD_PASSWORD", os.getenv("OWNER_PASSWORD", "19652200")),
     },
     "owner@mishka.ru": {
         "id": "551209811",
@@ -272,8 +272,6 @@ def save_ios_users():
         print(f"[IOS USERS SAVE ERR] {e}")
 
 
-load_ios_users()
-
 from ios_auth_helpers import (
     store_otp,
     verify_otp,
@@ -290,6 +288,24 @@ from ios_auth_helpers import (
     resolve_user_by_token,
     user_from_bearer,
 )
+
+
+def sync_builtin_staff_to_ios_db():
+    """Синхронизирует встроенных сотрудников в ios_users.json (пароль — pbkdf2)."""
+    load_ios_users()
+    for email, acc in BUILTIN_STAFF_ACCOUNTS.items():
+        plain = str(acc.get("password", ""))
+        merged = dict(acc)
+        if plain and not plain.startswith(("pbkdf2:", "scrypt:")):
+            merged["password"] = hash_password(plain)
+        prev = IOS_USERS_DB.get(email, {})
+        if prev.get("token"):
+            merged["token"] = prev["token"]
+        IOS_USERS_DB[email] = merged
+    save_ios_users()
+
+
+sync_builtin_staff_to_ios_db()
 
 EMAIL_OTP_CODES = {}
 PASSWORD_RESET_OTP_CODES = {}
