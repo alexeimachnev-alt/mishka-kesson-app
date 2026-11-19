@@ -23,6 +23,17 @@ _RENDER_SMTP_HINT = (
     "Создайте новый BREVO_API_KEY (xkeysib-…) с правом Send emails; xsmtpsib на Render не сработает."
 )
 
+_BREVO_IP_BLOCK_HINT = (
+    "Brevo заблокировал запрос с IP сервера Render (защита аккаунта), а не из‑за «плохого» ключа. "
+    "В app.brevo.com → Security → Authorized IPs отключите список IP или подтвердите письмо Brevo "
+    "о неизвестном IP (Render: 74.220.49.x). Затем снова send_email_code."
+)
+
+
+def _brevo_ip_restriction_error(body: str) -> bool:
+    low = (body or "").lower()
+    return "unrecognised ip" in low or "unrecognized ip" in low or "unrecognised ip address" in low
+
 
 def _hosted_on_render() -> bool:
     return bool(os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"))
@@ -87,14 +98,18 @@ def brevo_public_diagnostics() -> dict:
         "last_brevo_error": (_brevo_auth_cache.get("body_snippet") or "")[:120],
         "hint": "",
     }
-    if _hosted_on_render():
+    snippet = diag.get("last_brevo_error") or ""
+    if _brevo_ip_restriction_error(snippet):
+        diag["hint"] = _BREVO_IP_BLOCK_HINT
+        diag["brevo_ip_authorization_required"] = True
+    elif _hosted_on_render() and not diag["hint"]:
         diag["hint"] = _RENDER_SMTP_HINT
     if looks_smtp_key and not looks_api:
         diag["hint"] = (
             "В BREVO_API_KEY лежит xsmtpsib (SMTP). На Render SMTP не работает — "
             "создайте xkeysib API key (Transactional → API Keys) и положите в BREVO_API_KEY."
         )
-    elif last_send == 401:
+    elif last_send == 401 and not _brevo_ip_restriction_error(snippet):
         diag["hint"] = (
             "Brevo отклоняет API-ключ (401). Создайте НОВЫЙ xkeysib с правом Send emails "
             "и обновите BREVO_API_KEY на Render."
@@ -172,6 +187,8 @@ def brevo_auth_ok(force: bool = False) -> bool:
 
 def _brevo_error_message(status_code: int, body: str) -> str:
     lowered = (body or "").lower()
+    if status_code == 401 and _brevo_ip_restriction_error(body):
+        return _BREVO_IP_BLOCK_HINT
     if status_code == 401:
         base = (
             "Brevo отклонил API-ключ (401). Создайте новый xkeysib (Send emails) "
