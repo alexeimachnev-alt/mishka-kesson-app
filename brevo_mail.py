@@ -18,6 +18,23 @@ _brevo_auth_cache = {
 _BREVO_AUTH_TTL_OK = 600
 _BREVO_AUTH_TTL_FAIL = 120
 
+_RENDER_SMTP_HINT = (
+    "На Render исходящий SMTP (порты 587/465) заблокирован — письма только через HTTP API Brevo. "
+    "Создайте новый BREVO_API_KEY (xkeysib-…) с правом Send emails; xsmtpsib на Render не сработает."
+)
+
+
+def _hosted_on_render() -> bool:
+    return bool(os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"))
+
+
+def _smtp_outbound_allowed() -> bool:
+    if _clean_env("BREVO_USE_SMTP") == "1" and not _hosted_on_render():
+        return True
+    if _hosted_on_render():
+        return False
+    return bool(_brevo_smtp_password())
+
 
 def _clean_env(var_name: str) -> str:
     raw = os.getenv(var_name) or ""
@@ -64,21 +81,23 @@ def brevo_public_diagnostics() -> dict:
         "api_key_starts_with_xkeysib": looks_api,
         "api_key_is_smtp_key_xsmtpsib": looks_smtp_key,
         "brevo_smtp_key_set": bool(_clean_env("BREVO_SMTP_KEY")),
+        "render_smtp_blocked": _hosted_on_render(),
         "last_brevo_http_status": _brevo_auth_cache.get("http_status"),
         "last_brevo_send_status": last_send,
         "last_brevo_error": (_brevo_auth_cache.get("body_snippet") or "")[:120],
         "hint": "",
     }
+    if _hosted_on_render():
+        diag["hint"] = _RENDER_SMTP_HINT
     if looks_smtp_key and not looks_api:
         diag["hint"] = (
-            "В BREVO_API_KEY лежит xsmtpsib (SMTP). Либо создайте xkeysib API key, "
-            "либо задайте BREVO_SMTP_KEY=xsmtpsib-… и BREVO_SMTP_LOGIN из Brevo → SMTP."
+            "В BREVO_API_KEY лежит xsmtpsib (SMTP). На Render SMTP не работает — "
+            "создайте xkeysib API key (Transactional → API Keys) и положите в BREVO_API_KEY."
         )
     elif last_send == 401:
         diag["hint"] = (
-            "Brevo отклоняет отправку (401): ключ отозван, обрезан или не тот. "
-            "Создайте НОВЫЙ xkeysib с правом Send emails ИЛИ используйте SMTP: "
-            "BREVO_SMTP_KEY + BREVO_SMTP_LOGIN на Render."
+            "Brevo отклоняет API-ключ (401). Создайте НОВЫЙ xkeysib с правом Send emails "
+            "и обновите BREVO_API_KEY на Render."
         )
     elif not key and not _brevo_smtp_password():
         diag["hint"] = "Добавьте BREVO_API_KEY (xkeysib) или BREVO_SMTP_KEY (xsmtpsib) и передеплойте."
@@ -137,11 +156,10 @@ def brevo_auth_ok(force: bool = False) -> bool:
 
     if api_key.startswith("xkeysib-"):
         ok, status, snippet = _brevo_probe_send_api(api_key)
-    elif _brevo_smtp_password():
+    elif _brevo_smtp_password() and _smtp_outbound_allowed():
         ok, status, snippet = True, 200, "smtp_key_only"
-
-    if not ok and not api_key.startswith("xkeysib-") and _brevo_smtp_password():
-        ok, status, snippet = True, 200, "smtp_fallback_configured"
+    elif _brevo_smtp_password() and _hosted_on_render():
+        ok, status, snippet = False, 0, "smtp_blocked_on_render"
 
     _brevo_auth_cache["http_status"] = status
     _brevo_auth_cache["body_snippet"] = snippet
@@ -155,12 +173,13 @@ def brevo_auth_ok(force: bool = False) -> bool:
 def _brevo_error_message(status_code: int, body: str) -> str:
     lowered = (body or "").lower()
     if status_code == 401:
-        return (
-            "Brevo отклонил API-ключ при отправке (401). "
-            "Создайте новый xkeysib с правом Send emails в Brevo → API Keys "
-            "ИЛИ на Render добавьте BREVO_SMTP_KEY (xsmtpsib) и BREVO_SMTP_LOGIN, "
-            "сохраните env и передеплойте."
+        base = (
+            "Brevo отклонил API-ключ (401). Создайте новый xkeysib (Send emails) "
+            "в Brevo → API Keys и вставьте в BREVO_API_KEY на Render одной строкой."
         )
+        if _hosted_on_render():
+            return f"{base} SMTP (xsmtpsib) на Render недоступен."
+        return base
     if status_code == 403:
         return (
             "Brevo 403: у ключа нет права отправки. "
@@ -229,9 +248,12 @@ def _send_via_brevo_smtp(
     except Exception as e:
         print(f"[BREVO SMTP ERR] {e}")
         _brevo_auth_cache["last_send_http_status"] = 0
+        err = str(e).lower()
+        if _hosted_on_render() and ("timed out" in err or "timeout" in err):
+            return False, _RENDER_SMTP_HINT
         return False, (
             f"Ошибка Brevo SMTP: {e}. "
-            "Проверьте BREVO_SMTP_LOGIN (логин из Brevo → SMTP) и BREVO_SMTP_KEY (xsmtpsib-…)."
+            "Проверьте BREVO_SMTP_LOGIN и BREVO_SMTP_KEY (только вне Render)."
         )
 
 
@@ -245,12 +267,20 @@ def send_html_email(target_email: str, subject: str, html_body: str) -> tuple[bo
     sender_name = _clean_env("BREVO_SENDER_NAME") or "ПК МИШКА"
     smtp_pass = _brevo_smtp_password()
 
-    if sender_email and smtp_pass and not api_key.startswith("xkeysib-"):
+    if (
+        sender_email
+        and smtp_pass
+        and not api_key.startswith("xkeysib-")
+        and _smtp_outbound_allowed()
+    ):
         ok, msg = _send_via_brevo_smtp(sender_email, sender_name, target_email, subject, html_body)
         if ok:
             return True, msg
         if not api_key:
             return False, msg
+
+    if sender_email and smtp_pass and _hosted_on_render() and not api_key.startswith("xkeysib-"):
+        return False, _RENDER_SMTP_HINT
 
     if api_key.startswith("xkeysib-") and sender_email:
         ok, status, user_msg = _send_via_brevo_http(
@@ -258,9 +288,11 @@ def send_html_email(target_email: str, subject: str, html_body: str) -> tuple[bo
         )
         if ok:
             return True, user_msg
-        if status in (401, 403) and smtp_pass:
+        if status in (401, 403) and smtp_pass and _smtp_outbound_allowed():
             print("[BREVO] HTTP failed, trying SMTP relay")
             return _send_via_brevo_smtp(sender_email, sender_name, target_email, subject, html_body)
+        if status in (401, 403) and smtp_pass and _hosted_on_render():
+            return False, f"{user_msg} {_RENDER_SMTP_HINT}"
         return False, user_msg
 
     smtp_user = _clean_env("SMTP_EMAIL")
