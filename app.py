@@ -14,6 +14,9 @@ from calc_module import (
     render_order_texts,
     get_admin_name,
     get_items_for_order,
+    OrderValidationError,
+    recompute_order_composition_flags,
+    tag_item_category,
     ACTIVE_ORDERS, 
     ADMIN_CHAT_IDS,
     MESSAGES,
@@ -100,8 +103,9 @@ def api_admin_user_discount():
         data = request.json or {}
         admin_id = data.get("user_id")
         init_data = data.get("init_data", "")
-        if not is_owner_admin(admin_id, init_data):
-            return jsonify({"status": "error", "message": "Доступ запрещён! Только для владельца бота."}), 403
+        staff_role = str(data.get("role", "")).strip().lower()
+        if not (is_owner_admin(admin_id, init_data) or can_edit_catalog(staff_role, admin_id)):
+            return jsonify({"status": "error", "message": "Доступ запрещён! Только для владельца / admin."}), 403
 
         action = data.get("action", "set")
         target_tg_id = str(data.get("target_telegram_id", "")).strip()
@@ -132,8 +136,9 @@ def api_admin_save_config():
         data = request.json or {}
         user_id = data.get("user_id")
         init_data = data.get("init_data", "")
-        if not is_owner_admin(user_id, init_data):
-            return jsonify({"status": "error", "message": "Доступ запрещён! Только для владельца бота."}), 403
+        staff_role = str(data.get("role", "")).strip().lower()
+        if not (is_owner_admin(user_id, init_data) or can_edit_catalog(staff_role, user_id)):
+            return jsonify({"status": "error", "message": "Доступ запрещён! Только для владельца / admin."}), 403
 
         new_cfg = data.get("config") or {}
         apply_config_dict(new_cfg)
@@ -216,10 +221,19 @@ BUILTIN_STAFF_ACCOUNTS = {
         "id": "840231919",
         "email": "sklad@mishka.ru",
         "phone": "+79000000002",
-        "name": "Менеджер склада",
+        "name": "Сборщик склада",
         "company": "Склад ПК МИШКА",
-        "role": "manager",
+        "role": "warehouse",
         "password": os.getenv("SKLAD_PASSWORD", "840231")
+    },
+    "admin@mishka.ru": {
+        "id": "551209811",
+        "email": "admin@mishka.ru",
+        "phone": "+79060400043",
+        "name": "Администратор ПК МИШКА",
+        "company": "ООО ПК МИШКА",
+        "role": "admin",
+        "password": os.getenv("OWNER_PASSWORD", "551209")
     }
 }
 
@@ -248,6 +262,17 @@ def save_ios_users():
 
 
 load_ios_users()
+
+from ios_auth_helpers import (
+    store_otp,
+    verify_otp,
+    user_payload_from_record,
+    issue_session_token,
+    can_edit_catalog,
+    can_manage_orders,
+    map_order_status_for_ios,
+    map_payment_type_ios,
+)
 
 EMAIL_OTP_CODES = {}
 
@@ -301,7 +326,7 @@ def api_send_email_code():
             return jsonify({"status": "error", "message": "Укажите корректный Email"}), 400
 
         code = str(random.randint(1000, 9999))
-        EMAIL_OTP_CODES[email] = code
+        store_otp(EMAIL_OTP_CODES, email, code)
         sent = send_verification_email_smtp(email, code)
 
         return jsonify({
@@ -312,6 +337,81 @@ def api_send_email_code():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
+@app.route("/api/auth/verify_email_code", methods=["POST"])
+def api_verify_email_code():
+    """Подтверждение Email OTP, регистрация / вход клиента, выдача session token."""
+    try:
+        load_ios_users()
+        data = request.json or {}
+        email = str(data.get("email", "")).strip().lower()
+        code = str(data.get("code", "")).strip()
+        raw_phone = str(data.get("phone", "")).strip()
+        name = str(data.get("name", "")).strip()
+        company = str(data.get("company", "")).strip()
+
+        if not email or "@" not in email:
+            return jsonify({"status": "error", "message": "Укажите корректный Email"}), 400
+        if not code:
+            return jsonify({"status": "error", "message": "Введите код из письма"}), 400
+        if not verify_otp(EMAIL_OTP_CODES, email, code):
+            return jsonify({"status": "error", "message": "Неверный или устаревший код"}), 401
+        if not raw_phone:
+            return jsonify({"status": "error", "message": "Укажите телефон для связи со складом"}), 400
+
+        clean_digits = normalize_phone_digits(raw_phone)
+        existing = IOS_USERS_DB.get(email) or BUILTIN_STAFF_ACCOUNTS.get(email)
+        uid = clean_digits or (existing or {}).get("id") or email
+        record = {
+            "id": uid,
+            "email": email,
+            "phone": raw_phone,
+            "name": name or (existing or {}).get("name") or email.split("@")[0],
+            "company": company or (existing or {}).get("company", ""),
+            "role": (existing or {}).get("role", "client"),
+        }
+        record["token"] = issue_session_token(uid)
+        if email not in BUILTIN_STAFF_ACCOUNTS:
+            record["password"] = code
+            IOS_USERS_DB[email] = {**IOS_USERS_DB.get(email, {}), **record}
+            save_ios_users()
+        payload = user_payload_from_record(record)
+        payload["token"] = record["token"]
+        return jsonify({"status": "ok", "data": payload}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/auth/staff_quick", methods=["POST"])
+def api_staff_quick_login():
+    """Быстрый выбор роли для внутреннего тестирования (только если QUICK_LOGIN=1 на Render)."""
+    if os.getenv("QUICK_LOGIN", "0").strip() != "1":
+        return jsonify({"status": "error", "message": "Быстрый вход отключён на сервере"}), 403
+    data = request.json or {}
+    role = str(data.get("role", "client")).strip().lower()
+    role_map = {
+        "owner": BUILTIN_STAFF_ACCOUNTS["owner@mishka.ru"],
+        "admin": BUILTIN_STAFF_ACCOUNTS["admin@mishka.ru"],
+        "manager": BUILTIN_STAFF_ACCOUNTS["artur@mishka.ru"],
+        "warehouse": BUILTIN_STAFF_ACCOUNTS["sklad@mishka.ru"],
+    }
+    if role == "client":
+        demo = {
+            "id": "demo_client",
+            "email": "demo@client.ru",
+            "phone": "+79000000099",
+            "name": "Демо-клиент",
+            "company": "",
+            "role": "client",
+            "token": issue_session_token("demo_client"),
+        }
+        return jsonify({"status": "ok", "data": user_payload_from_record(demo)}), 200
+    staff = role_map.get(role)
+    if not staff:
+        return jsonify({"status": "error", "message": "Неизвестная роль"}), 400
+    staff_copy = dict(staff)
+    staff_copy["token"] = issue_session_token(staff["id"])
+    return jsonify({"status": "ok", "data": user_payload_from_record(staff_copy)}), 200
 
 
 @app.route("/api/auth/login", methods=["POST"])
@@ -462,8 +562,11 @@ def _serialize_order_for_ios(oid: str, order: dict) -> dict:
             "qty": float(it.get("qty", 1)),
             "unit": str(it.get("unit", "шт")),
             "price": float(it.get("price", 0)),
-            "isCollected": bool(is_col)
+            "isCollected": bool(is_col),
+            "isWork": bool(it.get("is_work")),
+            "category": str(it.get("category") or ("works" if it.get("is_work") else "goods")),
         })
+    raw_status = str(order.get("status", "active"))
     return {
         "id": str(oid),
         "clientName": str(order.get("client_name", "Заказчик")),
@@ -472,10 +575,17 @@ def _serialize_order_for_ios(oid: str, order: dict) -> dict:
         "deliveryType": str(order.get("delivery_type", "Самовывоз со склада")),
         "deliveryInfo": str(order.get("delivery_info", "-")),
         "totalSum": float(order.get("total_sum", 0)),
-        "status": str(order.get("status", "active")),
+        "status": map_order_status_for_ios(raw_status),
+        "internalStatus": raw_status,
         "paymentMethod": order.get("payment_method"),
         "cancelReason": order.get("cancel_reason"),
-        "items": ios_items
+        "yandexNavURL": str(order.get("raw_data", {}).get("yandex_nav_url") or YANDEX_MAPS_URL),
+        "items": ios_items,
+        "hasGoods": bool(order.get("has_goods", True)),
+        "hasWorks": bool(order.get("has_works", order.get("is_works", False))),
+        "isCombined": bool(order.get("is_combined", False)),
+        "goodsSubtotal": float(order.get("goods_subtotal", 0)),
+        "worksSubtotal": float(order.get("works_subtotal", 0)),
     }
 
 
@@ -491,7 +601,7 @@ def api_ios_get_orders():
 
         results = []
         for oid, order in ACTIVE_ORDERS.items():
-            if role in ["manager", "owner"]:
+            if can_manage_orders(role):
                 results.append(_serialize_order_for_ios(oid, order))
             else:
                 ord_phone_clean = normalize_phone_digits(order.get("phone", ""))
@@ -541,7 +651,8 @@ def api_ios_update_order():
         data = request.json or {}
         order_id = str(data.get("order_id", "")).strip()
         new_status = str(data.get("status", "completed")).strip()
-        payment_type = str(data.get("payment_type", "")).strip()
+        payment_type = str(data.get("payment_type") or data.get("payment_method") or "").strip()
+        payment_type = map_payment_type_ios(payment_type) or payment_type
         cancel_reason = str(data.get("cancel_reason", "")).strip()
         manager_name = str(data.get("manager_name", "Менеджер (iOS)")).strip()
 
@@ -589,6 +700,9 @@ def get_user_orders():
                     "total": order.get("total_sum", 0),
                     "status": order.get("status", "active"),
                     "is_works": order.get("is_works", False),
+                    "has_goods": order.get("has_goods", not order.get("is_works")),
+                    "has_works": order.get("has_works", order.get("is_works", False)),
+                    "is_combined": order.get("is_combined", False),
                     "delivery_type": order.get("delivery_type", ""),
                     "delivery_info": order.get("delivery_info", ""),
                     "items": order.get("items", [])
@@ -600,6 +714,7 @@ def get_user_orders():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/api/ios/create_order", methods=["POST"])
 @app.route("/api/miniapp_order", methods=["POST"])
 def handle_miniapp_order():
     try:
@@ -641,6 +756,8 @@ def handle_miniapp_order():
             "items": ACTIVE_ORDERS[order_id]["items"]
         }), 200
 
+    except OrderValidationError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
     except Exception as e:
         print(f"[ERROR API] {e}")
         return jsonify({"error": str(e)}), 500
@@ -696,9 +813,14 @@ def handle_callbacks(call):
             return
 
         manager_name = get_admin_name(call.from_user.id)
-        order["status"] = "completed"
-        order["agreed_by"] = manager_name
-        order["collected_by"] = manager_name
+        order["works_agreed"] = True
+        has_goods = bool(order.get("has_goods", True))
+        if not has_goods:
+            order["status"] = "completed"
+            order["agreed_by"] = manager_name
+            order["collected_by"] = manager_name
+        else:
+            order["agreed_by"] = manager_name
 
         new_kb = make_warehouse_keyboard(order_id)
         try:
@@ -731,9 +853,22 @@ def handle_callbacks(call):
             bot.answer_callback_query(call.id, "Заказ не найден")
             return
 
+        has_goods = bool(order.get("has_goods", True))
+        has_works = bool(order.get("has_works", order.get("is_works")))
+        if has_goods:
+            goods_idx = [i for i, it in enumerate(order["items"]) if not it.get("is_work")]
+            if goods_idx and not all(order["collected"][i] for i in goods_idx if i < len(order["collected"])):
+                bot.answer_callback_query(call.id, "Сначала соберите все позиции оборудования на складе")
+                return
+        if has_works and has_goods and not order.get("works_agreed"):
+            bot.answer_callback_query(call.id, "Сначала согласуйте монтажные работы (кнопка 🔨)")
+            return
+
         manager_name = get_admin_name(call.from_user.id)
         order["status"] = "completed"
         order["collected_by"] = manager_name
+        if has_works:
+            order["works_agreed"] = True
 
         new_kb = make_warehouse_keyboard(order_id)
         try:
@@ -940,6 +1075,14 @@ def handle_callbacks(call):
         del order["items"][idx]
         del order["collected"][idx]
 
+        flags = recompute_order_composition_flags(order["items"])
+        order.update(flags)
+        order["goods_subtotal"] = round(
+            sum(it["qty"] * it["price"] for it in order["items"] if not it.get("is_work")), 2
+        )
+        order["works_subtotal"] = round(
+            sum(it["qty"] * it["price"] for it in order["items"] if it.get("is_work")), 2
+        )
         order["total_sum"] = round(sum(it["qty"] * it["price"] for it in order["items"]), 2)
         admin_text, client_text = render_order_texts(order_id, order["raw_data"], order["items"], order["total_sum"], order.get("lang", "ru"), modifier_pct=order.get("modifier_pct", 0.0))
 
@@ -1001,13 +1144,23 @@ def process_add_item_qty(message, order_id, catalog_idx):
         return
 
     item_template = ALL_CATALOG_ITEMS[catalog_idx]
-    order["items"].append({
+    new_line = tag_item_category({
+        "item_key": item_template.get("code", ""),
         "name": f"[Добавлен] {item_template['name']}",
         "qty": qty,
         "unit": item_template["unit"],
         "price": item_template["price"]
     })
+    order["items"].append(new_line)
     order["collected"].append(False)
+    flags = recompute_order_composition_flags(order["items"])
+    order.update(flags)
+    order["goods_subtotal"] = round(
+        sum(it["qty"] * it["price"] for it in order["items"] if not it.get("is_work")), 2
+    )
+    order["works_subtotal"] = round(
+        sum(it["qty"] * it["price"] for it in order["items"] if it.get("is_work")), 2
+    )
     order["total_sum"] = round(sum(it["qty"] * it["price"] for it in order["items"]), 2)
 
     admin_text, client_text = render_order_texts(order_id, order["raw_data"], order["items"], order["total_sum"], order.get("lang", "ru"), modifier_pct=order.get("modifier_pct", 0.0))

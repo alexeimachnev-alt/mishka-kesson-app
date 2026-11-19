@@ -252,7 +252,11 @@ def sync_to_google_sheet(order_id: str, data: dict, total_sum: float, items_list
         sign = "+" if modifier_pct > 0 else ""
         full_client_info += f" [Перс. условие: {sign}{modifier_pct:g}%]"
 
-    items_summary = ", ".join([f"{it['name']} ({it['qty']} {it.get('unit','шт')})" for it in (items_list or [])])
+    summary_bits = []
+    for it in (items_list or []):
+        prefix = "🛠" if it.get("is_work") else "📦"
+        summary_bits.append(f"{prefix} {it['name']} ({it['qty']} {it.get('unit', 'шт')})")
+    items_summary = ", ".join(summary_bits)
 
     payload = {
         "action": "create_order",
@@ -287,30 +291,154 @@ def update_sheet_status(order_id: str, status: str, cancel_reason: str = "", man
     }
     threading.Thread(target=_send_to_sheet_now, args=(payload,), daemon=True).start()
 
+def item_looks_like_work(item: dict) -> bool:
+  """Определяет, относится ли позиция к монтажным/складским работам."""
+  if item.get("is_work"):
+    return True
+  cat = str(item.get("category", "")).lower()
+  if cat in ("works", "work"):
+    return True
+  key = str(item.get("item_key") or item.get("code") or "").strip().lower()
+  if key.startswith("work_"):
+    return True
+  name = str(item.get("name", "")).strip()
+  if name.startswith("[Работа]"):
+    return True
+  return False
+
+
+def tag_item_category(item: dict) -> dict:
+  """Добавляет category / is_work и префикс [Работа] для работ в единой смете."""
+  it = dict(item)
+  is_work = item_looks_like_work(it)
+  it["is_work"] = is_work
+  it["category"] = "works" if is_work else (it.get("category") or "goods")
+  if is_work:
+    nm = str(it.get("name", "Монтажные работы"))
+    if not nm.startswith("[Работа]"):
+      it["name"] = f"[Работа] {nm}"
+  return it
+
+
+def recompute_order_composition_flags(items: list) -> dict:
+  goods = [it for it in items if not it.get("is_work")]
+  works = [it for it in items if it.get("is_work")]
+  has_goods = len(goods) > 0
+  has_works = len(works) > 0
+  return {
+    "has_goods": has_goods,
+    "has_works": has_works,
+    "is_works": has_works,
+    "is_combined": has_goods and has_works,
+  }
+
+
+def _extract_work_items(data: dict) -> list:
+  src = data.get("works_items")
+  if src is None and str(data.get("mode", "")).lower() == "works":
+    src = data.get("items", [])
+  if not src:
+    src = [it for it in (data.get("items") or []) if item_looks_like_work(it)]
+  clean = []
+  for it in src:
+    q = float(it.get("qty", 0))
+    if q <= 0:
+      continue
+    row = {
+      "item_key": it.get("item_key") or it.get("code", ""),
+      "name": it.get("name", "Монтажные работы"),
+      "qty": q,
+      "unit": it.get("unit", "усл."),
+      "price": float(it.get("price", 0)),
+    }
+    if it.get("base_price") is not None:
+      row["base_price"] = float(it["base_price"])
+    if it.get("_modifier_applied"):
+      row["_modifier_applied"] = True
+    clean.append(tag_item_category(row))
+  return clean
+
+
+def _extract_goods_items(data: dict) -> list:
+  mode = str(data.get("mode", "well")).lower()
+  raw_items = data.get("items") or []
+
+  if raw_items and mode not in ("works",):
+    goods_from_items = []
+    for it in raw_items:
+      if item_looks_like_work(it):
+        continue
+      q = float(it.get("qty", 0))
+      if q > 0:
+        goods_from_items.append(tag_item_category(dict(it)))
+    if goods_from_items and not data.get("force_recalc_goods"):
+      return goods_from_items
+
+  if mode in ("well", "kesson", "адаптер", "скважина", "combined") or mode not in ("works", "extras"):
+    from calc_well import get_well_items
+    return [tag_item_category(it) for it in get_well_items(data) if float(it.get("qty", 0)) > 0]
+
+  goods = []
+  for it in raw_items:
+    if item_looks_like_work(it):
+      continue
+    q = float(it.get("qty", 0))
+    if q > 0:
+      goods.append(tag_item_category(dict(it)))
+  return goods
+
+
+def _resolve_inclusion_flags(data: dict) -> tuple:
+  mode = str(data.get("mode", "well")).lower()
+  include_goods = data.get("include_goods")
+  include_works = data.get("include_works")
+
+  if mode == "combined":
+    include_goods = True if include_goods is None else bool(include_goods)
+    include_works = True if include_works is None else bool(include_works)
+  elif mode == "works":
+    include_goods = False if include_goods is None else bool(include_goods)
+    include_works = True if include_works is None else bool(include_works)
+  else:
+    include_goods = True if include_goods is None else bool(include_goods)
+    if include_works is None:
+      include_works = bool(data.get("works_items")) or any(
+        item_looks_like_work(it) for it in (data.get("items") or [])
+      )
+    else:
+      include_works = bool(include_works)
+
+  return include_goods, include_works
+
+
 def get_items_for_order(data: dict):
-    mode = data.get("mode", "well")
+  """Собирает позиции заказа: только товары, только работы или объединённая смета."""
+  include_goods, include_works = _resolve_inclusion_flags(data)
+  merged = []
 
-    # Режим ТОЛЬКО РАБОТ: убираются все материалы, берутся выбранные услуги
-    if mode == "works":
-        items = data.get("items", [])
-        clean_works = []
-        for it in items:
-            q = float(it.get("qty", 0))
-            if q > 0:
-                clean_works.append({
-                    "item_key": it.get("item_key") or it.get("code", ""),
-                    "name": it.get("name", "Монтажные работы"),
-                    "qty": q,
-                    "unit": it.get("unit", "усл."),
-                    "price": float(it.get("price", 0))
-                })
-        return clean_works
+  if include_goods:
+    merged.extend(_extract_goods_items(data))
+  if include_works:
+    merged.extend(_extract_work_items(data))
 
-    if mode in ["well", "kesson", "адаптер", "скважина"]:
-        from calc_well import get_well_items
-        return get_well_items(data)
+  if not merged and data.get("items"):
+    for it in data.get("items") or []:
+      q = float(it.get("qty", 0))
+      if q > 0:
+        merged.append(tag_item_category(dict(it)))
 
-    return data.get("items", [])
+  return merged
+
+
+class OrderValidationError(ValueError):
+  pass
+
+
+def validate_unified_order_items(items: list) -> None:
+  if not items:
+    raise OrderValidationError(
+      "Добавьте в заказ товары/наборы, монтажные работы или оба раздела — сейчас смета пуста."
+    )
 
 def get_translated_name(item, lang):
     key = item.get("item_key")
@@ -355,26 +483,41 @@ def apply_personal_modifier_to_items(items: list, modifier_pct: float) -> list:
     return updated
 
 
-def render_order_texts(order_id: str, data: dict, items: list, total_sum: float, lang: str, modifier_pct: float = 0.0):
-    t_client = MESSAGES.get(lang, MESSAGES["ru"])
+def _format_item_lines(item_list: list, lang: str) -> tuple:
     admin_lines = []
     client_lines = []
-
-    for it in items:
-        subtotal = round(it["qty"] * it["price"], 2)
+    section_sum = 0.0
+    for it in item_list:
+        subtotal = round(float(it["qty"]) * float(it["price"]), 2)
+        section_sum += subtotal
         qty_str = f"{it['qty']:g}" if isinstance(it["qty"], float) else str(it["qty"])
-        u_admin = it.get('unit', 'шт')
-        p = it['price']
-        admin_lines.append(f"• <b>{it['name']}</b>\n   └ {qty_str} {u_admin} × {p:,.2f} ₽ = <b>{subtotal:,.2f} ₽</b>")
-
+        u_admin = it.get("unit", "шт")
+        p = it["price"]
+        admin_lines.append(
+            f"• <b>{it['name']}</b>\n   └ {qty_str} {u_admin} × {p:,.2f} ₽ = <b>{subtotal:,.2f} ₽</b>"
+        )
         client_name = get_translated_name(it, lang)
-        u_client = get_translated_unit(it.get('unit', 'шт'), lang)
-        client_lines.append(f"• <b>{client_name}</b>\n   └ {qty_str} {u_client} × {p:,.2f} ₽ = <b>{subtotal:,.2f} ₽</b>")
+        u_client = get_translated_unit(it.get("unit", "шт"), lang)
+        client_lines.append(
+            f"• <b>{client_name}</b>\n   └ {qty_str} {u_client} × {p:,.2f} ₽ = <b>{subtotal:,.2f} ₽</b>"
+        )
+    return admin_lines, client_lines, round(section_sum, 2)
 
-    is_works = (data.get("mode") == "works")
-    delivery_type = data.get("delivery_type", "Выезд бригады на объект" if is_works else "Самовывоз со склада")
+
+def render_order_texts(order_id: str, data: dict, items: list, total_sum: float, lang: str, modifier_pct: float = 0.0):
+    t_client = MESSAGES.get(lang, MESSAGES["ru"])
+    comp = recompute_order_composition_flags(items)
+    goods_items = [it for it in items if not it.get("is_work")]
+    works_items = [it for it in items if it.get("is_work")]
+
+    goods_admin, goods_client, goods_sum = _format_item_lines(goods_items, lang)
+    works_admin, works_client, works_sum = _format_item_lines(works_items, lang)
+
+    is_works_only = comp["has_works"] and not comp["has_goods"]
+    is_combined = comp["is_combined"]
+    delivery_type = data.get("delivery_type", "Выезд бригады на объект" if is_works_only else "Самовывоз со склада")
     delivery_info = data.get("delivery_info", "-")
-    is_delivery = ("Доставка" in delivery_type) or is_works
+    is_delivery = ("Доставка" in delivery_type) or is_works_only
     phone = data.get("phone") or data.get("client_phone") or "Не указан"
     raw_name = data.get("client_name") or data.get("worker_name", "Монтажник")
     company = data.get("company", "").strip()
@@ -382,7 +525,14 @@ def render_order_texts(order_id: str, data: dict, items: list, total_sum: float,
     tag = data.get("worker_tag", "")
     tg_uid = str(data.get("user_id") or data.get("chat_id") or "Не определен").strip()
 
-    if is_works:
+    if is_combined:
+        admin_logistics = (
+            f"📦+🛠 <b>Тип заказа:</b> <b>ТОВАРЫ И МОНТАЖНЫЕ РАБОТЫ (единая смета)</b>\n"
+            f"🚚 <b>Логистика:</b> {delivery_type}\n"
+            f"📍 <b>Детали:</b> <code>{delivery_info}</code>"
+        )
+        client_logistics = f"📦+🛠 Товары и работы\n📍 {delivery_info}"
+    elif is_works_only:
         admin_logistics = f"🔨 <b>Тип заказа:</b> 🛠 <b>ВЫЕЗД БРИГАДЫ НА РАБОТЫ</b>\n📍 <b>Адрес объекта:</b> <code>{delivery_info}</code>"
         client_logistics = f"{t_client.get('works_type', '🔨 Выезд бригады')}\n📍 {delivery_info}"
     elif is_delivery:
@@ -401,8 +551,22 @@ def render_order_texts(order_id: str, data: dict, items: list, total_sum: float,
         modifier_admin_line = f"📈 <b>Персональная наценка клиента:</b> <code>+{modifier_pct:g}%</code> (применена к смете)\n"
 
     newline = chr(10)
-    admin_spec = newline.join(admin_lines)
-    client_spec = newline.join(client_lines)
+    admin_spec_parts = []
+    client_spec_parts = []
+    if goods_items:
+        admin_spec_parts.append(f"📦 <b>ОБОРУДОВАНИЕ И ТОВАРЫ</b> — <i>{goods_sum:,.2f} ₽</i>\n" + newline.join(goods_admin))
+    if works_items:
+        admin_spec_parts.append(f"🛠 <b>МОНТАЖНЫЕ И СКЛАДСКИЕ РАБОТЫ</b> — <i>{works_sum:,.2f} ₽</i>\n" + newline.join(works_admin))
+    admin_spec = f"\n\n".join(admin_spec_parts) if admin_spec_parts else "—"
+    if goods_items:
+        client_spec_parts.append(f"📦 <b>Товары</b> — {goods_sum:,.2f} ₽\n" + newline.join(goods_client))
+    if works_items:
+        client_spec_parts.append(f"🛠 <b>Работы</b> — {works_sum:,.2f} ₽\n" + newline.join(works_client))
+    client_spec = f"\n\n".join(client_spec_parts) if client_spec_parts else "—"
+
+    breakdown_admin = ""
+    if is_combined:
+        breakdown_admin = f"📊 <b>Итого оборудование:</b> {goods_sum:,.2f} ₽ | <b>Итого работы:</b> {works_sum:,.2f} ₽\n"
 
     admin_header = (
         f"🧾 <b>ЗАКАЗ #{order_id} «МИШКА»</b>\n"
@@ -412,13 +576,16 @@ def render_order_texts(order_id: str, data: dict, items: list, total_sum: float,
         f"📞 <b>Телефон:</b> <a href='tel:{phone}'>{phone}</a>\n"
         f"{modifier_admin_line}"
         f"{admin_logistics}\n\n"
-        f"📦 <b>СПЕЦИФИКАЦИЯ ОБОРУДОВАНИЯ:</b>\n\n"
         f"{admin_spec}\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"{breakdown_admin}"
         f"💰 <b>ИТОГО К ОПЛАТЕ: {total_sum:,.2f} ₽</b>"
     )
 
     client_total_str = f"{total_sum:,.2f}"
+    client_breakdown = ""
+    if is_combined:
+        client_breakdown = f"📊 Товары: {goods_sum:,.2f} ₽ + Работы: {works_sum:,.2f} ₽\n"
     client_header = (
         f"{t_client['order_title'].format(order_id=order_id)}\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -430,6 +597,7 @@ def render_order_texts(order_id: str, data: dict, items: list, total_sum: float,
         f"{t_client['spec_title']}\n\n"
         f"{client_spec}\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"{client_breakdown}"
         f"{t_client['total'].format(sum=client_total_str)}"
     )
 
@@ -438,7 +606,8 @@ def render_order_texts(order_id: str, data: dict, items: list, total_sum: float,
 
 def build_order_payload(data: dict):
     order_id = str(uuid.uuid4())[:8]
-    raw_items = data.get("items") or get_items_for_order(data)
+    raw_items = get_items_for_order(data)
+    validate_unified_order_items(raw_items)
     lang = data.get("lang", "ru")
     if lang not in MESSAGES:
         lang = "ru"
@@ -454,12 +623,24 @@ def build_order_payload(data: dict):
     # Автоматический пересчет позиций и итоговой суммы с учетом персональной скидки/наценки по Telegram ID
     items = apply_personal_modifier_to_items(raw_items, modifier_pct)
     total_sum = round(sum(it["qty"] * it["price"] for it in items), 2)
+    comp_flags = recompute_order_composition_flags(items)
+    goods_subtotal = round(sum(it["qty"] * it["price"] for it in items if not it.get("is_work")), 2)
+    works_subtotal = round(sum(it["qty"] * it["price"] for it in items if it.get("is_work")), 2)
     admin_header, client_header = render_order_texts(order_id, data, items, total_sum, lang, modifier_pct=modifier_pct)
 
-    is_works = (data.get("mode") == "works")
-    delivery_type = data.get("delivery_type", "Выезд бригады на объект" if is_works else "Самовывоз со склада")
+    is_works_only = comp_flags["has_works"] and not comp_flags["has_goods"]
+    delivery_type = data.get(
+        "delivery_type",
+        "Выезд бригады на объект" if is_works_only else "Самовывоз со склада",
+    )
     delivery_info = data.get("delivery_info", "-")
-    is_delivery = ("Доставка" in delivery_type) or is_works
+    is_delivery = ("Доставка" in delivery_type) or is_works_only or (
+        comp_flags["is_combined"] and comp_flags["has_works"]
+    )
+
+    data = dict(data)
+    if comp_flags["is_combined"]:
+        data["mode"] = "combined"
 
     ACTIVE_ORDERS[order_id] = {
         "client_id": tg_uid,
@@ -468,7 +649,12 @@ def build_order_payload(data: dict):
         "delivery_type": delivery_type,
         "delivery_info": delivery_info,
         "is_delivery": is_delivery,
-        "is_works": is_works,
+        "is_works": comp_flags["has_works"],
+        "has_goods": comp_flags["has_goods"],
+        "has_works": comp_flags["has_works"],
+        "is_combined": comp_flags["is_combined"],
+        "goods_subtotal": goods_subtotal,
+        "works_subtotal": works_subtotal,
         "lang": lang,
         "modifier_pct": modifier_pct,
         "raw_data": data,
@@ -476,7 +662,8 @@ def build_order_payload(data: dict):
         "collected": [False] * len(items),
         "total_sum": total_sum,
         "status": "active",
-        "payment_status": "unpaid"
+        "payment_status": "unpaid",
+        "works_agreed": False,
     }
 
     sync_to_google_sheet(order_id, data, total_sum, items_list=items, modifier_pct=modifier_pct)
@@ -488,14 +675,17 @@ def make_warehouse_keyboard(order_id: str):
         return None
 
     kb = types.InlineKeyboardMarkup(row_width=1)
-    is_works = bool(order.get("is_works"))
+    has_goods = bool(order.get("has_goods", not order.get("is_works")))
+    has_works = bool(order.get("has_works", order.get("is_works")))
+    is_works_only = has_works and not has_goods
+    is_combined = bool(order.get("is_combined")) or (has_goods and has_works)
 
-    if order.get("is_delivery") or is_works:
+    if order.get("is_delivery") or is_works_only or (is_combined and has_works):
         addr = order.get("delivery_info", "")
         if addr and addr != "-":
             clean_addr = addr.replace("Объект:", "").replace("Адрес:", "").split("|")[0].strip()
             nav_url = f"https://yandex.ru/navi?text={urllib.parse.quote(clean_addr)}"
-            nav_title = "🚗 Маршрут к объекту (Яндекс)" if is_works else "🚗 Маршрут доставки (Яндекс)"
+            nav_title = "🚗 Маршрут к объекту (Яндекс)" if (is_works_only or has_works) else "🚗 Маршрут доставки (Яндекс)"
             kb.add(types.InlineKeyboardButton(nav_title, url=nav_url))
 
     if order.get("status") == "cancelled":
@@ -505,13 +695,25 @@ def make_warehouse_keyboard(order_id: str):
 
     if order.get("status") == "paid":
         method = order.get("payment_method", "Оплачено")
-        paid_label = f"✅ РАБОТЫ ОПЛАЧЕНЫ ({method})" if is_works else f"✅ ОПЛАЧЕН И ВЫДАН ({method})"
+        if is_combined:
+            paid_label = f"✅ ОПЛАЧЕН: ТОВАРЫ + РАБОТЫ ({method})"
+        elif is_works_only:
+            paid_label = f"✅ РАБОТЫ ОПЛАЧЕНЫ ({method})"
+        else:
+            paid_label = f"✅ ОПЛАЧЕН И ВЫДАН ({method})"
         kb.add(types.InlineKeyboardButton(paid_label, callback_data="none"))
         return kb
 
     if order.get("status") == "completed":
-        status_label = "🤝 ЗАКАЗ СОГЛАСОВАН С КЛИЕНТОМ" if is_works else "🎉 ЗАКАЗ СОБРАН НА СКЛАДЕ"
-        pay_btn_label = "💳 ПРИНЯТЬ ОПЛАТУ ЗА РАБОТЫ" if is_works else "💳 ОПЛАТИТЬ И ВЫДАТЬ ТОВАР"
+        if is_combined:
+            status_label = "🎉 ТОВАРЫ СОБРАНЫ + РАБОТЫ СОГЛАСОВАНЫ"
+            pay_btn_label = "💳 ОПЛАТИТЬ ЗАКАЗ (товары + работы)"
+        elif is_works_only:
+            status_label = "🤝 ЗАКАЗ СОГЛАСОВАН С КЛИЕНТОМ"
+            pay_btn_label = "💳 ПРИНЯТЬ ОПЛАТУ ЗА РАБОТЫ"
+        else:
+            status_label = "🎉 ЗАКАЗ СОБРАН НА СКЛАДЕ"
+            pay_btn_label = "💳 ОПЛАТИТЬ И ВЫДАТЬ ТОВАР"
         kb.add(types.InlineKeyboardButton(status_label, callback_data="none"))
         kb.add(types.InlineKeyboardButton(pay_btn_label, callback_data=f"paymenu_{order_id}"))
         kb.row(
@@ -520,21 +722,35 @@ def make_warehouse_keyboard(order_id: str):
         )
         return kb
 
-    # ЕСЛИ ЭТО ТОЛЬКО РАБОТЫ: НЕ генерируем кнопки чек-листа склада! Сразу кнопка "Согласовать заказ"
-    if is_works:
+    if is_works_only:
         kb.add(types.InlineKeyboardButton("🤝 СОГЛАСОВАТЬ ЗАКАЗ", callback_data=f"agree_{order_id}"))
     else:
-        # Для материалов: интерактивный чек-лист склада
-        for idx, (item, is_done) in enumerate(zip(order["items"], order["collected"])):
+        goods_indices = [i for i, it in enumerate(order["items"]) if not it.get("is_work")]
+        for idx in goods_indices:
+            item = order["items"][idx]
+            is_done = order["collected"][idx] if idx < len(order["collected"]) else False
             mark = "🟢" if is_done else "⬜"
-            qty_str = f"{item['qty']:g}" if isinstance(item['qty'], float) else str(item['qty'])
-            short_name = (item['name'][:22] + "..") if len(item['name']) > 22 else item['name']
-            btn_text = f"{mark} {idx+1}. {short_name} ({qty_str} {item.get('unit','шт')})"
+            qty_str = f"{item['qty']:g}" if isinstance(item["qty"], float) else str(item["qty"])
+            short_name = (item["name"][:22] + "..") if len(item["name"]) > 22 else item["name"]
+            btn_text = f"{mark} {idx+1}. {short_name} ({qty_str} {item.get('unit', 'шт')})"
             kb.add(types.InlineKeyboardButton(btn_text, callback_data=f"chk_{order_id}_{idx}"))
 
-        all_done = all(order["collected"])
+        if has_works:
+            works_count = sum(1 for it in order["items"] if it.get("is_work"))
+            works_mark = "🟢" if order.get("works_agreed") else "🔨"
+            kb.add(
+                types.InlineKeyboardButton(
+                    f"{works_mark} Монтажные работы в заказе ({works_count} поз.)",
+                    callback_data=f"agree_{order_id}" if not order.get("works_agreed") else "none",
+                )
+            )
+
+        goods_collected = all(order["collected"][i] for i in goods_indices) if goods_indices else True
+        works_ok = (not has_works) or bool(order.get("works_agreed"))
+        all_done = goods_collected and works_ok
         finish_icon = "🚀" if all_done else "📦"
-        kb.add(types.InlineKeyboardButton(f"{finish_icon} ЗАКАЗ ПОЛНОСТЬЮ СОБРАН", callback_data=f"fin_{order_id}"))
+        fin_label = "ЗАКАЗ ПОЛНОСТЬЮ ГОТОВ" if is_combined else "ЗАКАЗ ПОЛНОСТЬЮ СОБРАН"
+        kb.add(types.InlineKeyboardButton(f"{finish_icon} {fin_label}", callback_data=f"fin_{order_id}"))
 
     kb.row(
         types.InlineKeyboardButton("❌ Отменить", callback_data=f"cancel_{order_id}"),
