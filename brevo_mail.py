@@ -27,6 +27,33 @@ def brevo_configured() -> bool:
     return bool(_clean_env("BREVO_API_KEY") and _clean_env("BREVO_SENDER_EMAIL"))
 
 
+def brevo_public_diagnostics() -> dict:
+    """Без секретов: помогает понять, почему brevo_auth_ok=false на Render."""
+    key = _clean_env("BREVO_API_KEY")
+    sender = _clean_env("BREVO_SENDER_EMAIL")
+    looks_api = key.startswith("xkeysib-")
+    looks_smtp_key = key.startswith("xsmtpsib-")
+    return {
+        "sender_email_set": bool(sender),
+        "api_key_length": len(key),
+        "api_key_starts_with_xkeysib": looks_api,
+        "api_key_is_smtp_key_xsmtpsib": looks_smtp_key,
+        "hint": (
+            "Замените xsmtpsib- на API key xkeysib- в Brevo → Transactional → API keys"
+            if looks_smtp_key
+            else (
+                "Добавьте BREVO_API_KEY (xkeysib-…) и передеплойте"
+                if not key
+                else (
+                    "Ключ не прошёл GET /v3/account — создайте новый API key в Brevo"
+                    if not looks_api
+                    else "Ключ есть, но Brevo отклоняет — пересоздайте ключ или проверьте аккаунт"
+                )
+            )
+        ),
+    }
+
+
 def brevo_auth_ok(force: bool = False) -> bool:
     """Проверка API-ключа через GET /v3/account (кэш 10 мин)."""
     if not brevo_configured():
