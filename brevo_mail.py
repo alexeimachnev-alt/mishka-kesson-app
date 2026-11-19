@@ -8,8 +8,14 @@ from email.mime.text import MIMEText
 
 import requests
 
-_brevo_auth_cache = {"ok": None, "checked_at": 0.0}
-_BREVO_AUTH_TTL = 600
+_brevo_auth_cache = {
+    "ok": None,
+    "checked_at": 0.0,
+    "http_status": None,
+    "body_snippet": "",
+}
+_BREVO_AUTH_TTL_OK = 600
+_BREVO_AUTH_TTL_FAIL = 45
 
 
 def _clean_env(var_name: str) -> str:
@@ -33,11 +39,14 @@ def brevo_public_diagnostics() -> dict:
     sender = _clean_env("BREVO_SENDER_EMAIL")
     looks_api = key.startswith("xkeysib-")
     looks_smtp_key = key.startswith("xsmtpsib-")
-    return {
+    diag = {
         "sender_email_set": bool(sender),
+        "sender_email_domain": sender.split("@")[-1] if "@" in sender else "",
         "api_key_length": len(key),
         "api_key_starts_with_xkeysib": looks_api,
         "api_key_is_smtp_key_xsmtpsib": looks_smtp_key,
+        "last_brevo_http_status": _brevo_auth_cache.get("http_status"),
+        "last_brevo_error": (_brevo_auth_cache.get("body_snippet") or "")[:120],
         "hint": (
             "Замените xsmtpsib- на API key xkeysib- в Brevo → Transactional → API keys"
             if looks_smtp_key
@@ -52,6 +61,16 @@ def brevo_public_diagnostics() -> dict:
             )
         ),
     }
+    if diag["last_brevo_http_status"] == 401:
+        diag["hint"] = (
+            "Brevo вернул 401: ключ недействителен, отозван или скопирован не полностью. "
+            "Создайте НОВЫЙ API key (xkeysib) и вставьте в Render одной строкой без кавычек."
+        )
+    elif diag["last_brevo_http_status"] == 403:
+        diag["hint"] = "Brevo 403: у ключа нет прав — включите доступ к transactional email в настройках API key."
+    elif diag["last_brevo_http_status"] == 402:
+        diag["hint"] = "Brevo 402: лимит/оплата — проверьте план и квоты на app.brevo.com."
+    return diag
 
 
 def brevo_auth_ok(force: bool = False) -> bool:
@@ -59,8 +78,10 @@ def brevo_auth_ok(force: bool = False) -> bool:
     if not brevo_configured():
         return False
     now = time.time()
-    if not force and _brevo_auth_cache["ok"] is not None and now - _brevo_auth_cache["checked_at"] < _BREVO_AUTH_TTL:
-        return bool(_brevo_auth_cache["ok"])
+    if not force and _brevo_auth_cache["ok"] is not None:
+        ttl = _BREVO_AUTH_TTL_OK if _brevo_auth_cache["ok"] else _BREVO_AUTH_TTL_FAIL
+        if now - _brevo_auth_cache["checked_at"] < ttl:
+            return bool(_brevo_auth_cache["ok"])
 
     api_key = _clean_env("BREVO_API_KEY")
     ok = False
@@ -71,10 +92,14 @@ def brevo_auth_ok(force: bool = False) -> bool:
             timeout=8,
         )
         ok = resp.status_code == 200
+        _brevo_auth_cache["http_status"] = resp.status_code
+        _brevo_auth_cache["body_snippet"] = (resp.text or "")[:200]
         if not ok:
-            print(f"[BREVO AUTH] account check {resp.status_code}: {(resp.text or '')[:200]}")
+            print(f"[BREVO AUTH] account check {resp.status_code}: {_brevo_auth_cache['body_snippet']}")
     except Exception as e:
         print(f"[BREVO AUTH ERR] {e}")
+        _brevo_auth_cache["http_status"] = 0
+        _brevo_auth_cache["body_snippet"] = str(e)[:200]
 
     _brevo_auth_cache["ok"] = ok
     _brevo_auth_cache["checked_at"] = now
