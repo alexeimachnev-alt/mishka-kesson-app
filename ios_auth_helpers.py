@@ -3,11 +3,15 @@
 import os
 import time
 import secrets
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from admin_config import OWNER_ADMIN_ID, get_user_modifier
 
 OTP_TTL_SECONDS = int(os.getenv("EMAIL_OTP_TTL", "600"))
 
 STAFF_PRIVILEGED_ROLES = frozenset({"owner", "admin", "manager", "warehouse"})
+STAFF_MANAGE_ROLES = frozenset({"owner", "admin"})
+STAFF_ACCOUNT_ROLES = frozenset({"owner", "admin", "manager", "warehouse"})
 
 
 def normalize_phone_digits(p: str) -> str:
@@ -90,6 +94,62 @@ def map_order_status_for_ios(internal: str) -> str:
         "cancelled": "cancelled",
     }
     return mapping.get(s, s)
+
+
+def hash_password(plain: str) -> str:
+    return generate_password_hash(str(plain or ""), method="pbkdf2:sha256")
+
+
+def verify_password(stored: str, provided: str) -> bool:
+    if not stored or not provided:
+        return False
+    stored_s = str(stored)
+    if stored_s.startswith("pbkdf2:") or stored_s.startswith("scrypt:"):
+        return check_password_hash(stored_s, provided)
+    return stored_s == provided
+
+
+def can_manage_staff(role: str) -> bool:
+    return str(role or "").lower() in STAFF_MANAGE_ROLES
+
+
+def staff_record_public(record: dict) -> dict:
+    role = str(record.get("role", "manager")).lower()
+    if role == "owner":
+        role = "admin"
+    return {
+        "id": str(record.get("id") or ""),
+        "email": str(record.get("email") or ""),
+        "name": str(record.get("name") or ""),
+        "phone": str(record.get("phone") or ""),
+        "role": role,
+        "isActive": not bool(record.get("blocked", False)),
+    }
+
+
+def resolve_user_by_token(token: str, users_db: dict, builtin: dict):
+    token = str(token or "").strip()
+    if not token:
+        return None
+    merged = {**builtin, **users_db}
+    for rec in merged.values():
+        if str(rec.get("token") or "") == token:
+            return dict(rec)
+    if token.startswith("mishka_ios_"):
+        suffix = token[len("mishka_ios_") :]
+        uid = suffix.split("_", 1)[0] if suffix else ""
+        if uid:
+            for rec in merged.values():
+                if str(rec.get("id") or "") == uid:
+                    return dict(rec)
+    return None
+
+
+def user_from_bearer(request, users_db: dict, builtin: dict):
+    auth = request.headers.get("Authorization", "") or ""
+    if auth.lower().startswith("bearer "):
+        return resolve_user_by_token(auth[7:].strip(), users_db, builtin)
+    return None
 
 
 def map_payment_type_ios(payment_type: str) -> str:

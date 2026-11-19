@@ -13,6 +13,8 @@ import json
 import threading
 import requests
 from constants import PRICES, KESSON_MODELS, TANK_CATALOG, PUMP_CATALOG
+
+_BASE_TANK_REFERENCE_PRICES = {k: float(v.get("price", 0)) for k, v in TANK_CATALOG.items()}
 from calc_module import ALL_CATALOG_ITEMS, SERVICES_CATALOG, ITEM_TRANSLATIONS
 
 OWNER_ADMIN_ID = int(os.getenv("ADMIN_CHAT_ID", "551209811"))
@@ -52,6 +54,20 @@ USERS_DISCOUNTS_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file_
 # percent < 0 -> скидка (например, -10.0 означает скидку 10%)
 # percent > 0 -> наценка (например, +5.0 означает наценку 5%)
 USERS_DISCOUNTS = {}
+
+
+def _normalize_tank_price(key: str, price: float) -> float:
+    """Repairs tank prices corrupted by UI parse bug (e.g. 1908 → 190800)."""
+    try:
+        price = float(price)
+    except (ValueError, TypeError):
+        return 0.0
+    ref = _BASE_TANK_REFERENCE_PRICES.get(key)
+    if ref and ref > 0:
+        ratio = price / float(ref)
+        if 99.5 <= ratio <= 100.5:
+            return float(ref)
+    return price
 
 
 def get_user_modifier(user_id) -> float:
@@ -165,7 +181,10 @@ def apply_config_dict(cfg: dict):
     if "prices" in cfg and isinstance(cfg["prices"], dict):
         for k, v in cfg["prices"].items():
             try:
-                PRICES[k] = float(v)
+                val = float(v)
+                if k in _BASE_TANK_REFERENCE_PRICES:
+                    val = _normalize_tank_price(k, val)
+                PRICES[k] = val
             except (ValueError, TypeError):
                 pass
 
@@ -186,7 +205,7 @@ def apply_config_dict(cfg: dict):
     if "tank_catalog" in cfg and isinstance(cfg["tank_catalog"], dict):
         for k, v in cfg["tank_catalog"].items():
             if isinstance(v, dict) and "name" in v:
-                p = float(v.get("price", 0))
+                p = _normalize_tank_price(k, float(v.get("price", 0)))
                 TANK_CATALOG[k] = {"name": str(v["name"]), "price": p}
                 PRICES[k] = p
                 ITEM_TRANSLATIONS.setdefault(k, {"ru": str(v["name"])})["ru"] = str(v["name"])

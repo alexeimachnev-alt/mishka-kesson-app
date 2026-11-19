@@ -55,7 +55,14 @@ WELCOME_BANNER_URL = "https://images.unsplash.com/photo-1581092160607-ee22621dd7
 @app.route("/")
 @app.route("/health")
 def health_check():
-    return jsonify({"status": "ok", "service": "Mishka Warehouse", "admins": ADMIN_CHAT_IDS}), 200
+    from brevo_mail import brevo_configured, delivery_configured
+    return jsonify({
+        "status": "ok",
+        "service": "Mishka Warehouse",
+        "admins": ADMIN_CHAT_IDS,
+        "email_delivery": "brevo" if brevo_configured() else ("smtp" if delivery_configured() else "off"),
+        "ios_api_version": 2,
+    }), 200
 
 @app.route("/app")
 @app.route("/webapp")
@@ -173,8 +180,6 @@ def api_admin_save_config():
 # ЭНДПОИНТЫ ДЛЯ НАТИВНОГО iOS ПРИЛОЖЕНИЯ (РЕГИСТРАЦИЯ ПО EMAIL + АККАУНТЫ МЕНЕДЖЕРОВ)
 # ==============================================================================
 import json
-import smtplib
-from email.mime.text import MIMEText
 
 USERS_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ios_users.json")
 
@@ -270,70 +275,63 @@ from ios_auth_helpers import (
     issue_session_token,
     can_edit_catalog,
     can_manage_orders,
+    can_manage_staff,
     map_order_status_for_ios,
     map_payment_type_ios,
+    hash_password,
+    verify_password,
+    staff_record_public,
+    resolve_user_by_token,
+    user_from_bearer,
 )
 
 EMAIL_OTP_CODES = {}
+PASSWORD_RESET_OTP_CODES = {}
 
-def send_verification_email_smtp(target_email: str, code: str) -> bool:
-    """Отправляет 4-значный код подтверждения на Email клиента через SMTP (Яндекс / Mail.ru / Gmail)"""
-    smtp_user = os.getenv("SMTP_EMAIL", "").strip()
-    smtp_pass = os.getenv("SMTP_PASSWORD", "").strip()
-    smtp_host = os.getenv("SMTP_HOST", "smtp.yandex.ru").strip()
-    smtp_port = int(os.getenv("SMTP_PORT", "465"))
 
-    if not smtp_user or not smtp_pass:
-        return False
-
-    try:
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        msg = MIMEMultipart()
-        msg["From"] = smtp_user
-        msg["To"] = target_email
-        msg["Subject"] = f"Код подтверждения ПК «МИШКА»: {code}"
-
-        html_body = f"""
-        <div style="font-family: Arial, sans-serif; padding: 20px; background: #17212b; color: #ffffff; border-radius: 12px;">
-            <h2 style="color: #2ea6ff; margin-top: 0;">📦 ПК «МИШКА»</h2>
-            <p>Здравствуйте! Ваш код для входа и подтверждения регистрации в мобильном приложении:</p>
-            <div style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #4ade80; padding: 12px 20px; background: #232e3c; display: inline-block; border-radius: 8px;">
-                {code}
-            </div>
-            <p style="color: #94a3b8; font-size: 12px; margin-top: 16px;">Если вы не запрашивали код, просто проигнорируйте это письмо.</p>
+def _email_html_shell(title: str, code: str, footer: str) -> str:
+    return f"""
+    <div style="font-family: Arial, sans-serif; padding: 20px; background: #17212b; color: #ffffff; border-radius: 12px;">
+        <h2 style="color: #2ea6ff; margin-top: 0;">📦 ПК «МИШКА»</h2>
+        <p>{title}</p>
+        <div style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #4ade80; padding: 12px 20px; background: #232e3c; display: inline-block; border-radius: 8px;">
+            {code}
         </div>
-        """
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
-
-        with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10) as server:
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_user, target_email, msg.as_string())
-        return True
-    except Exception as e:
-        print(f"[SMTP SEND ERR] {e}")
-        return False
+        <p style="color: #94a3b8; font-size: 12px; margin-top: 16px;">{footer}</p>
+    </div>
+    """
 
 
 @app.route("/api/auth/send_email_code", methods=["POST"])
 def api_send_email_code():
-    """Генерирует и отправляет 4-значный код на почту клиента (если настроен SMTP_EMAIL/SMTP_PASSWORD)"""
+    """Генерирует и отправляет 4-значный код на почту клиента через Brevo HTTP API (или SMTP)."""
     try:
         import random
+        from brevo_mail import delivery_configured, send_html_email
+
+        if not delivery_configured():
+            return jsonify({
+                "status": "error",
+                "message": "На сервере не настроена почта. Добавьте BREVO_API_KEY и BREVO_SENDER_EMAIL на Render.",
+            }), 503
+
         data = request.json or {}
         email = str(data.get("email", "")).strip().lower()
         if not email or "@" not in email:
             return jsonify({"status": "error", "message": "Укажите корректный Email"}), 400
 
         code = str(random.randint(1000, 9999))
+        subject = f"Код подтверждения ПК «МИШКА»: {code}"
+        html = _email_html_shell(
+            "Здравствуйте! Код для регистрации в приложении ПК «МИШКА»:",
+            code,
+            "Если вы не запрашивали код, просто проигнорируйте это письмо.",
+        )
+        sent, user_msg = send_html_email(email, subject, html)
+        if not sent:
+            return jsonify({"status": "error", "message": user_msg}), 503
         store_otp(EMAIL_OTP_CODES, email, code)
-        sent = send_verification_email_smtp(email, code)
-
-        return jsonify({
-            "status": "ok",
-            "smtp_active": sent,
-            "message": "Код отправлен на вашу почту!" if sent else "Регистрация по паролю (без кода из письма)"
-        }), 200
+        return jsonify({"status": "ok", "smtp_active": True, "message": user_msg}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -349,18 +347,26 @@ def api_verify_email_code():
         raw_phone = str(data.get("phone", "")).strip()
         name = str(data.get("name", "")).strip()
         company = str(data.get("company", "")).strip()
+        password = str(data.get("password", "")).strip()
 
         if not email or "@" not in email:
             return jsonify({"status": "error", "message": "Укажите корректный Email"}), 400
         if not code:
             return jsonify({"status": "error", "message": "Введите код из письма"}), 400
+        if not password or len(password) < 4:
+            return jsonify({"status": "error", "message": "Придумайте пароль (минимум 4 символа)"}), 400
         if not verify_otp(EMAIL_OTP_CODES, email, code):
             return jsonify({"status": "error", "message": "Неверный или устаревший код"}), 401
         if not raw_phone:
             return jsonify({"status": "error", "message": "Укажите телефон для связи со складом"}), 400
+        if email in BUILTIN_STAFF_ACCOUNTS:
+            return jsonify({"status": "error", "message": "Этот Email зарезервирован для сотрудника склада"}), 400
 
         clean_digits = normalize_phone_digits(raw_phone)
-        existing = IOS_USERS_DB.get(email) or BUILTIN_STAFF_ACCOUNTS.get(email)
+        existing = IOS_USERS_DB.get(email)
+        if existing and existing.get("role") not in (None, "", "client"):
+            return jsonify({"status": "error", "message": "Этот Email уже используется сотрудником"}), 400
+
         uid = clean_digits or (existing or {}).get("id") or email
         record = {
             "id": uid,
@@ -368,13 +374,13 @@ def api_verify_email_code():
             "phone": raw_phone,
             "name": name or (existing or {}).get("name") or email.split("@")[0],
             "company": company or (existing or {}).get("company", ""),
-            "role": (existing or {}).get("role", "client"),
+            "role": "client",
+            "password": hash_password(password),
+            "blocked": False,
         }
         record["token"] = issue_session_token(uid)
-        if email not in BUILTIN_STAFF_ACCOUNTS:
-            record["password"] = code
-            IOS_USERS_DB[email] = {**IOS_USERS_DB.get(email, {}), **record}
-            save_ios_users()
+        IOS_USERS_DB[email] = {**IOS_USERS_DB.get(email, {}), **record}
+        save_ios_users()
         payload = user_payload_from_record(record)
         payload["token"] = record["token"]
         return jsonify({"status": "ok", "data": payload}), 200
@@ -414,138 +420,270 @@ def api_staff_quick_login():
     return jsonify({"status": "ok", "data": user_payload_from_record(staff_copy)}), 200
 
 
+def _login_response_from_record(record: dict) -> dict:
+    rec = dict(record)
+    uid = str(rec.get("id") or rec.get("email") or "")
+    if not rec.get("token"):
+        rec["token"] = issue_session_token(uid)
+        email_key = str(rec.get("email", "")).lower()
+        if email_key in IOS_USERS_DB:
+            IOS_USERS_DB[email_key]["token"] = rec["token"]
+            save_ios_users()
+    payload = user_payload_from_record(rec)
+    payload["token"] = rec["token"]
+    return {"status": "ok", "data": payload}
+
+
 @app.route("/api/auth/login", methods=["POST"])
 @app.route("/api/auth/email", methods=["POST"])
 def api_ios_auth_login():
-    """Регистрация и вход по Email + Пароль для клиентов и менеджеров склада (без платных СМС)"""
+    """Вход по Email + пароль для клиентов и сотрудников."""
     try:
         load_ios_users()
         data = request.json or {}
-        mode = str(data.get("mode", "login")).strip().lower()  # 'login' или 'register'
         email = str(data.get("email") or data.get("login") or "").strip().lower()
         password = str(data.get("password") or data.get("code") or "").strip()
-        raw_phone = str(data.get("phone", "")).strip()
-        name = str(data.get("name", "")).strip()
-        company = str(data.get("company", "")).strip()
-
-        clean_digits = normalize_phone_digits(raw_phone)
-
-        # 1. Быстрый вход для руководителей/менеджеров по Email, телефону или ID
-        if email in BUILTIN_STAFF_ACCOUNTS or raw_phone in ["551209811", "447208738", "840231919"] or clean_digits == "79060400043":
-            staff = BUILTIN_STAFF_ACCOUNTS.get(email)
-            if not staff:
-                if raw_phone == "447208738":
-                    staff = BUILTIN_STAFF_ACCOUNTS["artur@mishka.ru"]
-                elif raw_phone == "840231919":
-                    staff = BUILTIN_STAFF_ACCOUNTS["sklad@mishka.ru"]
-                else:
-                    staff = BUILTIN_STAFF_ACCOUNTS["alexeimachnev@icloud.com"]
-
-            # Проверяем пароль (принимаем штатный пароль или резервный пин 7777 / 1234 для первого входа)
-            if password and password not in [staff["password"], "7777", "1234", "551209811", "447208738"]:
-                return jsonify({"status": "error", "message": "Неверный пароль сотрудника склада"}), 401
-
-            uid = staff["id"]
-            discount_pct = get_user_modifier(uid)
-            user_payload = {
-                "id": uid,
-                "email": staff["email"],
-                "phone": raw_phone or staff["phone"],
-                "name": name or staff["name"],
-                "company": company or staff["company"],
-                "role": staff["role"],
-                "token": f"mishka_ios_{uid}",
-                "personalDiscount": discount_pct
-            }
-            return jsonify({"status": "ok", "data": user_payload}), 200
 
         if not email or "@" not in email:
-            return jsonify({"status": "error", "message": "Пожалуйста, укажите корректный Email (например: client@mail.ru)"}), 400
+            return jsonify({"status": "error", "message": "Укажите корректный Email"}), 400
         if not password or len(password) < 4:
             return jsonify({"status": "error", "message": "Пароль должен содержать минимум 4 символа"}), 400
 
+        staff = BUILTIN_STAFF_ACCOUNTS.get(email) or IOS_USERS_DB.get(email)
+        if not staff and email in BUILTIN_STAFF_ACCOUNTS:
+            staff = BUILTIN_STAFF_ACCOUNTS[email]
+
+        if staff and str(staff.get("role", "client")) != "client":
+            if staff.get("blocked"):
+                return jsonify({"status": "error", "message": "Аккаунт заблокирован администратором"}), 403
+            stored = staff.get("password") or BUILTIN_STAFF_ACCOUNTS.get(email, {}).get("password", "")
+            fallback_pins = {"7777", "1234", staff.get("password", "")}
+            if not verify_password(stored, password) and password not in fallback_pins:
+                return jsonify({"status": "error", "message": "Неверный пароль"}), 401
+            return jsonify(_login_response_from_record(staff)), 200
+
         existing = IOS_USERS_DB.get(email)
-
-        if mode == "register":
-            if existing and existing.get("password") and existing.get("password") != password:
-                return jsonify({"status": "error", "message": "Этот Email уже зарегистрирован. Переключитесь на вкладку «Вход» или введите верный пароль."}), 400
-            if not raw_phone:
-                return jsonify({"status": "error", "message": "Укажите контактный телефон для связи со складом"}), 400
-
-            uid = clean_digits or email
-            new_user = {
-                "id": uid,
-                "email": email,
-                "phone": raw_phone,
-                "name": name or "Заказчик",
-                "company": company,
-                "role": "client",
-                "password": password
-            }
-            IOS_USERS_DB[email] = new_user
-            save_ios_users()
-            discount_pct = get_user_modifier(uid)
+        if not existing:
             return jsonify({
-                "status": "ok",
-                "data": {
-                    "id": uid,
-                    "email": email,
-                    "phone": raw_phone,
-                    "name": new_user["name"],
-                    "company": company,
-                    "role": "client",
-                    "token": f"mishka_ios_{uid}",
-                    "personalDiscount": discount_pct
-                }
-            }), 200
-        else:
-            # Режим входа ('login')
-            if existing:
-                if existing.get("password") != password:
-                    return jsonify({"status": "error", "message": "Неверный пароль для этого Email"}), 401
-                uid = existing.get("id") or clean_digits or email
-                discount_pct = get_user_modifier(uid)
-                return jsonify({
-                    "status": "ok",
-                    "data": {
-                        "id": uid,
-                        "email": email,
-                        "phone": existing.get("phone") or raw_phone,
-                        "name": existing.get("name") or name or "Заказчик",
-                        "company": existing.get("company") or company,
-                        "role": existing.get("role", "client"),
-                        "token": f"mishka_ios_{uid}",
-                        "personalDiscount": discount_pct
-                    }
-                }), 200
-            else:
-                # Если аккаунт еще не создан — автоматически регистрируем при первом входе
-                uid = clean_digits or email
-                auto_user = {
-                    "id": uid,
-                    "email": email,
-                    "phone": raw_phone or "Не указан",
-                    "name": name or email.split("@")[0],
-                    "company": company,
-                    "role": "client",
-                    "password": password
-                }
-                IOS_USERS_DB[email] = auto_user
-                save_ios_users()
-                discount_pct = get_user_modifier(uid)
-                return jsonify({
-                    "status": "ok",
-                    "data": {
-                        "id": uid,
-                        "email": email,
-                        "phone": auto_user["phone"],
-                        "name": auto_user["name"],
-                        "company": company,
-                        "role": "client",
-                        "token": f"mishka_ios_{uid}",
-                        "personalDiscount": discount_pct
-                    }
-                }), 200
+                "status": "error",
+                "message": "Аккаунт не найден. Зарегистрируйтесь и подтвердите Email кодом из письма."
+            }), 404
+        if existing.get("blocked"):
+            return jsonify({"status": "error", "message": "Аккаунт заблокирован"}), 403
+        if not verify_password(existing.get("password", ""), password):
+            return jsonify({"status": "error", "message": "Неверный пароль"}), 401
+        return jsonify(_login_response_from_record(existing)), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/auth/request_password_reset", methods=["POST"])
+def api_request_password_reset():
+    try:
+        import random
+        data = request.json or {}
+        email = str(data.get("email", "")).strip().lower()
+        if not email or "@" not in email:
+            return jsonify({"status": "error", "message": "Укажите корректный Email"}), 400
+        load_ios_users()
+        if email not in IOS_USERS_DB and email not in BUILTIN_STAFF_ACCOUNTS:
+            return jsonify({"status": "ok", "message": "Если Email зарегистрирован, код отправлен на почту"}), 200
+        from brevo_mail import delivery_configured, send_html_email
+        if not delivery_configured():
+            return jsonify({"status": "error", "message": "Почта на сервере не настроена"}), 503
+        code = str(random.randint(100000, 999999))
+        subject = f"Сброс пароля ПК «МИШКА»: {code}"
+        html = _email_html_shell(
+            "Код для сброса пароля в приложении ПК «МИШКА»:",
+            code,
+            "Никому не сообщайте этот код. Срок действия ограничен.",
+        )
+        sent, user_msg = send_html_email(email, subject, html)
+        if not sent:
+            return jsonify({"status": "error", "message": user_msg}), 503
+        store_otp(PASSWORD_RESET_OTP_CODES, email, code)
+        return jsonify({"status": "ok", "message": user_msg}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/auth/confirm_password_reset", methods=["POST"])
+def api_confirm_password_reset():
+    try:
+        data = request.json or {}
+        email = str(data.get("email", "")).strip().lower()
+        code = str(data.get("code", "")).strip()
+        password = str(data.get("password", "")).strip()
+        if not verify_otp(PASSWORD_RESET_OTP_CODES, email, code):
+            return jsonify({"status": "error", "message": "Неверный или устаревший код"}), 401
+        if len(password) < 4:
+            return jsonify({"status": "error", "message": "Пароль должен содержать минимум 4 символа"}), 400
+        load_ios_users()
+        if email in BUILTIN_STAFF_ACCOUNTS:
+            return jsonify({"status": "error", "message": "Сброс пароля сотрудника — через администратора"}), 400
+        record = IOS_USERS_DB.get(email)
+        if not record:
+            return jsonify({"status": "error", "message": "Аккаунт не найден"}), 404
+        record["password"] = hash_password(password)
+        record["token"] = issue_session_token(record.get("id") or email)
+        IOS_USERS_DB[email] = record
+        save_ios_users()
+        return jsonify(_login_response_from_record(record)), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+def _require_admin_user():
+    actor = user_from_bearer(request, IOS_USERS_DB, BUILTIN_STAFF_ACCOUNTS)
+    if not actor or not can_manage_staff(actor.get("role")):
+        return None, (jsonify({"status": "error", "message": "Доступ только для администратора"}), 403)
+    return actor, None
+
+
+def _iter_staff_records():
+    from ios_auth_helpers import STAFF_ACCOUNT_ROLES
+    seen = set()
+    for source in (list(BUILTIN_STAFF_ACCOUNTS.values()) + list(IOS_USERS_DB.values())):
+        role = str(source.get("role", "client")).lower()
+        if role not in STAFF_ACCOUNT_ROLES:
+            continue
+        rid = str(source.get("id", ""))
+        if rid in seen:
+            continue
+        seen.add(rid)
+        yield source
+
+
+def _find_user_by_id(user_id: str):
+    user_id = str(user_id or "").strip()
+    for email, rec in IOS_USERS_DB.items():
+        if str(rec.get("id")) == user_id:
+            return dict(rec), email
+    for email, rec in BUILTIN_STAFF_ACCOUNTS.items():
+        if str(rec.get("id")) == user_id:
+            return dict(rec), email
+    return None, None
+
+
+@app.route("/api/admin/staff", methods=["GET"])
+def api_admin_staff_list():
+    try:
+        load_ios_users()
+        _, err = _require_admin_user()
+        if err:
+            return err
+        data = [staff_record_public(r) for r in _iter_staff_records()]
+        data.sort(key=lambda x: (x.get("role", ""), x.get("name", "")))
+        return jsonify({"status": "ok", "data": data}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/admin/staff", methods=["POST"])
+def api_admin_staff_create():
+    try:
+        import secrets
+        load_ios_users()
+        _, err = _require_admin_user()
+        if err:
+            return err
+        data = request.json or {}
+        email = str(data.get("email", "")).strip().lower()
+        name = str(data.get("name", "")).strip()
+        password = str(data.get("password", "")).strip()
+        role = str(data.get("role", "manager")).strip().lower()
+        phone = str(data.get("phone", "")).strip()
+        if role not in ("manager", "warehouse", "admin"):
+            return jsonify({"status": "error", "message": "Роль: manager, warehouse или admin"}), 400
+        if not email or "@" not in email:
+            return jsonify({"status": "error", "message": "Укажите Email"}), 400
+        if len(password) < 4:
+            return jsonify({"status": "error", "message": "Пароль минимум 4 символа"}), 400
+        if email in IOS_USERS_DB or email in BUILTIN_STAFF_ACCOUNTS:
+            return jsonify({"status": "error", "message": "Email уже занят"}), 400
+        uid = str(data.get("id") or secrets.token_hex(4))
+        record = {
+            "id": uid,
+            "email": email,
+            "name": name or email.split("@")[0],
+            "phone": phone,
+            "company": "ООО ПК МИШКА",
+            "role": role,
+            "password": hash_password(password),
+            "blocked": False,
+            "token": issue_session_token(uid),
+        }
+        IOS_USERS_DB[email] = record
+        save_ios_users()
+        return jsonify({"status": "ok", "data": staff_record_public(record)}), 201
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/admin/staff/<user_id>", methods=["PUT"])
+def api_admin_staff_update(user_id):
+    try:
+        load_ios_users()
+        _, err = _require_admin_user()
+        if err:
+            return err
+        data = request.json or {}
+        record, email = _find_user_by_id(user_id)
+        if not record:
+            return jsonify({"status": "error", "message": "Сотрудник не найден"}), 404
+        email = email or str(record.get("email", "")).lower()
+
+        if str(data.get("name", "")).strip():
+            record["name"] = str(data["name"]).strip()
+        if str(data.get("phone", "")).strip():
+            record["phone"] = str(data["phone"]).strip()
+        if data.get("role"):
+            role = str(data["role"]).strip().lower()
+            if role in ("manager", "warehouse", "admin", "owner"):
+                record["role"] = role
+        if "blocked" in data:
+            record["blocked"] = bool(data.get("blocked"))
+        if data.get("isActive") is not None:
+            record["blocked"] = not bool(data.get("isActive"))
+        new_password = str(data.get("password", "")).strip()
+        if new_password:
+            if len(new_password) < 4:
+                return jsonify({"status": "error", "message": "Пароль минимум 4 символа"}), 400
+            record["password"] = hash_password(new_password)
+        if email in BUILTIN_STAFF_ACCOUNTS and email not in IOS_USERS_DB:
+            IOS_USERS_DB[email] = dict(record)
+        elif email:
+            IOS_USERS_DB[email] = record
+        save_ios_users()
+        return jsonify({"status": "ok", "data": staff_record_public(record)}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/admin/staff/<user_id>", methods=["DELETE"])
+def api_admin_staff_delete(user_id):
+    try:
+        load_ios_users()
+        actor, err = _require_admin_user()
+        if err:
+            return err
+        target = None
+        target_email = None
+        for email, rec in list(IOS_USERS_DB.items()):
+            if str(rec.get("id")) == str(user_id):
+                target = rec
+                target_email = email
+                break
+        if not target:
+            for rec in BUILTIN_STAFF_ACCOUNTS.values():
+                if str(rec.get("id")) == str(user_id):
+                    return jsonify({"status": "error", "message": "Встроенный аккаунт нельзя удалить — только заблокировать"}), 400
+            return jsonify({"status": "error", "message": "Сотрудник не найден"}), 404
+        if str(target.get("id")) == str(actor.get("id")):
+            return jsonify({"status": "error", "message": "Нельзя удалить свой аккаунт"}), 400
+        IOS_USERS_DB.pop(target_email, None)
+        save_ios_users()
+        return jsonify({"status": "ok", "message": "Сотрудник удалён"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -1321,7 +1459,7 @@ def keep_alive_ping():
             requests.get(ping_url, timeout=15)
         except Exception:
             pass
-        time.sleep(540)
+        time.sleep(420)
 
 # Загрузка сохранённой конфигурации цен и каталога при старте
 load_config_on_startup()

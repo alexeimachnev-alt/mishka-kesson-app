@@ -1,67 +1,48 @@
-# Native iOS REST API (ПК «МИШКА»)
+# Native iOS + Render
 
 Base URL: `https://mishka-kesson-app.onrender.com`
 
-All JSON requests use `Content-Type: application/json`. Authenticated calls may pass `Authorization: Bearer <token>` or `token` in the JSON body.
+## Почта (обязательно для регистрации)
 
-## Auth (email OTP)
+В **Render → Environment** задайте:
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/auth/send_email_code` | Body: `{ "email": "client@mail.ru" }` — sends 4-digit OTP via SMTP |
-| POST | `/api/auth/verify_email_code` | Body: `{ "email", "code", "name?", "company?", "phone" }` — verify OTP, register/login |
-| POST | `/api/auth/login` | Staff: `{ "email", "password", "mode": "login" }` — password login for built-in staff |
-| POST | `/api/auth/staff_quick` | Dev: `{ "role": "owner\|manager\|warehouse\|client" }` — internal test login |
+| Переменная | Пример |
+|------------|--------|
+| `BREVO_API_KEY` | ключ из [Brevo](https://app.brevo.com) → SMTP & API → API keys |
+| `BREVO_SENDER_EMAIL` | подтверждённый отправитель (например `noreply@mishka.ru`) |
+| `BREVO_SENDER_NAME` | `ПК МИШКА` |
 
-## Catalog & calculation
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/config?user_id=` | Full catalog + personal modifier; owner gets all discounts |
-| POST | `/api/calculate` | Well/kesson estimate (same payload as Telegram mini-app) |
-| POST | `/api/admin/save_config` | Owner/admin: `{ "user_id", "role", "config" }` |
-| POST | `/api/admin/user_discount` | Owner/admin: set/remove client discount |
-
-## Orders
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/ios/orders?role=&email=&phone=&user_id=` | List orders (staff: all; client: own) |
-| POST | `/api/ios/create_order` | Place order from iOS (alias of mini-app payload) |
-| POST | `/api/admin/toggle_item` | Warehouse checklist toggle |
-| POST | `/api/admin/update_order` | Status: `completed`, `paid`, `cancelled` + payment/cancel reason |
-
-## Render environment variables
+Проверка после деплоя:
 
 ```bash
-# Required (existing)
-TELEGRAM_BOT_TOKEN=...
-RENDER_EXTERNAL_URL=https://mishka-kesson-app.onrender.com
-
-# SMTP (email OTP for iOS clients)
-SMTP_EMAIL=your-login@yandex.ru
-SMTP_PASSWORD=your-app-password
-SMTP_HOST=smtp.yandex.ru
-SMTP_PORT=465
-EMAIL_OTP_TTL=600
-
-# Optional staff passwords (defaults in code if unset)
-OWNER_PASSWORD=551209
-ARTUR_PASSWORD=447208
-SKLAD_PASSWORD=840231
+curl -s https://mishka-kesson-app.onrender.com/health
 ```
 
-### Yandex Mail setup
+Ожидается `"email_delivery":"brevo"`, `"ios_api_version":2`.
 
-1. Enable IMAP/SMTP in Yandex mailbox settings.
-2. Create an **app password** (not the main mailbox password).
-3. Set `SMTP_EMAIL` to the mailbox address and `SMTP_PASSWORD` to the app password.
-
-### Gmail alternative
+Тест кода:
 
 ```bash
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
+curl -s -X POST https://mishka-kesson-app.onrender.com/api/auth/send_email_code \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ваш@email.ru"}'
 ```
 
-Use a [Google App Password](https://myaccount.google.com/apppasswords) with 2FA enabled.
+`"smtp_active":true` — письмо ушло; `503` — почта не настроена или Brevo отклонил отправку.
+
+## Auth API
+
+| Method | Path |
+|--------|------|
+| POST | `/api/auth/send_email_code` |
+| POST | `/api/auth/verify_email_code` |
+| POST | `/api/auth/login` |
+| POST | `/api/auth/request_password_reset` |
+| POST | `/api/auth/confirm_password_reset` |
+
+## Деплой
+
+1. Push в GitHub → Render **Manual Deploy** (или auto).
+2. Убедиться, что в репозитории есть `brevo_mail.py`.
+3. Переменные Brevo на Render.
+4. В Brevo: отправитель верифицирован, лимиты API не исчерпаны.
