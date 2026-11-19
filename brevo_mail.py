@@ -67,14 +67,49 @@ def brevo_public_diagnostics() -> dict:
             "Создайте НОВЫЙ API key (xkeysib) и вставьте в Render одной строкой без кавычек."
         )
     elif diag["last_brevo_http_status"] == 403:
-        diag["hint"] = "Brevo 403: у ключа нет прав — включите доступ к transactional email в настройках API key."
+        if "scoped_key" in (diag.get("last_brevo_error") or ""):
+            diag["hint"] = "Ключ ограниченный (только отправка) — это нормально, почта должна работать."
+        else:
+            diag["hint"] = "Brevo 403: включите у API key право Send transactional emails."
     elif diag["last_brevo_http_status"] == 402:
         diag["hint"] = "Brevo 402: лимит/оплата — проверьте план и квоты на app.brevo.com."
     return diag
 
 
+def _brevo_validate_api_key(api_key: str) -> tuple[bool, int, str]:
+    """
+    Полный ключ → GET /v3/account = 200.
+    Ограниченный (только transactional send) → /account 403 permission_denied — это нормально.
+    """
+    headers = {"api-key": api_key, "accept": "application/json"}
+    try:
+        resp = requests.get(
+            "https://api.brevo.com/v3/account",
+            headers=headers,
+            timeout=8,
+        )
+        body = (resp.text or "")
+        if resp.status_code == 200:
+            return True, 200, body[:200]
+        if resp.status_code == 401:
+            return False, 401, body[:200]
+        if resp.status_code == 403 and "account" in body.lower() and "permission" in body.lower():
+            senders = requests.get(
+                "https://api.brevo.com/v3/senders",
+                headers=headers,
+                timeout=8,
+                params={"limit": 1},
+            )
+            if senders.status_code == 200:
+                return True, 200, "scoped_key: senders_ok"
+            return True, 403, "scoped_key: transactional_send_only"
+        return False, resp.status_code, body[:200]
+    except Exception as e:
+        return False, 0, str(e)[:200]
+
+
 def brevo_auth_ok(force: bool = False) -> bool:
-    """Проверка API-ключа через GET /v3/account (кэш 10 мин)."""
+    """Проверка API-ключа (кэш)."""
     if not brevo_configured():
         return False
     now = time.time()
@@ -84,22 +119,11 @@ def brevo_auth_ok(force: bool = False) -> bool:
             return bool(_brevo_auth_cache["ok"])
 
     api_key = _clean_env("BREVO_API_KEY")
-    ok = False
-    try:
-        resp = requests.get(
-            "https://api.brevo.com/v3/account",
-            headers={"api-key": api_key, "accept": "application/json"},
-            timeout=8,
-        )
-        ok = resp.status_code == 200
-        _brevo_auth_cache["http_status"] = resp.status_code
-        _brevo_auth_cache["body_snippet"] = (resp.text or "")[:200]
-        if not ok:
-            print(f"[BREVO AUTH] account check {resp.status_code}: {_brevo_auth_cache['body_snippet']}")
-    except Exception as e:
-        print(f"[BREVO AUTH ERR] {e}")
-        _brevo_auth_cache["http_status"] = 0
-        _brevo_auth_cache["body_snippet"] = str(e)[:200]
+    ok, status, snippet = _brevo_validate_api_key(api_key)
+    _brevo_auth_cache["http_status"] = status
+    _brevo_auth_cache["body_snippet"] = snippet
+    if not ok:
+        print(f"[BREVO AUTH] validate failed {status}: {snippet}")
 
     _brevo_auth_cache["ok"] = ok
     _brevo_auth_cache["checked_at"] = now
