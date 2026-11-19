@@ -57,7 +57,7 @@ WELCOME_BANNER_URL = "https://images.unsplash.com/photo-1581092160607-ee22621dd7
 def health_check():
     from brevo_mail import brevo_auth_ok, brevo_configured, brevo_public_diagnostics, delivery_configured
     mode = "brevo" if brevo_configured() else ("smtp" if delivery_configured() else "off")
-    brevo_ok = brevo_auth_ok() if brevo_configured() else None
+    brevo_ok = brevo_auth_ok(force=True) if brevo_configured() else None
     payload = {
         "status": "ok",
         "service": "Mishka Warehouse",

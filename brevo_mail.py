@@ -73,6 +73,11 @@ def brevo_public_diagnostics() -> dict:
             diag["hint"] = "Brevo 403: включите у API key право Send transactional emails."
     elif diag["last_brevo_http_status"] == 402:
         diag["hint"] = "Brevo 402: лимит/оплата — проверьте план и квоты на app.brevo.com."
+    free_mail = {"icloud.com", "gmail.com", "mail.ru", "yandex.ru", "bk.ru", "inbox.ru"}
+    if sender and sender.split("@")[-1].lower() in free_mail:
+        diag["sender_free_mail_hint"] = (
+            "Бесплатный почтовый домен: адрес отправителя должен быть Verified в Brevo → Senders."
+        )
     return diag
 
 
@@ -108,15 +113,24 @@ def _brevo_validate_api_key(api_key: str) -> tuple[bool, int, str]:
         return False, 0, str(e)[:200]
 
 
+def _scoped_transactional_key(snippet: str) -> bool:
+    return "scoped_key" in (snippet or "")
+
+
 def brevo_auth_ok(force: bool = False) -> bool:
-    """Проверка API-ключа (кэш)."""
+    """Проверка API-ключа (кэш). Не путать с успешной отправкой письма."""
     if not brevo_configured():
         return False
     now = time.time()
     if not force and _brevo_auth_cache["ok"] is not None:
         ttl = _BREVO_AUTH_TTL_OK if _brevo_auth_cache["ok"] else _BREVO_AUTH_TTL_FAIL
         if now - _brevo_auth_cache["checked_at"] < ttl:
-            return bool(_brevo_auth_cache["ok"])
+            if _brevo_auth_cache["ok"]:
+                return True
+            # Ограниченный send-only ключ: кэш «false» после неудачной отправки не отменяет валидный ключ
+            if _scoped_transactional_key(_brevo_auth_cache.get("body_snippet") or ""):
+                return True
+            return False
 
     api_key = _clean_env("BREVO_API_KEY")
     ok, status, snippet = _brevo_validate_api_key(api_key)
@@ -131,18 +145,25 @@ def brevo_auth_ok(force: bool = False) -> bool:
 
 
 def _brevo_error_message(status_code: int, body: str) -> str:
+    lowered = (body or "").lower()
     if status_code == 401:
         return (
-            "Неверный BREVO_API_KEY на Render (401). "
-            "В Brevo: Transactional → API Keys → создайте ключ xkeysib-…, "
-            "вставьте в Render без кавычек и передеплойте."
+            "Brevo отклонил API-ключ (401). "
+            "Создайте новый ключ xkeysib-… (Transactional → API Keys), "
+            "вставьте в Render одной строкой и передеплойте."
         )
-    if status_code == 400 and "sender" in (body or "").lower():
+    if status_code == 403:
+        return (
+            "Brevo 403: у ключа нет права отправки. "
+            "В Brevo включите Send transactional emails для этого API key."
+        )
+    if status_code == 400 and ("sender" in lowered or "not valid" in lowered or "inactive" in lowered):
         return (
             "Отправитель не подтверждён в Brevo. "
-            "Проверьте BREVO_SENDER_EMAIL в Render и верификацию домена/адреса в Brevo."
+            "В Brevo → Senders убедитесь, что BREVO_SENDER_EMAIL подтверждён "
+            "(для @icloud.com — верификация по ссылке из письма Brevo)."
         )
-    return f"Brevo отклонил отправку ({status_code}). Проверьте API-ключ и sender."
+    return f"Brevo отклонил отправку ({status_code}). Проверьте API-ключ и отправителя."
 
 
 def send_html_email(target_email: str, subject: str, html_body: str) -> tuple[bool, str]:
@@ -155,8 +176,6 @@ def send_html_email(target_email: str, subject: str, html_body: str) -> tuple[bo
     sender_name = _clean_env("BREVO_SENDER_NAME") or "ПК МИШКА"
 
     if api_key and sender_email:
-        if not brevo_auth_ok():
-            return False, _brevo_error_message(401, "")
         try:
             resp = requests.post(
                 "https://api.brevo.com/v3/smtp/email",
@@ -173,8 +192,11 @@ def send_html_email(target_email: str, subject: str, html_body: str) -> tuple[bo
                 return True, "Код отправлен на вашу почту. Проверьте «Спам», если нет во входящих."
             detail = resp.text or ""
             print(f"[BREVO] {resp.status_code} {detail[:300]}")
-            _brevo_auth_cache["ok"] = False
-            _brevo_auth_cache["checked_at"] = time.time()
+            if resp.status_code == 401:
+                _brevo_auth_cache["ok"] = False
+                _brevo_auth_cache["checked_at"] = time.time()
+                _brevo_auth_cache["http_status"] = 401
+                _brevo_auth_cache["body_snippet"] = detail[:200]
             return False, _brevo_error_message(resp.status_code, detail)
         except Exception as e:
             print(f"[BREVO SEND ERR] {e}")
