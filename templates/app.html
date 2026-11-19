@@ -468,10 +468,11 @@
     </select>
   </div>
 
-    <!-- ПЕРЕКЛЮЧАТЕЛЬ: МАТЕРИАЛЫ / РАБОТЫ -->
-  <div class="mode-switch-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
-    <button class="tab-btn active" id="btnModeMaterials" style="padding:12px 6px; font-size:0.85rem;" onclick="switchOrderMode('materials')">📦 Только материалы</button>
-    <button class="tab-btn" id="btnModeWorks" style="padding:12px 6px; font-size:0.85rem; background:#243245;" onclick="switchOrderMode('works')">🔨 Только монтаж и работы</button>
+    <!-- СОСТАВ ЗАКАЗА: товары / работы / объединённый -->
+  <div class="mode-switch-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+    <button class="tab-btn active" id="btnModeMaterials" style="padding:10px 4px; font-size:0.78rem;" onclick="switchOrderMode('materials')">📦 Только товары</button>
+    <button class="tab-btn" id="btnModeWorks" style="padding:10px 4px; font-size:0.78rem; background:#243245;" onclick="switchOrderMode('works')">🔨 Только работы</button>
+    <button class="tab-btn" id="btnModeCombined" style="padding:10px 4px; font-size:0.78rem; background:#243245;" onclick="switchOrderMode('combined')">📦+🛠 Товары и работы</button>
   </div>
 
 
@@ -717,7 +718,7 @@
 
   </div><!-- /containerMaterials -->
 
-  <!-- ==================== БЛОК: ТОЛЬКО РАБОТЫ ==================== -->
+  <!-- ==================== БЛОК: МОНТАЖНЫЕ РАБОТЫ ==================== -->
   <div id="containerWorks" style="display: none;">
     <div class="card">
       <div class="card-title" style="color:#f59e0b;">🔨 Корзина монтажных и земляных работ (Лето 2026)</div>
@@ -736,6 +737,16 @@
         <span style="color:#fde047;">ИТОГО РАБОТЫ:</span>
         <span id="worksTotalSum" style="color:#fde047;">0.00 ₽</span>
       </div>
+    </div>
+  </div>
+
+  <div class="card highlight-card" id="combinedTotalCard" style="display:none; border-color:#854d0e; background:#1a2432;">
+    <div class="total-box" style="background:transparent; border:none; margin:0; padding:0;">
+      <span style="color:#fde047;">ИТОГО ЗАКАЗ (товары + работы):</span>
+      <span id="combinedGrandTotal" style="color:#4ade80;">0.00 ₽</span>
+    </div>
+    <div id="combinedBreakdown" style="font-size:0.78rem; color:#94a3b8; margin-top:6px; text-align:right;">
+      Оборудование: 0.00 ₽ · Работы: 0.00 ₽
     </div>
   </div>
 
@@ -837,6 +848,8 @@
   <script>
 
     let currentOrderMode = 'materials';
+    let includeGoods = true;
+    let includeWorks = false;
     let selectedWorks = {};
     let currentWorkFilter = 'all';
     let activeTab = 'well';
@@ -914,8 +927,91 @@
 
     function toggleLogisticsFields() {
       const isDelivery = document.getElementById('logisticsType').value === 'delivery';
-      document.getElementById('pickupBox').style.display = isDelivery ? 'none' : 'block';
-      document.getElementById('deliveryBox').style.display = isDelivery ? 'block' : 'none';
+      const pickupBox = document.getElementById('pickupBox');
+      const deliveryBox = document.getElementById('deliveryBox');
+      const matWrap = document.getElementById('materialsLogisticsWrapper');
+      const needsWorksAddress = includeWorks || currentOrderMode === 'works';
+
+      if (currentOrderMode === 'combined') {
+        if (matWrap) matWrap.style.display = 'block';
+        if (pickupBox) pickupBox.style.display = isDelivery ? 'none' : 'block';
+        if (deliveryBox) deliveryBox.style.display = 'block';
+        const hint = document.getElementById('worksDistanceHint');
+        if (hint) hint.style.display = 'block';
+        return;
+      }
+      if (currentOrderMode === 'works') {
+        if (matWrap) matWrap.style.display = 'none';
+        if (deliveryBox) deliveryBox.style.display = 'block';
+        return;
+      }
+      if (pickupBox) pickupBox.style.display = isDelivery ? 'none' : 'block';
+      if (deliveryBox) deliveryBox.style.display = (isDelivery || needsWorksAddress) ? 'block' : 'none';
+    }
+
+    function getWorksSubtotal() {
+      const modPct = parseFloat(window.USER_PERSONAL_MODIFIER || 0);
+      const factor = Math.max(0, 1.0 + (modPct / 100.0));
+      let sum = 0;
+      ALL_WORKS.forEach(w => {
+        const q = selectedWorks[w.code] || 0;
+        if (q > 0) {
+          sum += q * Math.round(w.price * factor * 100) / 100;
+        }
+      });
+      return sum;
+    }
+
+    function buildWorksItemsForPayload() {
+      const modPct = parseFloat(window.USER_PERSONAL_MODIFIER || 0);
+      const factor = Math.max(0, 1.0 + (modPct / 100.0));
+      const rows = [];
+      ALL_WORKS.forEach(w => {
+        const q = selectedWorks[w.code] || 0;
+        if (q > 0) {
+          const adjPrice = Math.round(w.price * factor * 100) / 100;
+          rows.push({
+            item_key: w.code,
+            name: w.name,
+            qty: q,
+            unit: w.unit,
+            base_price: w.price,
+            price: adjPrice,
+            is_work: true,
+            category: 'works',
+            _modifier_applied: true
+          });
+        }
+      });
+      return rows;
+    }
+
+    function hasSelectedWorks() {
+      return ALL_WORKS.some(w => (selectedWorks[w.code] || 0) > 0);
+    }
+
+    function hasSelectedGoods() {
+      return currentItems.some(it => (it.qty || 0) > 0);
+    }
+
+    function updateGrandTotal() {
+      const combinedCard = document.getElementById('combinedTotalCard');
+      if (currentOrderMode !== 'combined') {
+        if (combinedCard) combinedCard.style.display = 'none';
+        return;
+      }
+      const goodsSum = currentTotal || 0;
+      const worksSum = getWorksSubtotal();
+      const grand = goodsSum + worksSum;
+      if (combinedCard) combinedCard.style.display = 'block';
+      const gEl = document.getElementById('combinedGrandTotal');
+      if (gEl) {
+        gEl.innerText = grand.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+      }
+      const bEl = document.getElementById('combinedBreakdown');
+      if (bEl) {
+        bEl.innerText = `Оборудование: ${goodsSum.toLocaleString('ru-RU', {minimumFractionDigits: 2})} ₽ · Работы: ${worksSum.toLocaleString('ru-RU', {minimumFractionDigits: 2})} ₽`;
+      }
     }
 
     function onLanguageChanged() {
@@ -1608,6 +1704,7 @@
 
       document.getElementById('spec-list').innerHTML = html;
       document.getElementById('kesson-total').innerText = currentTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+      updateGrandTotal();
     }
 
     async function sendOrder() {
@@ -1630,62 +1727,78 @@
         let deliveryDetails = '';
         let deliveryType = '';
         let itemsToOrder = [];
+        let worksItemsPayload = [];
         let totalAmount = 0;
 
-        if (currentOrderMode === 'works') {
-          deliveryType = 'Выезд монтажной бригады на объект';
+        const wantGoods = includeGoods && currentOrderMode !== 'works';
+        const wantWorks = includeWorks && currentOrderMode !== 'materials';
+
+        if (!wantGoods && !wantWorks) {
+          alert('Выберите раздел заказа: товары, работы или объединённый заказ.');
+          return;
+        }
+
+        const goodsOk = wantGoods && hasSelectedGoods();
+        const worksOk = wantWorks && hasSelectedWorks();
+        if (!goodsOk && !worksOk) {
+          alert('Добавьте позиции в смету: выберите оборудование/товары и/или монтажные работы.');
+          return;
+        }
+
+        if (wantWorks) {
           const addr = document.getElementById('deliveryAddress').value.trim();
           if (!addr) {
-            alert('Пожалуйста, укажите точный адрес объекта для выезда бригады!');
+            alert('Укажите адрес объекта для выезда бригады / доставки.');
             document.getElementById('deliveryAddress').focus();
             return;
           }
           const dTime = document.getElementById('deliveryTime').value.trim() || 'В согласованное время';
-          deliveryDetails = `Объект: ${addr} | Время: ${dTime}`;
-
-          const modPct = parseFloat(window.USER_PERSONAL_MODIFIER || 0);
-          const factor = Math.max(0, 1.0 + (modPct / 100.0));
-          ALL_WORKS.forEach(w => {
-            const q = selectedWorks[w.code] || 0;
-            if (q > 0) {
-              const adjPrice = Math.round(w.price * factor * 100) / 100;
-              itemsToOrder.push({
-                item_key: w.code,
-                name: w.name,
-                qty: q,
-                unit: w.unit,
-                base_price: w.price,
-                price: adjPrice,
-                _modifier_applied: true
-              });
-              totalAmount += q * adjPrice;
-            }
-          });
-
-          if (itemsToOrder.length === 0) {
-            alert('Пожалуйста, выберите хотя бы одну услугу из списка работ!');
-            return;
-          }
-
-        } else {
-          const logisticsType = document.getElementById('logisticsType').value;
-          if (logisticsType === 'pickup') {
-            deliveryType = 'Самовывоз со склада';
-            const pTime = document.getElementById('pickupDateTime').value.trim();
-            deliveryDetails = pTime ? pTime : 'Самовывоз со склада';
+          const worksPart = `Объект: ${addr} | Время: ${dTime}`;
+          worksItemsPayload = buildWorksItemsForPayload();
+          if (wantGoods && goodsOk) {
+            deliveryType = 'Комплексный заказ: оборудование + выезд бригады';
+            deliveryDetails = worksPart;
           } else {
-            deliveryType = 'Доставка на объект';
-            const addr = document.getElementById('deliveryAddress').value.trim();
-            if (!addr) {
-              alert(t.errDelivery);
-              document.getElementById('deliveryAddress').focus();
-              return;
-            }
-            const dTime = document.getElementById('deliveryTime').value.trim() || 'В течение дня';
-            deliveryDetails = `Адрес: ${addr} | Время: ${dTime}`;
+            deliveryType = 'Выезд монтажной бригады на объект';
+            deliveryDetails = worksPart;
           }
-          itemsToOrder = currentItems.filter(it => it.qty > 0);
-          totalAmount = currentTotal;
+        }
+
+        if (wantGoods && goodsOk) {
+          const logisticsType = document.getElementById('logisticsType').value;
+          if (!wantWorks || !worksOk) {
+            if (logisticsType === 'pickup') {
+              deliveryType = 'Самовывоз со склада';
+              const pTime = document.getElementById('pickupDateTime').value.trim();
+              deliveryDetails = pTime ? pTime : 'Самовывоз со склада';
+            } else {
+              deliveryType = 'Доставка на объект';
+              const addr = document.getElementById('deliveryAddress').value.trim();
+              if (!addr) {
+                alert(t.errDelivery);
+                document.getElementById('deliveryAddress').focus();
+                return;
+              }
+              const dTime = document.getElementById('deliveryTime').value.trim() || 'В течение дня';
+              deliveryDetails = `Адрес: ${addr} | Время: ${dTime}`;
+            }
+          } else if (logisticsType === 'delivery') {
+            const addr = document.getElementById('deliveryAddress').value.trim();
+            const dTime = document.getElementById('deliveryTime').value.trim() || 'В течение дня';
+            deliveryDetails += ` | Доставка оборудования: ${addr} (${dTime})`;
+          } else {
+            const pTime = document.getElementById('pickupDateTime').value.trim() || 'Самовывоз со склада';
+            deliveryDetails += ` | Оборудование: самовывоз (${pTime})`;
+          }
+        }
+
+        const goodsItems = wantGoods && goodsOk ? currentItems.filter(it => it.qty > 0) : [];
+        itemsToOrder = goodsItems.concat(worksItemsPayload);
+        totalAmount = goodsItems.reduce((s, it) => s + it.qty * it.price, 0)
+          + worksItemsPayload.reduce((s, it) => s + it.qty * it.price, 0);
+        if (currentOrderMode === 'combined') {
+          updateGrandTotal();
+          totalAmount = (currentTotal || 0) + getWorksSubtotal();
         }
 
         const tgApp = window.Telegram ? window.Telegram.WebApp : null;
@@ -1702,7 +1815,10 @@
         const pumpEl = document.getElementById('chosen_pump');
 
         const payload = {
-          mode: currentOrderMode === 'works' ? 'works' : activeTab,
+          mode: currentOrderMode === 'works' ? 'works' : (currentOrderMode === 'combined' ? 'combined' : activeTab),
+          include_goods: wantGoods && goodsOk,
+          include_works: wantWorks && worksOk,
+          works_items: worksItemsPayload,
           lang: lang,
           client_name: name,
           worker_name: name,
@@ -1857,8 +1973,11 @@
 
       let html = '';
       orders.forEach((ord, idx) => {
-        const isWorks = ord.is_works || (ord.mode === 'works');
-        const typeLabel = isWorks ? '🔨 Монтажные работы' : '📦 Оборудование и материалы';
+        const isCombined = ord.is_combined || (ord.has_goods && ord.has_works);
+        const isWorksOnly = (ord.is_works || ord.mode === 'works') && !ord.has_goods;
+        const typeLabel = isCombined
+          ? '📦+🛠 Товары и работы'
+          : (isWorksOnly ? '🔨 Монтажные работы' : '📦 Оборудование и материалы');
         const totalFormatted = (ord.total || 0).toLocaleString('ru-RU', {minimumFractionDigits: 2});
 
         let statusText = 'В сборке';
@@ -1872,11 +1991,11 @@
           statusText = 'Оплачен';
           statusBg = '#16a34a'; 
         } else if (st === 'completed') {
-          statusText = isWorks ? 'Согласован' : 'Собран';
+          statusText = isCombined ? 'Готов' : (isWorksOnly ? 'Согласован' : 'Собран');
           statusBg = '#22c55e'; 
         } else {
-          statusText = isWorks ? 'На согласовании' : 'В сборке';
-          statusBg = isWorks ? '#d97706' : '#2563eb'; 
+          statusText = isWorksOnly ? 'На согласовании' : 'В сборке';
+          statusBg = isWorksOnly ? '#d97706' : '#2563eb'; 
         }
 
         html += `
@@ -1919,67 +2038,62 @@
 
     function switchOrderMode(mode) {
       currentOrderMode = mode;
+      includeGoods = mode !== 'works';
+      includeWorks = mode !== 'materials';
+
       const btnMat = document.getElementById('btnModeMaterials');
       const btnWorks = document.getElementById('btnModeWorks');
+      const btnCombined = document.getElementById('btnModeCombined');
       if (btnMat) btnMat.classList.toggle('active', mode === 'materials');
       if (btnWorks) btnWorks.classList.toggle('active', mode === 'works');
-      
+      if (btnCombined) btnCombined.classList.toggle('active', mode === 'combined');
+
       const receiptModal = document.getElementById('receipt-modal');
       const historyModal = document.getElementById('history-modal');
       if (receiptModal) receiptModal.style.display = 'none';
       if (historyModal) historyModal.style.display = 'none';
 
+      const contMat = document.getElementById('containerMaterials');
+      const contWorks = document.getElementById('containerWorks');
+      const matLogWrapper = document.getElementById('materialsLogisticsWrapper');
+      const tLog = document.getElementById('tLogistics');
+      const lDelv = document.getElementById('lblDeliveryAddress');
+      const lTime = document.getElementById('lblDeliveryTime');
+      const hint = document.getElementById('worksDistanceHint');
+
       if (mode === 'materials') {
-        const contMat = document.getElementById('containerMaterials');
-        const contWorks = document.getElementById('containerWorks');
         if (contMat) contMat.style.display = 'block';
         if (contWorks) contWorks.style.display = 'none';
-        
-        const matLogWrapper = document.getElementById('materialsLogisticsWrapper');
         if (matLogWrapper) matLogWrapper.style.display = 'block';
-        
-        const tLog = document.getElementById('tLogistics');
         if (tLog) tLog.innerText = '🚚 Получение заказа';
-        
-        const lDelv = document.getElementById('lblDeliveryAddress');
         if (lDelv) lDelv.innerText = 'Точный адрес доставки (МО / район / дом):';
-        
-        const lTime = document.getElementById('lblDeliveryTime');
         if (lTime) lTime.innerText = 'Желаемое время доставки:';
-        
-        const hint = document.getElementById('worksDistanceHint');
         if (hint) hint.style.display = 'none';
-        
         toggleLogisticsFields();
         calcWell(true);
-        if (currentOrderMode === 'works') {
-          renderWorksList();
-        }
-      } else {
-        const contMat = document.getElementById('containerMaterials');
-        const contWorks = document.getElementById('containerWorks');
+      } else if (mode === 'works') {
         if (contMat) contMat.style.display = 'none';
         if (contWorks) contWorks.style.display = 'block';
-        
-        const matLogWrapper = document.getElementById('materialsLogisticsWrapper');
         if (matLogWrapper) matLogWrapper.style.display = 'none';
-        
+        if (tLog) tLog.innerText = '📍 Адрес проведения монтажных работ';
+        if (lDelv) lDelv.innerText = 'Точный адрес проведения работ (МО / район / дом):';
+        if (lTime) lTime.innerText = 'Желаемая дата и время выезда бригады:';
+        if (hint) hint.style.display = 'block';
         const delBox = document.getElementById('deliveryBox');
         if (delBox) delBox.style.display = 'block';
-        
-        const tLog = document.getElementById('tLogistics');
-        if (tLog) tLog.innerText = '📍 Адрес проведения монтажных работ';
-        
-        const lDelv = document.getElementById('lblDeliveryAddress');
-        if (lDelv) lDelv.innerText = 'Точный адрес проведения работ (МО / район / дом):';
-        
-        const lTime = document.getElementById('lblDeliveryTime');
-        if (lTime) lTime.innerText = 'Желаемая дата и время выезда бригады:';
-        
-        const hint = document.getElementById('worksDistanceHint');
-        if (hint) hint.style.display = 'block';
-        
         renderWorksList();
+      } else {
+        if (contMat) contMat.style.display = 'block';
+        if (contWorks) contWorks.style.display = 'block';
+        if (matLogWrapper) matLogWrapper.style.display = 'block';
+        if (tLog) tLog.innerText = '📦+🛠 Товары и монтажные работы';
+        if (lDelv) lDelv.innerText = 'Адрес объекта (работы и доставка при необходимости):';
+        if (lTime) lTime.innerText = 'Дата и время выезда бригады / доставки:';
+        if (hint) hint.style.display = 'block';
+        toggleLogisticsFields();
+        calcWell(true);
+        renderWorksList();
+        updateGrandTotal();
       }
     }
 
@@ -2060,6 +2174,7 @@
       });
       const el = document.getElementById('worksTotalSum');
       if (el) el.innerText = sum.toLocaleString('ru-RU', {minimumFractionDigits: 2}) + ' ₽';
+      updateGrandTotal();
     }
 
     const DICT = window.DICT || {
