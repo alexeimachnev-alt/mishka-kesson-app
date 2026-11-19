@@ -633,13 +633,13 @@
       <div id="tank_model_box" style="margin-top:10px;">
         <label id="lblTankModel">Гидроаккумулятор:</label>
         <select id="chosen_tank" onchange="calcWell()">
-          <option value="tank_8bw">8л BELAMOS 8BW (подвесной) — 1 184 ₽</option>
-          <option value="tank_24">24л BELAMOS 24СТ2 синий — 1 908 ₽</option>
-          <option value="tank_50_hit">50л Джилекс Г 50 «ХИТ» — 3 784 ₽</option>
-          <option value="tank_50vt">50л BELAMOS 50VT — 3 942 ₽</option>
-          <option value="tank_80vt">80л BELAMOS 80VT — 7 567 ₽</option>
-          <option value="tank_100vt" selected>100л BELAMOS 100VT — 8 749 ₽</option>
-          <option value="tank_300_dzhileks">300л Джилекс 300 В — 23 050 ₽</option>
+          <option value="tank_8bw" data-price="1184" data-name="8л BELAMOS 8BW (подвесной)">8л BELAMOS 8BW (подвесной) — 1 184 ₽</option>
+          <option value="tank_24" data-price="1908" data-name="24л BELAMOS 24СТ2 синий">24л BELAMOS 24СТ2 синий — 1 908 ₽</option>
+          <option value="tank_50_hit" data-price="3784" data-name="50л Джилекс Г 50 «ХИТ»">50л Джилекс Г 50 «ХИТ» — 3 784 ₽</option>
+          <option value="tank_50vt" data-price="3942" data-name="50л BELAMOS 50VT">50л BELAMOS 50VT — 3 942 ₽</option>
+          <option value="tank_80vt" data-price="7567" data-name="80л BELAMOS 80VT">80л BELAMOS 80VT — 7 567 ₽</option>
+          <option value="tank_100vt" selected data-price="8749" data-name="100л BELAMOS 100VT">100л BELAMOS 100VT — 8 749 ₽</option>
+          <option value="tank_300_dzhileks" data-price="23050" data-name="300л Джилекс 300 В">300л Джилекс 300 В — 23 050 ₽</option>
         </select>
       </div>
     </div>
@@ -1261,6 +1261,17 @@
       calcWell();
     }
 
+    /** Parses price snippets from option labels: "1 908,00 ₽", "8 749 ₽", etc. */
+    function parseRublesFromUiText(raw) {
+      if (raw == null || raw === '') return 0;
+      let s = String(raw).trim().replace(/\u00a0/g, ' ');
+      s = s.replace(/\s/g, '');
+      s = s.replace(',', '.');
+      s = s.replace(/[^\d.]/g, '');
+      const n = parseFloat(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+
     function calcWell(forceReset = false) {
       if (isUserEdited && !forceReset) {
          // Optionally warn user
@@ -1333,9 +1344,19 @@
 
       const tankSelect = document.getElementById('chosen_tank');
       const tankKey = tankSelect.value;
-      const tankName = tankSelect.options[tankSelect.selectedIndex].text.split(' — ')[0];
-      const tankPriceText = tankSelect.options[tankSelect.selectedIndex].text.split(' — ')[1];
-      const tankPrice = tankPriceText ? parseFloat(tankPriceText.replace(/[^0-9.]/g, '')) : 0;
+      const tankOpt = tankSelect.options[tankSelect.selectedIndex];
+      const tankName = tankOpt.getAttribute('data-name') || tankOpt.text.split(' — ')[0];
+      const tankPriceAttr = tankOpt.getAttribute('data-price');
+      const tankPriceText = tankOpt.text.split(' — ')[1];
+      let tankPrice = 0;
+      if (tankPriceAttr !== null && tankPriceAttr !== '') {
+        tankPrice = parseFloat(tankPriceAttr);
+      } else if (tankKey && window.SERVER_CONFIG?.tank_catalog?.[tankKey]?.price != null) {
+        tankPrice = parseFloat(window.SERVER_CONFIG.tank_catalog[tankKey].price);
+      } else if (tankPriceText) {
+        tankPrice = parseRublesFromUiText(tankPriceText);
+      }
+      if (!Number.isFinite(tankPrice)) tankPrice = 0;
 
       const isVFD = (equip_type === 'kesson_vfd');
       currentItems = [];
@@ -2330,8 +2351,11 @@
       if (tSel) {
         Array.from(tSel.options).forEach(opt => {
           const parts = opt.text.split(' — ');
-          const nm = parts[0] || opt.text;
-          const pr = parts[1] ? parseFloat(parts[1].replace(/,/g, '.').replace(/[^0-9.]/g, '')) : 0;
+          const nm = opt.getAttribute('data-name') || parts[0] || opt.text;
+          const attrPr = parseFloat(opt.getAttribute('data-price') || '');
+          const pr = Number.isFinite(attrPr) && attrPr > 0
+            ? attrPr
+            : (parts[1] ? parseRublesFromUiText(parts[1]) : 0);
           cfg.tank_catalog[opt.value] = { name: nm, price: pr };
           cfg.prices[opt.value] = pr;
         });
@@ -2531,7 +2555,8 @@
             const t = cfg.tank_catalog[code];
             const pr = parseFloat(t.price || 0);
             const sel = (code === prevVal) ? ' selected' : '';
-            tHtml += `<option value="${code}"${sel}>${t.name} — ${pr.toLocaleString('ru-RU', {minimumFractionDigits: 2})} ₽</option>`;
+            const tLabel = `${t.name} — ${pr.toLocaleString('ru-RU')} ₽`;
+            tHtml += `<option value="${code}" data-price="${pr}" data-name="${t.name.replace(/"/g, '&quot;')}"${sel}>${tLabel}</option>`;
           });
           if (tHtml) tSel.innerHTML = tHtml;
         }
