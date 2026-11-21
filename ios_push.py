@@ -10,7 +10,7 @@ TOKENS_PATH = os.environ.get("IOS_PUSH_TOKENS_PATH", "ios_push_tokens.json")
 
 _jwt_cache = {"token": None, "exp": 0}
 
-STAFF_PUSH_ROLES = frozenset({"warehouse", "manager", "admin", "owner"})
+STAFF_PUSH_ROLES = frozenset({"warehouse", "manager", "admin", "owner", "auditor"})
 
 
 def _load_tokens() -> dict:

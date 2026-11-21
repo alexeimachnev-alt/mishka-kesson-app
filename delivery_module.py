@@ -12,8 +12,8 @@ import requests
 
 WAREHOUSE_LAT = float(os.getenv("MISHKA_WAREHOUSE_LAT", "56.047416"))
 WAREHOUSE_LON = float(os.getenv("MISHKA_WAREHOUSE_LON", "37.538633"))
-DELIVERY_BASE_RUB = float(os.getenv("MISHKA_DELIVERY_BASE_RUB", "2000"))
-DELIVERY_PER_KM_RUB = float(os.getenv("MISHKA_DELIVERY_PER_KM_RUB", "45"))
+DELIVERY_BASE_RUB = float(os.getenv("MISHKA_DELIVERY_BASE_RUB", "3000"))
+DELIVERY_PER_KM_RUB = float(os.getenv("MISHKA_DELIVERY_PER_KM_RUB", "55"))
 
 YANDEX_GEOCODER_API_KEY = (
     os.getenv("YANDEX_GEOCODER_API_KEY") or os.getenv("YANDEX_MAPS_API_KEY") or ""
@@ -33,7 +33,7 @@ DELIVERY_ITEM_KEY = "delivery_truck_fee"
 
 
 def delivery_price_from_road_km(road_km: float) -> dict:
-    """2000 + ceil(distance_km) * 45; при 0 км — всё равно 2000 ₽."""
+    """подача + ceil(distance_km) × ₽/км; при 0 км — только подача."""
     raw = max(0.0, float(road_km))
     billed_km = int(math.ceil(raw)) if raw > 0 else 0
     variable = billed_km * DELIVERY_PER_KM_RUB
@@ -389,7 +389,7 @@ def should_charge_goods_delivery(data: dict) -> bool:
 
 
 def ensure_delivery_pricing_in_data(data: dict) -> dict:
-    """Заполняет delivery_* по координатам (2000 + ceil(km)×45), если клиент не прислал цену."""
+    """Заполняет delivery_* по координатам (подача + ceil(km)×тариф), если клиент не прислал цену."""
     d = dict(data)
     if not should_charge_delivery_fee(d):
         return d

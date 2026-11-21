@@ -1166,7 +1166,11 @@ def api_ios_update_order():
             elif new_status == "paid":
                 send_push_to_email(client_email, "Заказ выдан", f"Заказ #{order_id} оплачен и выдан")
             elif new_status == "cancelled":
-                send_push_to_email(client_email, "Заказ отменён", f"Заказ #{order_id} отменён")
+                reason = cancel_reason or order.get("cancel_reason") or ""
+                body = f"Заказ #{order_id} отменён"
+                if reason:
+                    body += f": {reason}"
+                send_push_to_email(client_email, "Заказ отменён", body)
 
         return jsonify({"status": "ok", "data": _serialize_order_for_ios(order_id, order)}), 200
     except Exception as e:
