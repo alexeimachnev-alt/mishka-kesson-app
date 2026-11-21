@@ -1,0 +1,17 @@
+# VPS в РФ: docker compose up -d --build
+services:
+  mishka-api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      PORT: "8080"
+      IOS_PUSH_TOKENS_PATH: /app/data/ios_push_tokens.json
+    volumes:
+      - mishka-data:/app/data
+
+volumes:
+  mishka-data:

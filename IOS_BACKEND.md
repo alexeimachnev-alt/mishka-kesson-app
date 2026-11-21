@@ -1,6 +1,19 @@
 # Native iOS + Render
 
-Base URL: `https://mishka-kesson-app.onrender.com`
+Base URL (Render): `https://mishka-kesson-app.onrender.com`
+
+## iPhone не достучится до onrender.com (TCP RST, -1001)
+
+С Mac `curl /health` часто **200**, с iPhone — **таймаут**: провайдер режет **onrender.com**.
+
+**Бесплатно:** прокси [Cloudflare Workers](../cloudflare-worker/README.md) — приложение ходит на `*.workers.dev`, worker дергает Render (Brevo/env не переносим).
+
+1. `cd cloudflare-worker && npx wrangler deploy`
+2. Safari на iPhone: `https://<ваш-worker>.workers.dev/health`
+3. `MishkaKesson/Info.plist` → `MishkaAPIBaseURLs` — первой строкой worker URL
+4. ⌘R в Xcode
+
+Приложение само перебирает адреса из plist + запасной Render.
 
 ## Почта (обязательно для регистрации)
 
@@ -8,23 +21,33 @@ Base URL: `https://mishka-kesson-app.onrender.com`
 
 | Переменная | Пример |
 |------------|--------|
-| `BREVO_API_KEY` | ключ из [Brevo](https://app.brevo.com) → SMTP & API → API keys |
-| `BREVO_SENDER_EMAIL` | подтверждённый отправитель (например `noreply@mishka.ru`) |
+| `BREVO_API_KEY` | `xkeysib-…` (Transactional → API keys, право **Send emails**) |
+| `BREVO_SENDER_EMAIL` | подтверждённый отправитель в Brevo → Senders |
 | `BREVO_SENDER_NAME` | `ПК МИШКА` |
+| `BREVO_SMTP_KEY` | только **не на Render** (VPS): `xsmtpsib-…` |
+| `BREVO_SMTP_LOGIN` | логин из Brevo → SMTP |
+
+**Render блокирует исходящий SMTP** (таймаут ~15 с). На Render письма **только через `BREVO_API_KEY` (xkeysib)**.  
+Ошибка «Brevo SMTP: timed out» = не настройка логина, а лимит платформы.
+
+### 401 и `unrecognised IP address` (часто на Render)
+
+Ключ **может быть правильным**. Brevo режет **IP Render** (`74.220.49.x`).
+
+1. Почта от Brevo — подтвердить неизвестный IP.  
+2. **app.brevo.com** → **Security** → **Authorized IPs** — **выключить** ограничение (для serverless IP плавающий).  
+3. Повторить `curl … send_email_code`.
 
 Проверка после деплоя:
 
 ```bash
 curl -s https://mishka-kesson-app.onrender.com/health
+curl -s -X POST https://mishka-kesson-app.onrender.com/api/auth/send_email_code \
+  -H 'Content-Type: application/json' -d '{"email":"ваш@email.ru"}'
 ```
 
-Ожидается `"email_delivery":"brevo"`, `"brevo_auth_ok":true`, `"ios_api_version":2`.
-
-Если **`brevo_auth_ok":false`** или в приложении ошибка **401**:
-- В Brevo → **Transactional** → **API keys** создайте ключ вида `xkeysib-…` (не SMTP-пароль).
-- Render → **Environment**: `BREVO_API_KEY` — вставить **без кавычек и переносов строк**.
-- `BREVO_SENDER_EMAIL` — адрес **подтверждён** в Brevo (Senders).
-- **Manual Deploy** после сохранения env.
+`/health`: `"brevo_auth_ok":true` (probe реальной отправки).  
+`send_email_code`: `"status":"ok"`, не 401.
 
 Тест кода:
 

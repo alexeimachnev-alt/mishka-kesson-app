@@ -17,7 +17,9 @@ from calc_module import (
     OrderValidationError,
     recompute_order_composition_flags,
     tag_item_category,
-    ACTIVE_ORDERS, 
+    ACTIVE_ORDERS,
+    get_active_order,
+    persist_active_orders,
     ADMIN_CHAT_IDS,
     MESSAGES,
     ALL_CATALOG_ITEMS,
@@ -43,9 +45,23 @@ from admin_config import (
     load_config_on_startup
 )
 
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "0").strip().lower() in ("1", "true", "yes", "on")
+
+
+IOS_API_ONLY = _env_flag("IOS_API_ONLY")
 BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("BOT_TOKEN") or "").strip().strip("'\"")
+TELEGRAM_ACTIVE = bool(BOT_TOKEN)
 if not BOT_TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN не задан в переменных окружения!")
+    if IOS_API_ONLY:
+        # Заглушка: iOS API и /health без реального Telegram-бота
+        BOT_TOKEN = "0:ios-api-only"
+        TELEGRAM_ACTIVE = False
+    else:
+        raise ValueError(
+            "TELEGRAM_BOT_TOKEN не задан. Для только iOS укажите IOS_API_ONLY=1 "
+            "или добавьте TELEGRAM_BOT_TOKEN."
+        )
 
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__, template_folder="templates", static_folder=".")
@@ -68,6 +84,13 @@ def health_check():
     }
     if brevo_configured() and brevo_ok is False:
         payload["brevo_setup_hint"] = brevo_public_diagnostics()
+    try:
+        from ios_push import apns_configured, fcm_configured
+        payload["apns_configured"] = apns_configured()
+        payload["fcm_configured"] = fcm_configured()
+    except Exception:
+        payload["apns_configured"] = False
+        payload["fcm_configured"] = False
     return jsonify(payload), 200
 
 @app.route("/app")
@@ -84,13 +107,98 @@ def serve_webapp():
 @app.route("/api/calculate", methods=["POST"])
 def api_calculate():
     data = request.json or {}
+    try:
+        from delivery_module import ensure_delivery_pricing_in_data
+        data = ensure_delivery_pricing_in_data(data)
+    except Exception:
+        pass
     raw_items = get_items_for_order(data)
     uid = data.get("user_id") or data.get("chat_id") or 0
     mod_pct = get_user_modifier(uid)
     from calc_module import apply_personal_modifier_to_items
     items = apply_personal_modifier_to_items(raw_items, mod_pct)
     total = sum(x["price"] * x["qty"] for x in items)
+    try:
+        from delivery_module import apply_delivery_to_order_items
+        items, _ = apply_delivery_to_order_items(items, data)
+        total = sum(x["price"] * x["qty"] for x in items)
+    except Exception:
+        pass
     return jsonify({"items": items, "total": round(total, 2), "personal_modifier": mod_pct, "status": "success"})
+
+
+@app.route("/api/calculate_delivery", methods=["POST"])
+def api_calculate_delivery():
+    try:
+        from delivery_module import (
+            calculate_delivery_quote,
+            geocode_forward,
+            parse_coordinates,
+        )
+
+        data = request.json or {}
+        lat = data.get("delivery_lat") if data.get("delivery_lat") is not None else data.get("lat")
+        lon = data.get("delivery_lon") if data.get("delivery_lon") is not None else data.get("lon")
+        if lat is None or lon is None:
+            addr = (data.get("delivery_address") or data.get("address") or "").strip()
+            coords = parse_coordinates(addr) if addr else None
+            if coords:
+                lat, lon = coords
+            elif addr:
+                g = geocode_forward(addr)
+                if g.get("status") != "ok":
+                    return jsonify(g), 400
+                lat, lon = g["lat"], g["lon"]
+            else:
+                return jsonify({"status": "error", "message": "Укажите координаты или адрес"}), 400
+        lat = float(lat)
+        lon = float(lon)
+        result = calculate_delivery_quote(lat, lon)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/geocode/suggest", methods=["POST"])
+def api_geocode_suggest():
+    try:
+        from delivery_module import geocode_suggest
+
+        payload = request.json or {}
+        q = payload.get("query") or payload.get("q") or ""
+        return jsonify(geocode_suggest(q)), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/geocode/forward", methods=["POST"])
+def api_geocode_forward():
+    try:
+        from delivery_module import geocode_forward
+
+        addr = (request.json or {}).get("address") or ""
+        out = geocode_forward(addr)
+        code = 200 if out.get("status") == "ok" else 400
+        return jsonify(out), code
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/geocode/reverse", methods=["POST"])
+def api_geocode_reverse():
+    try:
+        from delivery_module import geocode_reverse
+
+        body = request.json or {}
+        lat = float(body.get("lat"))
+        lon = float(body.get("lon"))
+        out = geocode_reverse(lat, lon)
+        code = 200 if out.get("status") == "ok" else 400
+        return jsonify(out), code
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route("/api/config", methods=["GET"])
@@ -199,54 +307,83 @@ def normalize_phone_digits(p: str) -> str:
     return digits
 
 
-# Встроенные корпоративные аккаунты руководства и менеджеров склада
-BUILTIN_STAFF_ACCOUNTS = {
-    "alexeimachnev@icloud.com": {
-        "id": "551209811",
-        "email": "alexeimachnev@icloud.com",
-        "phone": "+79060400043",
-        "name": "Алексей (Владелец)",
-        "company": "ООО ПК МИШКА",
-        "role": "owner",
-        "password": os.getenv("ALEXEI_ICLOUD_PASSWORD", os.getenv("OWNER_PASSWORD", "19652200")),
-    },
-    "owner@mishka.ru": {
-        "id": "551209811",
-        "email": "owner@mishka.ru",
-        "phone": "+79060400043",
-        "name": "Алексей (Владелец)",
-        "company": "ООО ПК МИШКА",
-        "role": "owner",
-        "password": os.getenv("OWNER_PASSWORD", "551209")
-    },
-    "artur@mishka.ru": {
-        "id": "447208738",
-        "email": "artur@mishka.ru",
-        "phone": "+79000000001",
-        "name": "Артур (Склад МИШКА)",
-        "company": "Склад ПК МИШКА",
-        "role": "manager",
-        "password": os.getenv("ARTUR_PASSWORD", "447208")
-    },
-    "sklad@mishka.ru": {
-        "id": "840231919",
-        "email": "sklad@mishka.ru",
-        "phone": "+79000000002",
-        "name": "Сборщик склада",
-        "company": "Склад ПК МИШКА",
-        "role": "warehouse",
-        "password": os.getenv("SKLAD_PASSWORD", "840231")
-    },
-    "admin@mishka.ru": {
-        "id": "551209811",
-        "email": "admin@mishka.ru",
-        "phone": "+79060400043",
-        "name": "Администратор ПК МИШКА",
-        "company": "ООО ПК МИШКА",
-        "role": "admin",
-        "password": os.getenv("OWNER_PASSWORD", "551209")
+def builtin_staff_accounts_live():
+    """Пароли сотрудников из env при каждом вызове (после правки .env достаточно рестарта контейнера)."""
+    owner_pw = os.getenv("OWNER_PASSWORD", "551209")
+    alexei_pw = os.getenv("ALEXEI_ICLOUD_PASSWORD") or owner_pw or "19652200"
+    return {
+        "alexeimachnev@icloud.com": {
+            "id": "551209811",
+            "email": "alexeimachnev@icloud.com",
+            "phone": "+79060400043",
+            "name": "Алексей (Владелец)",
+            "company": "ООО ПК МИШКА",
+            "role": "owner",
+            "password": alexei_pw,
+        },
+        "owner@mishka.ru": {
+            "id": "551209811",
+            "email": "owner@mishka.ru",
+            "phone": "+79060400043",
+            "name": "Алексей (Владелец)",
+            "company": "ООО ПК МИШКА",
+            "role": "owner",
+            "password": owner_pw,
+        },
+        "artur@mishka.ru": {
+            "id": "447208738",
+            "email": "artur@mishka.ru",
+            "login": "19652200",
+            "phone": "+79000000001",
+            "name": "Артур (Склад МИШКА)",
+            "company": "Склад ПК МИШКА",
+            "role": "manager",
+            "password": os.getenv("ARTUR_PASSWORD", "19652200"),
+        },
+        "sklad1@mishka.ru": {
+            "id": "840231919",
+            "email": "sklad1@mishka.ru",
+            "login": "sklad1",
+            "phone": "+79000000002",
+            "name": "Кладовщик 1",
+            "company": "Склад ПК МИШКА",
+            "role": "warehouse",
+            "password": os.getenv("SKLAD1_PASSWORD", "939393"),
+        },
+        "sklad2@mishka.ru": {
+            "id": "840231920",
+            "email": "sklad2@mishka.ru",
+            "login": "sklad2",
+            "phone": "+79000000003",
+            "name": "Кладовщик 2",
+            "company": "Склад ПК МИШКА",
+            "role": "warehouse",
+            "password": os.getenv("SKLAD2_PASSWORD", "737373"),
+        },
+        "nodir@mishka.ru": {
+            "id": "nodir_auditor",
+            "email": "nodir@mishka.ru",
+            "login": "nodir",
+            "phone": "+79000000004",
+            "name": "Nodir (старший менеджер)",
+            "company": "ООО ПК МИШКА",
+            "role": "auditor",
+            "password": os.getenv("NODIR_PASSWORD", "Nodir1234"),
+        },
+        "admin@mishka.ru": {
+            "id": "551209811",
+            "email": "admin@mishka.ru",
+            "phone": "+79060400043",
+            "name": "Администратор ПК МИШКА",
+            "company": "ООО ПК МИШКА",
+            "role": "admin",
+            "password": owner_pw,
+        },
     }
-}
+
+
+# Снимок при импорте — для совместимости; для входа всегда builtin_staff_accounts_live()
+BUILTIN_STAFF_ACCOUNTS = builtin_staff_accounts_live()
 
 IOS_USERS_DB = {}
 
@@ -279,6 +416,8 @@ from ios_auth_helpers import (
     issue_session_token,
     can_edit_catalog,
     can_manage_orders,
+    can_modify_orders,
+    find_staff_login,
     can_manage_staff,
     map_order_status_for_ios,
     map_payment_type_ios,
@@ -287,13 +426,14 @@ from ios_auth_helpers import (
     staff_record_public,
     resolve_user_by_token,
     user_from_bearer,
+    client_owns_order,
 )
 
 
 def sync_builtin_staff_to_ios_db():
     """Синхронизирует встроенных сотрудников в ios_users.json (пароль — pbkdf2)."""
     load_ios_users()
-    for email, acc in BUILTIN_STAFF_ACCOUNTS.items():
+    for email, acc in builtin_staff_accounts_live().items():
         plain = str(acc.get("password", ""))
         merged = dict(acc)
         if plain and not plain.startswith(("pbkdf2:", "scrypt:")):
@@ -421,7 +561,8 @@ def api_staff_quick_login():
         "owner": BUILTIN_STAFF_ACCOUNTS["owner@mishka.ru"],
         "admin": BUILTIN_STAFF_ACCOUNTS["admin@mishka.ru"],
         "manager": BUILTIN_STAFF_ACCOUNTS["artur@mishka.ru"],
-        "warehouse": BUILTIN_STAFF_ACCOUNTS["sklad@mishka.ru"],
+        "warehouse": BUILTIN_STAFF_ACCOUNTS["sklad1@mishka.ru"],
+        "auditor": BUILTIN_STAFF_ACCOUNTS["nodir@mishka.ru"],
     }
     if role == "client":
         demo = {
@@ -463,27 +604,39 @@ def api_ios_auth_login():
     try:
         load_ios_users()
         data = request.json or {}
-        email = str(data.get("email") or data.get("login") or "").strip().lower()
+        identifier = str(data.get("email") or data.get("login") or "").strip().lower()
         password = str(data.get("password") or data.get("code") or "").strip()
 
-        if not email or "@" not in email:
-            return jsonify({"status": "error", "message": "Укажите корректный Email"}), 400
+        if not identifier:
+            return jsonify({"status": "error", "message": "Укажите Email или логин сотрудника"}), 400
         if not password or len(password) < 4:
             return jsonify({"status": "error", "message": "Пароль должен содержать минимум 4 символа"}), 400
 
-        staff = BUILTIN_STAFF_ACCOUNTS.get(email) or IOS_USERS_DB.get(email)
-        if not staff and email in BUILTIN_STAFF_ACCOUNTS:
-            staff = BUILTIN_STAFF_ACCOUNTS[email]
+        live_builtin = builtin_staff_accounts_live()
+        email, staff = find_staff_login(identifier, IOS_USERS_DB, live_builtin)
+        if not staff and "@" in identifier:
+            staff = live_builtin.get(identifier) or IOS_USERS_DB.get(identifier)
+            email = identifier if staff else email
 
         if staff and str(staff.get("role", "client")) != "client":
+            email = email or identifier
             if staff.get("blocked"):
                 return jsonify({"status": "error", "message": "Аккаунт заблокирован администратором"}), 403
-            stored = staff.get("password") or BUILTIN_STAFF_ACCOUNTS.get(email, {}).get("password", "")
-            fallback_pins = {"7777", "1234", staff.get("password", "")}
-            if not verify_password(stored, password) and password not in fallback_pins:
+            stored_db = (IOS_USERS_DB.get(email) or {}).get("password") or staff.get("password", "")
+            live_plain = live_builtin.get(email, {}).get("password", "")
+            staff_entry_pin = os.getenv("STAFF_ENTRY_PIN", "1965").strip()
+            fallback_pins = {staff_entry_pin} if staff_entry_pin else set()
+            ok = verify_password(stored_db, password) or (live_plain and password == str(live_plain))
+            if not ok and password not in fallback_pins:
                 return jsonify({"status": "error", "message": "Неверный пароль"}), 401
+            if email in live_builtin:
+                staff = {**live_builtin[email], **{k: v for k, v in staff.items() if k != "password"}}
             return jsonify(_login_response_from_record(staff)), 200
 
+        if "@" not in identifier:
+            return jsonify({"status": "error", "message": "Аккаунт не найден. Для клиентов нужен Email."}), 404
+
+        email = identifier
         existing = IOS_USERS_DB.get(email)
         if not existing:
             return jsonify({
@@ -710,12 +863,52 @@ def api_admin_staff_delete(user_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+def _repeat_params_for_ios(order: dict) -> dict:
+    r = order.get("raw_data") or {}
+    distances = r.get("distances")
+    dist_main = r.get("distance")
+    if dist_main is None and isinstance(distances, list) and distances:
+        try:
+            dist_main = float(distances[0])
+        except (TypeError, ValueError):
+            dist_main = None
+    dist2 = r.get("distance_2")
+    if dist2 is None and isinstance(distances, list) and len(distances) > 1:
+        try:
+            dist2 = float(distances[1])
+        except (TypeError, ValueError):
+            dist2 = None
+    return {
+        "orderMode": str(r.get("mode") or ("combined" if order.get("is_combined") else "well")),
+        "depth": r.get("depth"),
+        "distance": dist_main,
+        "distance2": dist2,
+        "housesCount": r.get("houses_count"),
+        "equipType": r.get("equip_type"),
+        "chosenKesson": r.get("chosen_kesson"),
+        "chosenTank": r.get("chosen_tank"),
+        "chosenPump": r.get("chosen_pump"),
+        "priceTier": r.get("price_tier"),
+        "includeHeatCable": r.get("include_heat_cable"),
+        "heatCableLength": r.get("heat_cable_length"),
+        "includeAdapterHydrants": r.get("include_adapter_hydrants"),
+        "pickupDateTime": r.get("pickup_date_time") or r.get("delivery_info"),
+        "deliveryTime": r.get("delivery_time"),
+        "lang": r.get("lang"),
+    }
+
+
 def _serialize_order_for_ios(oid: str, order: dict) -> dict:
+    from warehouse_items import is_delivery_fee_item, sync_delivery_collected_flags
+
+    sync_delivery_collected_flags(order)
     raw_items = order.get("items", [])
     collected_flags = order.get("collected", [False] * len(raw_items))
     ios_items = []
     for idx, it in enumerate(raw_items):
         is_col = collected_flags[idx] if idx < len(collected_flags) else False
+        if is_delivery_fee_item(it):
+            is_col = True
         ios_items.append({
             "itemKey": str(it.get("item_key") or it.get("code") or f"item_{idx}"),
             "name": str(it.get("name", "Позиция")),
@@ -739,13 +932,23 @@ def _serialize_order_for_ios(oid: str, order: dict) -> dict:
         "internalStatus": raw_status,
         "paymentMethod": order.get("payment_method"),
         "cancelReason": order.get("cancel_reason"),
-        "yandexNavURL": str(order.get("raw_data", {}).get("yandex_nav_url") or YANDEX_MAPS_URL),
+        "yandexNavURL": str(
+            order.get("yandex_navi_url")
+            or order.get("raw_data", {}).get("yandex_navi_url")
+            or YANDEX_MAPS_URL
+        ),
+        "deliveryAddress": order.get("delivery_address") or order.get("raw_data", {}).get("delivery_address"),
+        "deliveryLat": order.get("delivery_lat") or order.get("raw_data", {}).get("delivery_lat"),
+        "deliveryLon": order.get("delivery_lon") or order.get("raw_data", {}).get("delivery_lon"),
+        "deliveryDistanceKm": order.get("delivery_distance_km") or order.get("raw_data", {}).get("delivery_distance_km"),
+        "deliveryPrice": order.get("delivery_price") or order.get("raw_data", {}).get("delivery_price"),
         "items": ios_items,
         "hasGoods": bool(order.get("has_goods", True)),
         "hasWorks": bool(order.get("has_works", order.get("is_works", False))),
         "isCombined": bool(order.get("is_combined", False)),
         "goodsSubtotal": float(order.get("goods_subtotal", 0)),
         "worksSubtotal": float(order.get("works_subtotal", 0)),
+        "repeatParams": _repeat_params_for_ios(order),
     }
 
 
@@ -753,24 +956,35 @@ def _serialize_order_for_ios(oid: str, order: dict) -> dict:
 def api_ios_get_orders():
     """Возвращает заказы для iOS-приложения: менеджерам/владельцу — все заказы склада, клиенту — его заказы (по Email, телефону или ID)"""
     try:
-        role = request.args.get("role", "client")
+        load_ios_users()
+        live_builtin = builtin_staff_accounts_live()
+        actor = user_from_bearer(request, IOS_USERS_DB, live_builtin)
+
+        role = str(request.args.get("role", "client")).lower()
         email = request.args.get("email", "").strip().lower()
         phone = request.args.get("phone", "").strip()
         user_id = request.args.get("user_id", "").strip()
-        clean_req_phone = normalize_phone_digits(phone)
+
+        if actor:
+            role = str(actor.get("role", role)).lower()
+            email = str(actor.get("email") or email).strip().lower()
+            phone = str(actor.get("phone") or phone).strip()
+            user_id = str(actor.get("id") or user_id).strip()
 
         results = []
         for oid, order in ACTIVE_ORDERS.items():
             if can_manage_orders(role):
                 results.append(_serialize_order_for_ios(oid, order))
-            else:
-                ord_phone_clean = normalize_phone_digits(order.get("phone", ""))
-                ord_uid = str(order.get("client_id", "")).strip()
-                ord_email = str(order.get("raw_data", {}).get("email", "")).strip().lower()
-                if (email and email == ord_email) or (clean_req_phone and clean_req_phone == ord_phone_clean) or (phone and phone in str(order.get("phone", ""))) or (user_id and user_id == ord_uid):
-                    results.append(_serialize_order_for_ios(oid, order))
+            elif client_owns_order(order, email=email, phone=phone, user_id=user_id):
+                results.append(_serialize_order_for_ios(oid, order))
 
-        results.reverse()
+        def _sort_key(item):
+            try:
+                return int(str(item.get("id", "0")))
+            except (TypeError, ValueError):
+                return 0
+
+        results.sort(key=_sort_key, reverse=True)
         return jsonify({"status": "ok", "data": results}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -780,25 +994,115 @@ def api_ios_get_orders():
 def api_ios_toggle_item():
     """Отметка позиции в чек-листе сборки из iOS-приложения менеджера"""
     try:
+        load_ios_users()
+        actor = user_from_bearer(request, IOS_USERS_DB, builtin_staff_accounts_live())
+        if not actor or not can_modify_orders(actor.get("role")):
+            return jsonify({"status": "error", "message": "Нет прав на изменение заказа"}), 403
+
         data = request.json or {}
         order_id = str(data.get("order_id", "")).strip()
         item_index = data.get("item_index")
         item_key = str(data.get("item_key", "")).strip()
         is_collected = bool(data.get("is_collected", True))
 
-        order = ACTIVE_ORDERS.get(order_id)
+        order, order_id = get_active_order(order_id)
         if not order:
             return jsonify({"status": "error", "message": "Заказ не найден"}), 404
 
-        if item_index is not None and 0 <= int(item_index) < len(order["collected"]):
-            order["collected"][int(item_index)] = is_collected
-        else:
-            for idx, it in enumerate(order["items"]):
-                k = str(it.get("item_key") or it.get("code") or f"item_{idx}")
-                if k == item_key or it.get("name") == item_key:
-                    order["collected"][idx] = is_collected
-                    break
+        collected = order.get("collected") or []
+        items = order.get("items") or []
+        if len(collected) < len(items):
+            collected = list(collected) + [False] * (len(items) - len(collected))
+            order["collected"] = collected
 
+        from warehouse_items import is_delivery_fee_item, sync_delivery_collected_flags
+
+        sync_delivery_collected_flags(order)
+
+        if item_index is not None:
+            idx = int(item_index)
+            if 0 <= idx < len(collected):
+                if idx < len(items) and is_delivery_fee_item(items[idx]):
+                    order["collected"][idx] = True
+                else:
+                    order["collected"][idx] = is_collected
+        elif item_key:
+            matched = False
+            for idx, it in enumerate(items):
+                k = str(it.get("item_key") or it.get("code") or f"item_{idx}")
+                if k == item_key or str(it.get("name", "")) == item_key:
+                    if is_delivery_fee_item(it):
+                        order["collected"][idx] = True
+                    else:
+                        order["collected"][idx] = is_collected
+                    matched = True
+                    break
+            if not matched:
+                return jsonify({"status": "error", "message": "Позиция не найдена в заказе"}), 404
+
+        persist_active_orders()
+        return jsonify({"status": "ok", "data": _serialize_order_for_ios(order_id, order)}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/admin/remove_item", methods=["POST"])
+def api_ios_remove_item():
+    """Убрать позицию из заказа на сборке (нет на складе). Пересчёт суммы."""
+    try:
+        from calc_module import recompute_order_composition_flags
+        from warehouse_items import is_delivery_fee_item
+
+        load_ios_users()
+        actor = user_from_bearer(request, IOS_USERS_DB, builtin_staff_accounts_live())
+        if not actor or not can_modify_orders(actor.get("role")):
+            return jsonify({"status": "error", "message": "Нет прав на изменение заказа"}), 403
+
+        data = request.json or {}
+        order_id = str(data.get("order_id", "")).strip()
+        item_index = data.get("item_index")
+        if item_index is None:
+            return jsonify({"status": "error", "message": "item_index обязателен"}), 400
+        idx = int(item_index)
+
+        order, order_id = get_active_order(order_id)
+        if not order:
+            return jsonify({"status": "error", "message": "Заказ не найден"}), 404
+
+        raw_status = str(order.get("status", "active")).lower()
+        if raw_status in ("paid", "cancelled"):
+            return jsonify({"status": "error", "message": "Нельзя менять завершённый или отменённый заказ"}), 400
+
+        items = order.get("items") or []
+        collected = order.get("collected") or []
+        if idx < 0 or idx >= len(items):
+            return jsonify({"status": "error", "message": "Позиция не найдена"}), 404
+
+        it = items[idx]
+        if is_delivery_fee_item(it):
+            return jsonify({"status": "error", "message": "Строку доставки нельзя убрать"}), 400
+        if it.get("is_work"):
+            return jsonify({"status": "error", "message": "Работы убирают через согласование с клиентом, не со склада"}), 400
+
+        if len(collected) < len(items):
+            collected = list(collected) + [False] * (len(items) - len(collected))
+
+        del items[idx]
+        if idx < len(collected):
+            del collected[idx]
+        order["items"] = items
+        order["collected"] = collected
+
+        flags = recompute_order_composition_flags(items)
+        order.update(flags)
+        order["goods_subtotal"] = round(
+            sum(x["qty"] * x["price"] for x in items if not x.get("is_work")), 2
+        )
+        order["works_subtotal"] = round(
+            sum(x["qty"] * x["price"] for x in items if x.get("is_work")), 2
+        )
+        order["total_sum"] = round(sum(x["qty"] * x["price"] for x in items), 2)
+        persist_active_orders()
         return jsonify({"status": "ok", "data": _serialize_order_for_ios(order_id, order)}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -808,6 +1112,11 @@ def api_ios_toggle_item():
 def api_ios_update_order():
     """Смена статуса заказа (Собран / Оплачен / Отменен) из iOS-приложения менеджера с синхронизацией в Google Таблицу и ТГ"""
     try:
+        load_ios_users()
+        actor = user_from_bearer(request, IOS_USERS_DB, builtin_staff_accounts_live())
+        if not actor or not can_modify_orders(actor.get("role")):
+            return jsonify({"status": "error", "message": "Нет прав на изменение заказа"}), 403
+
         data = request.json or {}
         order_id = str(data.get("order_id", "")).strip()
         new_status = str(data.get("status", "completed")).strip()
@@ -816,9 +1125,15 @@ def api_ios_update_order():
         cancel_reason = str(data.get("cancel_reason", "")).strip()
         manager_name = str(data.get("manager_name", "Менеджер (iOS)")).strip()
 
-        order = ACTIVE_ORDERS.get(order_id)
+        order, order_id = get_active_order(order_id)
         if not order:
             return jsonify({"status": "error", "message": "Заказ не найден"}), 404
+
+        if new_status == "cancelled" and not cancel_reason:
+            return jsonify({
+                "status": "error",
+                "message": "Укажите причину отмены (обязательно)",
+            }), 400
 
         order["status"] = new_status
         if payment_type:
@@ -827,13 +1142,100 @@ def api_ios_update_order():
             order["cancel_reason"] = cancel_reason
 
         if new_status == "completed":
+            from warehouse_items import goods_collection_complete, sync_delivery_collected_flags
+
+            sync_delivery_collected_flags(order)
+            if not goods_collection_complete(order):
+                return jsonify({
+                    "status": "error",
+                    "message": "Сначала отметьте все позиции оборудования на складе (доставка не требует галочки)",
+                }), 400
             update_sheet_status(order_id, "Собран на складе", assembler=manager_name, manager=manager_name)
         elif new_status == "paid":
             update_sheet_status(order_id, "Оплачен и выдан", payment_type=payment_type or "Оплачено", payment_method=payment_type or "Оплачено", manager=manager_name)
         elif new_status == "cancelled":
             update_sheet_status(order_id, "Отменён", cancel_reason=cancel_reason, comment=cancel_reason, manager=manager_name)
 
+        persist_active_orders()
+
+        client_email = str(order.get("raw_data", {}).get("email", "")).strip().lower()
+        if client_email:
+            from ios_push import send_push_to_email
+            if new_status == "completed":
+                send_push_to_email(client_email, "Заказ собран", f"Заказ #{order_id} собран на складе МИШКА")
+            elif new_status == "paid":
+                send_push_to_email(client_email, "Заказ выдан", f"Заказ #{order_id} оплачен и выдан")
+            elif new_status == "cancelled":
+                send_push_to_email(client_email, "Заказ отменён", f"Заказ #{order_id} отменён")
+
         return jsonify({"status": "ok", "data": _serialize_order_for_ios(order_id, order)}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/ios/push_test", methods=["POST"])
+def api_ios_push_test():
+    """Тестовый push на устройства текущего пользователя (нужен зарегистрированный device_token)."""
+    try:
+        from ios_push import apns_configured, fcm_configured, send_push_to_email, token_entries_for_email
+
+        load_ios_users()
+        actor = user_from_bearer(request, IOS_USERS_DB, BUILTIN_STAFF_ACCOUNTS)
+        if not actor:
+            return jsonify({"status": "error", "message": "Требуется авторизация"}), 401
+        email = str(actor.get("email") or "").strip().lower()
+        if not email:
+            return jsonify({"status": "error", "message": "Email не найден"}), 400
+        entries = token_entries_for_email(email)
+        if not entries:
+            return jsonify({
+                "status": "error",
+                "message": "Нет device_token. Включите push в настройках приложения и войдите снова.",
+            }), 400
+        needs_ios = any(e.get("platform") != "android" for e in entries)
+        needs_android = any(e.get("platform") == "android" for e in entries)
+        if needs_ios and not apns_configured():
+            return jsonify({
+                "status": "error",
+                "message": "На сервере не настроен APNs (см. docs/APNS_SETUP.md)",
+            }), 503
+        if needs_android and not fcm_configured():
+            return jsonify({
+                "status": "error",
+                "message": "На сервере не настроен FCM (FCM_PROJECT_ID, FCM_SERVICE_ACCOUNT_PATH — docs/FCM_ANDROID.md)",
+            }), 503
+        data = request.json or {}
+        title = str(data.get("title") or "МИШКА — тест").strip()[:120]
+        body = str(data.get("body") or "Push с сервера работает ✅").strip()[:240]
+        ok = send_push_to_email(email, title, body)
+        return jsonify({
+            "status": "ok" if ok else "error",
+            "message": "Отправлено" if ok else "Push не доставлен — проверьте APNs/FCM и токены устройств",
+            "devices": len(entries),
+        }), 200 if ok else 502
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/ios/register_device", methods=["POST"])
+def api_ios_register_device():
+    """Сохраняет APNs device token для push-уведомлений (отправка — при настройке Apple в .env)."""
+    try:
+        from ios_push import register_device_token
+
+        load_ios_users()
+        actor = user_from_bearer(request, IOS_USERS_DB, BUILTIN_STAFF_ACCOUNTS)
+        if not actor:
+            return jsonify({"status": "error", "message": "Требуется авторизация"}), 401
+        data = request.json or {}
+        token = str(data.get("device_token") or data.get("deviceToken") or "").strip()
+        if not token:
+            return jsonify({"status": "error", "message": "device_token обязателен"}), 400
+        email = str(actor.get("email") or "").strip().lower()
+        if not email:
+            return jsonify({"status": "error", "message": "Email не найден в профиле"}), 400
+        register_device_token(email, token, platform=str(data.get("platform") or "ios"))
+        return jsonify({"status": "ok", "message": "Токен сохранён"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -878,7 +1280,15 @@ def get_user_orders():
 @app.route("/api/miniapp_order", methods=["POST"])
 def handle_miniapp_order():
     try:
-        data = request.json or {}
+        load_ios_users()
+        data = dict(request.json or {})
+        actor = user_from_bearer(request, IOS_USERS_DB, builtin_staff_accounts_live())
+        if actor and str(actor.get("role", "client")).lower() == "client":
+            data["user_id"] = actor.get("id") or data.get("user_id") or data.get("chat_id")
+            data["email"] = str(actor.get("email") or data.get("email") or "").strip().lower()
+            if not data.get("phone"):
+                data["phone"] = actor.get("phone") or data.get("client_phone")
+
         user_id = data.get("user_id") or data.get("chat_id") or 0
 
         # Формируем и рассчитываем заказ по утвержденной номенклатуре
@@ -900,14 +1310,50 @@ def handle_miniapp_order():
 
                 kb_client = tele_types.InlineKeyboardMarkup(row_width=1)
                 is_deliv = "Доставка" in data.get("delivery_type", "")
-                if not is_deliv:
-                    kb_client.add(tele_types.InlineKeyboardButton(t_client["btn_nav_sklad"], url=YANDEX_MAPS_URL))
+                nav_url = data.get("yandex_navi_url") or (
+                    YANDEX_MAPS_URL if not is_deliv else None
+                )
+                if is_deliv and data.get("delivery_lat") and data.get("delivery_lon"):
+                    try:
+                        from delivery_module import yandex_navi_url
+                        nav_url = yandex_navi_url(
+                            float(data["delivery_lat"]), float(data["delivery_lon"])
+                        )
+                    except Exception:
+                        pass
+                if nav_url:
+                    label = t_client["btn_nav_sklad"] if not is_deliv else "🚗 Маршрут доставки (Яндекс)"
+                    kb_client.add(tele_types.InlineKeyboardButton(label, url=nav_url))
                 kb_client.add(tele_types.InlineKeyboardButton(t_client["btn_repeat"], callback_data=f"repeat_{order_id}"))
 
                 client_msg = t_client["accepted"].format(order_id=order_id, body=client_text)
                 bot.send_message(user_id, client_msg, parse_mode="HTML", reply_markup=kb_client)
             except Exception as client_err:
                 print(f"[ERR CLIENT SEND] {user_id}: {client_err}")
+
+        try:
+            from ios_push import send_push_to_email, send_push_to_emails, STAFF_PUSH_ROLES
+
+            client_email = str(data.get("email") or "").strip().lower()
+            sum_txt = f"{total_sum:,.0f} ₽".replace(",", " ")
+            if client_email:
+                send_push_to_email(
+                    client_email,
+                    "Заказ принят",
+                    f"Заказ #{order_id} на сумму {sum_txt} принят складом МИШКА",
+                )
+            load_ios_users()
+            staff_emails = []
+            for rec in list(IOS_USERS_DB.values()) + list(BUILTIN_STAFF_ACCOUNTS.values()):
+                if str(rec.get("role", "")).lower() in STAFF_PUSH_ROLES:
+                    staff_emails.append(rec.get("email"))
+            send_push_to_emails(
+                staff_emails,
+                "Новый заказ на сборке",
+                f"#{order_id} · {sum_txt} · {data.get('client_name', 'Клиент')}",
+            )
+        except Exception as push_err:
+            print(f"[IOS_PUSH] new order notify: {push_err}")
 
         return jsonify({
             "status": "ok", 
@@ -1013,11 +1459,13 @@ def handle_callbacks(call):
             bot.answer_callback_query(call.id, "Заказ не найден")
             return
 
+        from warehouse_items import goods_collection_complete, sync_delivery_collected_flags
+
         has_goods = bool(order.get("has_goods", True))
         has_works = bool(order.get("has_works", order.get("is_works")))
         if has_goods:
-            goods_idx = [i for i, it in enumerate(order["items"]) if not it.get("is_work")]
-            if goods_idx and not all(order["collected"][i] for i in goods_idx if i < len(order["collected"])):
+            sync_delivery_collected_flags(order)
+            if not goods_collection_complete(order):
                 bot.answer_callback_query(call.id, "Сначала соберите все позиции оборудования на складе")
                 return
         if has_works and has_goods and not order.get("works_agreed"):
@@ -1487,8 +1935,10 @@ def keep_alive_ping():
 load_config_on_startup()
 
 # Инициализация при старте (работает и через python app.py, и через gunicorn app:app)
-threading.Thread(target=setup_bot_mode, daemon=True).start()
-threading.Thread(target=keep_alive_ping, daemon=True).start()
+if TELEGRAM_ACTIVE:
+    threading.Thread(target=setup_bot_mode, daemon=True).start()
+if not _env_flag("DISABLE_KEEPALIVE"):
+    threading.Thread(target=keep_alive_ping, daemon=True).start()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))

@@ -49,12 +49,12 @@ def get_well_items(data):
         items.extend([
             {"item_key": "adapter_tim_1", "name": "Адаптер скважинный со сливным клапаном 1' TIM", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["adapter_tim_1"]},
             {"item_key": "cover_adapter", "name": "Крышка скважины Джилекс КС 110-133", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["cover_adapter"]},
-            {"item_key": "pnd_coupling_32_1_hp", "name": "Муфта ПНД 32x1' HP Unidelta", "qty": 4, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_1_hp"]},
+            {"item_key": "pnd_coupling_32_1_hp", "name": "Муфта ПНД 32x1' HP Unidelta", "qty": 4 + (houses_count - 1), "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_1_hp"]},
             {"item_key": chosen_tank_key, "name": f"{tank_obj['name']} (в дом)", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": tank_obj["price"]},
             {"item_key": "pressure_switch", "name": "Реле давления AQUARIO PS-5-2 (вращ. гайка) Акварио", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pressure_switch"]},
             {"item_key": "manometer", "name": "Манометр радиальный 0-10 бар D53мм 1/4", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["manometer"]},
             {"item_key": "hose_giant_1_80cm", "name": "Подводка для воды угловая 1' 80см г/г ГИГАНТ", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["hose_giant_1_80cm"]},
-            {"item_key": "valve_brass_1", "name": "Кран шаровой Вн/Нр (бабочка) 1'", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["valve_brass_1"]},
+            {"item_key": "valve_brass_1", "name": "Кран шаровой Вн/Нр (бабочка) 1'", "qty": houses_count, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["valve_brass_1"]},
             {"item_key": "brass_tee_1_bbb", "name": "Тройник для труб с внутренней резьбой ВВВ 1' латунь Millenium", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["brass_tee_1_bbb"]},
             {"item_key": "brass_tee_1_2_bbb", "name": "Тройник ВВВ 1/2' (латунь)", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["brass_tee_1_2_bbb"]},
             {"item_key": "brass_nipple_1", "name": "Ниппель НН 1' (латунь)", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["brass_nipple_1"]},
@@ -144,19 +144,23 @@ def get_well_items(data):
         {"item_key": "pipe_pnd_32", "name": "Труба ПНД 32х3,0 SDR 11 (PN 16) бух.250м (синяя)", "qty": total_pipe_pnd_32, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_pnd_32"]},
     ])
 
-    # Трасса и фитинги (для 1 или 2 домов)
-    reduct_32_20_qty = 2 if len(rounded_dists) >= 2 else 1
-    items.extend([
+    # Трасса и фитинги (для 1 или 2 домов) — как в Telegram-миниаппе
+    reduct_32_20_qty = 2 if houses_count >= 2 else 1
+    trench_common = [
         {"item_key": "pnd_coupling_32_32", "name": "Муфта ПНД 32x32 Unidelta", "qty": 1, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_32"]},
         {"item_key": "pnd_reduct_32_20", "name": "Муфта ПНД редукц. 32х20 Unidelta", "qty": reduct_32_20_qty, "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_reduct_32_20"]},
-        {"item_key": "pnd_coupling_32_1_hp", "name": "Муфта ПНД 32х1' HP Unidelta", "qty": len(rounded_dists), "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_1_hp"]},
-        {"item_key": "valve_brass_1", "name": "Кран шаровой Вн/Нр (бабочка) 1'", "qty": len(rounded_dists), "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["valve_brass_1"]},
         {"item_key": "pipe_pnd_20", "name": "Труба ПНД 20x2,0 SDR 11 (PN 16) бух. 500 м (синяя)", "qty": total_dist_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["pipe_pnd_20"]},
         {"item_key": "cable_pvs_3x2_5", "name": "Кабель ПВС 3х2,5, белый, гибкий", "qty": total_dist_m, "unit": "м", "unit_key": "unit_m", "price": PRICES["cable_pvs_3x2_5"]},
-    ])
+    ]
+    if equip_type != "adapter":
+        trench_common.extend([
+            {"item_key": "pnd_coupling_32_1_hp", "name": "Муфта ПНД 32х1' HP Unidelta", "qty": len(rounded_dists), "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["pnd_coupling_32_1_hp"]},
+            {"item_key": "valve_brass_1", "name": "Кран шаровой Вн/Нр (бабочка) 1'", "qty": len(rounded_dists), "unit": "шт", "unit_key": "unit_pcs", "price": PRICES["valve_brass_1"]},
+        ])
+    items.extend(trench_common)
 
     # 2. Если выбрано 2 дома: добавляем Тройник компрессионный ПНД 32х32х32
-    if len(rounded_dists) >= 2:
+    if houses_count >= 2:
         items.append({
             "item_key": "pnd_tee_32",
             "name": "Тройник компрессионный ПНД 32х32х32 Unidelta (разветвитель на 2 дома)",

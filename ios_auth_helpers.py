@@ -9,9 +9,10 @@ from admin_config import OWNER_ADMIN_ID, get_user_modifier
 
 OTP_TTL_SECONDS = int(os.getenv("EMAIL_OTP_TTL", "600"))
 
-STAFF_PRIVILEGED_ROLES = frozenset({"owner", "admin", "manager", "warehouse"})
+STAFF_PRIVILEGED_ROLES = frozenset({"owner", "admin", "manager", "warehouse", "auditor"})
 STAFF_MANAGE_ROLES = frozenset({"owner", "admin"})
-STAFF_ACCOUNT_ROLES = frozenset({"owner", "admin", "manager", "warehouse"})
+STAFF_ACCOUNT_ROLES = frozenset({"owner", "admin", "manager", "warehouse", "auditor"})
+STAFF_MODIFY_ORDER_ROLES = frozenset({"owner", "admin", "manager", "warehouse"})
 
 
 def normalize_phone_digits(p: str) -> str:
@@ -69,8 +70,62 @@ def is_privileged_role(role: str) -> bool:
 
 
 def can_manage_orders(role: str) -> bool:
+    """Просмотр всех заказов (склад, менеджер, аудитор)."""
     r = str(role or "").lower()
-    return r in {"owner", "admin", "manager", "warehouse"}
+    return r in {"owner", "admin", "manager", "warehouse", "auditor"}
+
+
+def client_owns_order(order: dict, *, email: str = "", phone: str = "", user_id: str = "") -> bool:
+    """Принадлежит ли заказ клиенту (email / id / телефон, в т.ч. старые записи)."""
+    raw = order.get("raw_data") or {}
+    em = str(email or "").strip().lower()
+    uid = str(user_id or "").strip()
+    req_phone = normalize_phone_digits(phone)
+    ord_email = str(order.get("client_email") or raw.get("email") or "").strip().lower()
+    ord_uid = str(order.get("client_id", "")).strip()
+    ord_phone = normalize_phone_digits(order.get("phone", ""))
+    uid_digits = normalize_phone_digits(uid)
+
+    if em and ord_email and em == ord_email:
+        return True
+    if uid and ord_uid and uid == ord_uid:
+        return True
+    if uid_digits and ord_phone and uid_digits == ord_phone:
+        return True
+    if req_phone and ord_phone and req_phone == ord_phone:
+        return True
+    # частичное совпадение, если в заказе телефон с форматированием
+    if phone and phone.strip() and phone in str(order.get("phone", "")):
+        return True
+    # Telegram / legacy: client_id — числовой chat_id, в профиле id = телефон
+    try:
+        if ord_uid and ord_uid not in ("0", "", "Не определен") and uid and str(ord_uid) == str(uid):
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def can_modify_orders(role: str) -> bool:
+    """Галочки сборки, смена статуса, отмена."""
+    return str(role or "").lower() in STAFF_MODIFY_ORDER_ROLES
+
+
+def find_staff_login(identifier: str, users_db: dict, builtin: dict):
+    """Вход по email или полю login (например 19652200, sklad1)."""
+    key = str(identifier or "").strip().lower()
+    if not key:
+        return None, None
+    merged = {**builtin, **users_db}
+    if key in merged and str(merged[key].get("role", "client")).lower() != "client":
+        return key, merged[key]
+    for email, rec in merged.items():
+        if str(rec.get("login", "")).strip().lower() == key:
+            return email, rec
+        if str(rec.get("phone", "")).replace("+", "").endswith(key) and key.isdigit():
+            if str(rec.get("role", "client")).lower() != "client":
+                return email, rec
+    return None, None
 
 
 def can_edit_catalog(role: str, user_id: str = "") -> bool:
