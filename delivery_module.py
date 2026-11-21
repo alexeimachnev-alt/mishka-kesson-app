@@ -25,6 +25,9 @@ YANDEX_ROUTING_API_KEY = (
 OSRM_DRIVING_URL = os.getenv(
     "OSRM_DRIVING_URL", "https://router.project-osrm.org/route/v1/driving"
 ).rstrip("/")
+OSRM_MIRROR_URL = os.getenv(
+    "OSRM_MIRROR_URL", "https://routing.openstreetmap.de/routed-car/route/v1/driving"
+).rstrip("/")
 
 DELIVERY_ITEM_KEY = "delivery_truck_fee"
 
@@ -49,9 +52,9 @@ def yandex_navi_url(lat: float, lon: float) -> str:
     return f"https://yandex.ru/navi?whatshere%5Bpoint%5D={lon},{lat}&whatshere%5Bzoom%5D=16"
 
 
-def _route_distance_osrm(dest_lat: float, dest_lon: float) -> float:
+def _route_distance_osrm_base(base_url: str, dest_lat: float, dest_lon: float) -> float:
     coords = f"{WAREHOUSE_LON},{WAREHOUSE_LAT};{dest_lon},{dest_lat}"
-    url = f"{OSRM_DRIVING_URL}/{coords}"
+    url = f"{base_url}/{coords}"
     resp = requests.get(
         url,
         params={"overview": "false", "alternatives": "false", "steps": "false"},
@@ -65,27 +68,87 @@ def _route_distance_osrm(dest_lat: float, dest_lon: float) -> float:
     return meters / 1000.0
 
 
-def _route_distance_yandex(dest_lat: float, dest_lon: float) -> float:
-    if not YANDEX_ROUTING_API_KEY:
-        raise ValueError("Yandex Routing API key not configured")
-    waypoints = f"{WAREHOUSE_LON},{WAREHOUSE_LAT}|{dest_lon},{dest_lat}"
-    url = "https://api.routing.yandex.net/v2/route"
-    resp = requests.get(
-        url,
-        params={"waypoints": waypoints, "apikey": YANDEX_ROUTING_API_KEY},
-        timeout=25,
-    )
-    resp.raise_for_status()
-    data = resp.json()
+def _route_distance_osrm(dest_lat: float, dest_lon: float) -> float:
+    try:
+        return _route_distance_osrm_base(OSRM_DRIVING_URL, dest_lat, dest_lon)
+    except Exception as primary_err:
+        try:
+            return _route_distance_osrm_base(OSRM_MIRROR_URL, dest_lat, dest_lon)
+        except Exception:
+            raise primary_err
+
+
+def _yandex_route_km_from_payload(data: dict) -> float:
+    """Длина маршрута (км) из ответа Router API v2 — сумма length всех steps."""
+    if data.get("errors"):
+        err = data["errors"][0] if isinstance(data["errors"], list) else data["errors"]
+        raise ValueError(err.get("message") or str(err))
     route = data.get("route") or {}
     legs = route.get("legs") or []
     if not legs:
         raise ValueError("Yandex: пустой маршрут")
     meters = 0.0
     for leg in legs:
-        meters += float(leg.get("length", 0))
+        if str(leg.get("status", "OK")).upper() == "FAIL":
+            raise ValueError("Yandex: маршрут недоступен")
+        for step in leg.get("steps") or []:
+            meters += float(step.get("length") or 0)
     if meters <= 0:
         raise ValueError("Yandex: не удалось получить длину маршрута")
+    return meters / 1000.0
+
+
+def _route_distance_yandex(dest_lat: float, dest_lon: float) -> float:
+    if not YANDEX_ROUTING_API_KEY:
+        raise ValueError("Yandex Routing API key not configured")
+    # API v2: waypoints — lat,lon|lat,lon (широта, долгота)
+    waypoints = f"{WAREHOUSE_LAT},{WAREHOUSE_LON}|{dest_lat},{dest_lon}"
+    url = "https://api.routing.yandex.net/v2/route"
+    resp = requests.get(
+        url,
+        params={
+            "waypoints": waypoints,
+            "apikey": YANDEX_ROUTING_API_KEY,
+            "mode": "driving",
+            "traffic": "disabled",
+        },
+        timeout=25,
+    )
+    if resp.status_code == 403:
+        raise ValueError("Yandex Router: ключ без доступа к API маршрутизации")
+    resp.raise_for_status()
+    return _yandex_route_km_from_payload(resp.json())
+
+
+def _route_distance_yandex_matrix(dest_lat: float, dest_lon: float) -> float:
+    """Запасной способ — матрица расстояний (тоже по дорогам)."""
+    if not YANDEX_ROUTING_API_KEY:
+        raise ValueError("Yandex Routing API key not configured")
+    url = "https://api.routing.yandex.net/v2/distancematrix"
+    resp = requests.get(
+        url,
+        params={
+            "origins": f"{WAREHOUSE_LAT},{WAREHOUSE_LON}",
+            "destinations": f"{dest_lat},{dest_lon}",
+            "apikey": YANDEX_ROUTING_API_KEY,
+            "mode": "driving",
+        },
+        timeout=25,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    rows = data.get("rows") or []
+    if not rows:
+        raise ValueError("Yandex matrix: пустой ответ")
+    elements = rows[0].get("elements") or []
+    if not elements:
+        raise ValueError("Yandex matrix: нет элементов")
+    elem = elements[0]
+    if str(elem.get("status", "")).upper() not in ("OK", "DONE", ""):
+        raise ValueError(elem.get("message") or "Yandex matrix: маршрут не найден")
+    meters = float(elem.get("distance", {}).get("value") or elem.get("distance") or 0)
+    if meters <= 0:
+        raise ValueError("Yandex matrix: нулевое расстояние")
     return meters / 1000.0
 
 
@@ -105,20 +168,24 @@ def _straight_line_road_estimate_km(dest_lat: float, dest_lon: float) -> float:
 
 
 def road_distance_km(dest_lat: float, dest_lon: float) -> tuple[float, str]:
-    """Километраж по дорогам; возвращает (km, provider)."""
-    errors = []
+    """Километраж по дорогам (маршрут), не «по прямой»."""
+    errors: list[str] = []
     if YANDEX_ROUTING_API_KEY:
         try:
-            return _route_distance_yandex(dest_lat, dest_lon), "yandex"
+            return _route_distance_yandex(dest_lat, dest_lon), "yandex_route"
         except Exception as e:
-            errors.append(f"Yandex: {e}")
+            errors.append(f"route: {e}")
+        try:
+            return _route_distance_yandex_matrix(dest_lat, dest_lon), "yandex_matrix"
+        except Exception as e:
+            errors.append(f"matrix: {e}")
     try:
         return _route_distance_osrm(dest_lat, dest_lon), "osrm"
     except Exception as e:
         errors.append(f"OSRM: {e}")
-    est = _straight_line_road_estimate_km(dest_lat, dest_lon)
-    print(f"[DELIVERY] road routers failed ({errors}); estimate_km={est:.2f}")
-    return est, "estimate"
+    msg = "Не удалось построить маршрут по дорогам. " + "; ".join(errors[:3])
+    print(f"[DELIVERY] {msg}")
+    raise ValueError(msg)
 
 
 def calculate_delivery_quote(dest_lat: float, dest_lon: float) -> dict:
